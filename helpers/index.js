@@ -1,38 +1,30 @@
 require("dotenv").config();
 const express = require("express");
 const moment = require("moment");
+const axios = require('axios');
 const {customAlphabet} = require("nanoid")
-const {checkApiKey} = require("./helpers");
-const {jobs} = require('../data')
+const {checkApiKey, stuartProviderRequest, genReferenceNumber, genDummyQuote} = require("./helpers");
+const {jobs, clients} = require('../data')
+const {alphabet} = require("../constants");
 
 /**
  * The first entry point to Seconds API service,
  * it creates a new job with delivery requirements
  */
-const numbers = '1234567890'
-const lowerCase = 'abcdefghijklmnopqrstuvwxyz'
-const upperCase = lowerCase.toUpperCase()
-const symbols = '~!@$^&*()-+{}][|,./;:\''
-const alphabet = String(numbers + numbers + lowerCase + upperCase + symbols)
 const nanoid = customAlphabet(alphabet, 24)
 
-/**
- * Create Job - The initial API endpoint for creating new delivery jobs
- * @constructor
- * @param req - request object
- * @param res - response object
- * @returns {Promise<*>}
- */
 exports.createJob = async (req, res) => {
 	const {
 		pickupAddress,
 		pickupPhoneNumber,
+		pickupEmailAddress,
 		pickupBusinessName,
 		pickupFirstName,
 		pickupLastName,
 		pickupInstructions,
 		dropoffAddress,
 		dropoffPhoneNumber,
+		dropoffEmailAddress,
 		dropoffBusinessName,
 		dropoffFirstName,
 		dropoffLastName,
@@ -48,13 +40,32 @@ exports.createJob = async (req, res) => {
 		itemsCount,
 	} = req.body;
 	const {authorization} = req.headers;
+	const QUOTES = []
 	if (authorization === undefined) {
-		return res.status(404).json({
-			code: 404,
+		return res.status(401).json({
+			code: 401,
 			message: "No valid API key provided!"
 		})
 	}
 	if (checkApiKey(authorization)) {
+		// check the client that made the request
+		let foundClient = clients.find(client => client.apiKey === authorization)
+		// lookup the selection strategy
+		let selectionStrategy = foundClient["selectionStrategy"]
+		//generate client reference number
+		let clientRefNumber = genReferenceNumber();
+		// send delivery request to integrated providers
+		let stuartQuote = await stuartProviderRequest(clientRefNumber, req.body)
+		QUOTES.push(stuartQuote)
+		// create dummy quotes
+		let dummyQuote1 = genDummyQuote(clientRefNumber, req.body)
+		QUOTES.push(dummyQuote1)
+		let dummyQuote2 = genDummyQuote(clientRefNumber, req.body)
+		QUOTES.push(dummyQuote2)
+		let dummyQuote3 = genDummyQuote(clientRefNumber, req.body)
+		QUOTES.push(dummyQuote3)
+
+		// QUOTE AGGREGATION
 		let response = {
 			createdAt: moment.now(),
 			id: `job_${nanoid()}`,
@@ -68,7 +79,7 @@ exports.createJob = async (req, res) => {
 						postcode: "HU9 9JF",
 						country: "UK",
 						phoneNumber: dropoffPhoneNumber,
-						email: null,
+						email: dropoffEmailAddress,
 						firstName: dropoffFirstName,
 						lastName: dropoffLastName,
 						businessName: dropoffBusinessName,
@@ -85,7 +96,7 @@ exports.createJob = async (req, res) => {
 						postcode: "PL2 2PB",
 						country: "UK",
 						phoneNumber: pickupPhoneNumber,
-						email: null,
+						email: pickupEmailAddress,
 						firstName: pickupFirstName,
 						lastName: pickupLastName,
 						businessName: pickupBusinessName,
@@ -120,7 +131,7 @@ exports.createJob = async (req, res) => {
 		jobs.push(response)
 		console.log("Num jobs:", jobs.length)
 		return res.status(200).json({
-			...response
+			QUOTES
 		})
 	}
 	return res.status(403).json({
@@ -248,7 +259,7 @@ exports.deleteJob = async (req, res) => {
 			jobs.splice(jobIndex, 1)
 			console.log("Num jobs:", jobs.length)
 			return res.status(200).json({
-				job_id: jobId,
+				jobId,
 				cancelled: true
 			})
 		} else {
