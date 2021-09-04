@@ -1,0 +1,25 @@
+{
+  "type": "object",
+  "properties": {
+	"pickupInstructions": {
+	  "type": "string"
+	},
+	"dropoffInstructions": {
+	  "type": "string"
+	},
+	"packageDescription": {
+	  "type": "string"
+	},
+	"packageValue": {
+	  "type": "integer",
+	  "format": "int32"
+	},
+	"packageTax": {
+	  "type": "number"
+	},
+	"itemsCount": {
+	  "type": "integer",
+	  "format": "int32"
+	}
+  }
+}

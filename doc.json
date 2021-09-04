@@ -1,0 +1,524 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+	"title": "Seconds API",
+	"version": "1.0.0",
+	"description": "Welcome to the Seconds API documentation",
+	"license": {
+	  "name": "Licensed Under MIT",
+	  "url": "https://spdx.org/licenses/MIT.html"
+	},
+	"contact": {
+	  "name": "JSONPlaceholder",
+	  "url": "https://jsonplaceholder.typicode.com"
+	}
+  },
+  "servers": [
+	{
+	  "url": "http://localhost:3001",
+	  "description": "Development server"
+	}
+  ],
+  "components": {
+	"securitySchemes": {
+	  "ApiKeyAuth": {
+		"type": "apiKey",
+		"in": "header",
+		"name": "Authorization"
+	  }
+	},
+	"schemas": {
+	  "DeliveryRequirements": {
+		"$ref": "./schemas/JobRequirements.json"
+	  },
+	  "Job": {
+		"$ref": "./schemas/Job.json"
+	  },
+	  "UpdateRequirements": {
+		"$ref": "./schemas/JobUpdateRequirements.json"
+	  },
+	  "DeletedJob": {
+		"type": "object",
+		"properties": {
+		  "code": {
+			"type": "integer"
+		  },
+		  "jobId": {
+			"type": "string"
+		  },
+		  "cancelled": {
+			"type": "boolean"
+		  }
+		}
+	  },
+	  "Error": {
+		"type": "object",
+		"properties": {
+		  "code": {
+			"type": "integer"
+		  },
+		  "message": {
+			"type": "string"
+		  }
+		}
+	  }
+	},
+	"parameters": {
+	  "JobId": {
+		"in": "path",
+		"name": "job_id",
+		"required": true,
+		"description": "The id of the requested delivery job",
+		"schema": {
+		  "type": "string",
+		  "example": "job_SKDo1qRpUveLU8@NWZ3:ofsC"
+		}
+	  }
+	},
+	"requestBodies": {
+	  "createJobRequest": {
+		"description": "Request body of delivery properties",
+		"content": {
+		  "application/json": {
+			"schema": {
+			  "$ref": "#/components/schemas/DeliveryRequirements"
+			},
+			"example": {
+			  "pickupAddress": "5 St Stephens Road, Barnet, EN5 2TA",
+			  "pickupPhoneNumber": "+447507210809",
+			  "pickupBusinessName": "NeedNowSnacks",
+			  "pickupFirstName": "Ola",
+			  "pickupLastName": "Oladapo",
+			  "pickupInstructions": "N/A",
+			  "dropoffAddress": "Bush Hill Park Service Station, Great Cambridge Road, Enfield,EN1 1JD",
+			  "dropoffPhoneNumber": "+447523958055",
+			  "dropoffBusinessName": "Humandroid",
+			  "dropoffFirstName": "Chisom",
+			  "dropoffLastName": "Oguibe",
+			  "dropoffInstructions": "Leave in the front porch, if not available",
+			  "packageDeliveryMode": "Any",
+			  "packageDropoffStartTime": "Mon Aug 30 2021 14:04:01 GMT+0000",
+			  "packageDropoffEndTime": "Mon Aug 30 2021 14:24:01 GMT+0000",
+			  "packagePickupStartTime": "Mon Aug 30 2021 13:44:01 GMT+0000",
+			  "packagePickupEndTime": "Mon Aug 30 2021 13:50:01 GMT+0000",
+			  "packageDescription": "Xbox One S Console",
+			  "packageValue": 250.00,
+			  "packageTax": 0.2,
+			  "itemsCount": 1
+			}
+		  }
+		}
+	  },
+	  "updateJobRequest": {
+		"description": "Request body of delivery properties",
+		"content": {
+		  "application/json": {
+			"schema": {
+			  "$ref": "#/components/schemas/UpdateRequirements"
+			}
+		  }
+		}
+	  }
+	},
+	"responses": {
+	  "createJobResponse": {
+		"description": "The created job",
+		"content": {
+		  "application/json": {
+			"schema": {
+			  "$ref": "#/components/schemas/Job"
+			},
+			"example": {
+			  "createdAt": 1630514605791,
+			  "id": "job_SKDo1qRpUveLU8@NWZ3:ofsC",
+			  "jobSpecification": {
+				"id": "spec_72h|XTMrst9zEts7E'aa/PSq",
+				"packages": [
+				  {
+					"description": "Xbox One S Console",
+					"dropoffLocation": {
+					  "address": "Bush Hill Park Service Station, Great Cambridge Road, Enfield,EN1 1JD",
+					  "city": "Hull",
+					  "postcode": "HU9 9JF",
+					  "country": "UK",
+					  "phoneNumber": "+447523958055",
+					  "email": null,
+					  "firstName": "Chisom",
+					  "lastName": "Oguibe",
+					  "businessName": "Humandroid",
+					  "instructions": "Leave in the front porch, if not available"
+					},
+					"dropoffStartTime": "Mon Aug 30 2021 14:04:01 GMT+0000",
+					"dropoffEndTime": "Mon Aug 30 2021 14:24:01 GMT+0000",
+					"itemsCount": 1,
+					"pickupStartTime": "Mon Aug 30 2021 13:44:01 GMT+0000",
+					"pickupEndTime": "Mon Aug 30 2021 13:50:01 GMT+0000",
+					"pickupLocation": {
+					  "address": "5 St Stephens Road, Barnet, EN5 2TA",
+					  "city": "Plymouth",
+					  "postcode": "PL2 2PB",
+					  "country": "UK",
+					  "phoneNumber": "+447507210809",
+					  "email": null,
+					  "firstName": "Ola",
+					  "lastName": "Oladapo",
+					  "businessName": "NeedNowSnacks",
+					  "instructions": "N/A"
+					},
+					"tax": 0.2,
+					"value": 250
+				  }
+				]
+			  },
+			  "selectedConfiguration": {
+				"createdAt": "2021-06-22T18:16:54.025917",
+				"tasks": [
+				  {
+					"delivery": "Any",
+					"id": "task_A2G0W*Qu;6D;[*2iEg-ot]6N",
+					"providerId": null,
+					"quotes": [
+					  {
+						"createdTime": "2021-06-22T18:16:56",
+						"currency": "GBP",
+						"dropoffEta": "2021-09-22T19:52:56",
+						"expireTime": "2021-09-22T18:21:56",
+						"id": "quote_4scqrEA,bItf||O9!0c1Qc1k",
+						"pickupWindow": "2021-06-22T18:16:56.361353",
+						"price": 13.04,
+						"providerId": "partner_1"
+					  }
+					]
+				  }
+				]
+			  },
+			  "status": "CREATED"
+			}
+		  }
+		}
+	  },
+	  "requestedJobResponse": {
+		"description": "The requested job",
+		"content": {
+		  "application/json": {
+			"schema": {
+			  "$ref": "#/components/schemas/Job"
+			},
+			"example": {
+			  "createdAt": 1630514605791,
+			  "id": "job_SKDo1qRpUveLU8@NWZ3:ofsC",
+			  "jobSpecification": {
+				"id": "spec_72h|XTMrst9zEts7E'aa/PSq",
+				"packages": [
+				  {
+					"description": "Xbox One S Console",
+					"dropoffLocation": {
+					  "address": "Bush Hill Park Service Station, Great Cambridge Road, Enfield,EN1 1JD",
+					  "city": "Hull",
+					  "postcode": "HU9 9JF",
+					  "country": "UK",
+					  "phoneNumber": "+447523958055",
+					  "email": null,
+					  "firstName": "Chisom",
+					  "lastName": "Oguibe",
+					  "businessName": "Humandroid",
+					  "instructions": "Leave in the front porch, if not available"
+					},
+					"dropoffStartTime": "Mon Aug 30 2021 14:04:01 GMT+0000",
+					"dropoffEndTime": "Mon Aug 30 2021 14:24:01 GMT+0000",
+					"itemsCount": 1,
+					"pickupStartTime": "Mon Aug 30 2021 13:44:01 GMT+0000",
+					"pickupEndTime": "Mon Aug 30 2021 13:50:01 GMT+0000",
+					"pickupLocation": {
+					  "address": "5 St Stephens Road, Barnet, EN5 2TA",
+					  "city": "Plymouth",
+					  "postcode": "PL2 2PB",
+					  "country": "UK",
+					  "phoneNumber": "+447507210809",
+					  "email": null,
+					  "firstName": "Ola",
+					  "lastName": "Oladapo",
+					  "businessName": "NeedNowSnacks",
+					  "instructions": "N/A"
+					},
+					"tax": 0.2,
+					"value": 250
+				  }
+				]
+			  },
+			  "selectedConfiguration": {
+				"createdAt": "2021-06-22T18:16:54.025917",
+				"tasks": [
+				  {
+					"delivery": "Any",
+					"id": "task_A2G0W*Qu;6D;[*2iEg-ot]6N",
+					"providerId": null,
+					"quotes": [
+					  {
+						"createdTime": "2021-06-22T18:16:56",
+						"currency": "GBP",
+						"dropoffEta": "2021-09-22T19:52:56",
+						"expireTime": "2021-09-22T18:21:56",
+						"id": "quote_4scqrEA,bItf||O9!0c1Qc1k",
+						"pickupWindow": "2021-06-22T18:16:56.361353",
+						"price": 13.04,
+						"providerId": "partner_1"
+					  }
+					]
+				  }
+				]
+			  },
+			  "status": "CREATED"
+			}
+		  }
+		}
+	  },
+	  "updatedJobResponse": {
+		"description": "The updated job",
+		"content": {
+		  "application/json": {
+			"schema": {
+			  "$ref": "#/components/schemas/Job"
+			},
+			"example": {
+			  "createdAt": 1630514605791,
+			  "id": "job_SKDo1qRpUveLU8@NWZ3:ofsC",
+			  "jobSpecification": {
+				"id": "spec_72h|XTMrst9zEts7E'aa/PSq",
+				"packages": [
+				  {
+					"description": "Xbox One S Console",
+					"dropoffLocation": {
+					  "address": "Bush Hill Park Service Station, Great Cambridge Road, Enfield,EN1 1JD",
+					  "city": "Hull",
+					  "postcode": "HU9 9JF",
+					  "country": "UK",
+					  "phoneNumber": "+447523958055",
+					  "email": null,
+					  "firstName": "Chisom",
+					  "lastName": "Oguibe",
+					  "businessName": "Humandroid",
+					  "instructions": "Leave in the front porch, if not available"
+					},
+					"dropoffStartTime": "Mon Aug 30 2021 14:04:01 GMT+0000",
+					"dropoffEndTime": "Mon Aug 30 2021 14:24:01 GMT+0000",
+					"itemsCount": 1,
+					"pickupStartTime": "Mon Aug 30 2021 13:44:01 GMT+0000",
+					"pickupEndTime": "Mon Aug 30 2021 13:50:01 GMT+0000",
+					"pickupLocation": {
+					  "address": "5 St Stephens Road, Barnet, EN5 2TA",
+					  "city": "Plymouth",
+					  "postcode": "PL2 2PB",
+					  "country": "UK",
+					  "phoneNumber": "+447507210809",
+					  "email": null,
+					  "firstName": "Ola",
+					  "lastName": "Oladapo",
+					  "businessName": "NeedNowSnacks",
+					  "instructions": "N/A"
+					},
+					"tax": 0.2,
+					"value": 250
+				  }
+				]
+			  },
+			  "selectedConfiguration": {
+				"createdAt": "2021-06-22T18:16:54.025917",
+				"tasks": [
+				  {
+					"delivery": "Any",
+					"id": "task_A2G0W*Qu;6D;[*2iEg-ot]6N",
+					"providerId": null,
+					"quotes": [
+					  {
+						"createdTime": "2021-06-22T18:16:56",
+						"currency": "GBP",
+						"dropoffEta": "2021-09-22T19:52:56",
+						"expireTime": "2021-09-22T18:21:56",
+						"id": "quote_4scqrEA,bItf||O9!0c1Qc1k",
+						"pickupWindow": "2021-06-22T18:16:56.361353",
+						"price": 13.04,
+						"providerId": "partner_1"
+					  }
+					]
+				  }
+				]
+			  },
+			  "status": "CREATED"
+			}
+		  }
+		}
+	  },
+	  "deletedJobResponse": {
+		"description": "Confirmation of cancelled job",
+		"content": {
+		  "application/json": {
+			"schema": {
+			  "$ref": "#/components/schemas/DeletedJob"
+			},
+			"example": {
+			  "code": 200,
+			  "jobId": "job_L*m{ko5zw$zG*gF.5)XacE0}",
+			  "cancelled": true
+			}
+		  }
+		}
+	  },
+	  "401Unauthorized": {
+		"description": "The API key is missing in the request",
+		"content": {
+		  "application/json": {
+			"schema": {
+			  "$ref": "#/components/schemas/Error"
+			},
+			"example": {
+			  "code": 401,
+			  "message": "No valid API key provided!"
+			}
+		  }
+		}
+	  },
+	  "403Forbidden": {
+		"description": "The API key passed is invalid or does not have the right permissions",
+		"content": {
+		  "application/json": {
+			"schema": {
+			  "$ref": "#/components/schemas/Error"
+			},
+			"example": {
+			  "code": 403,
+			  "message": "Invalid API Key!"
+			}
+		  }
+		}
+	  },
+	  "404NotFound": {
+		"description": "The requested delivery job could not be found",
+		"content": {
+		  "application/json": {
+			"schema": {
+			  "$ref": "#/components/schemas/Error"
+			},
+			"example": {
+			  "code": 404,
+			  "message": "No job found with ID: job_SKDo1qRpUveLU8@NWZ3:ofsC"
+			}
+		  }
+		}
+	  }
+	}
+  },
+  "security": [
+	{
+	  "ApiKeyAuth": []
+	}
+  ],
+  "tags": [
+	{
+	  "name": "Jobs",
+	  "description": "API endpoints for delivery jobs"
+	}
+  ],
+  "paths": {
+	"/api/v1/jobs/create": {
+	  "post": {
+		"tags": [
+		  "Jobs"
+		],
+		"description": "Creates a new delivery job. Delivery jobs are assigned with a status to indicate the stage of the delivery process",
+		"summary": "API endpoint for creating new delivery jobs.",
+		"requestBody": {
+		  "$ref": "#/components/requestBodies/createJobRequest"
+		},
+		"responses": {
+		  "200": {
+			"$ref": "#/components/responses/createJobResponse"
+		  },
+		  "401": {
+			"$ref": "#/components/responses/401Unauthorized"
+		  }
+		}
+	  }
+	},
+	"/api/v1/jobs/{job_id}": {
+	  "get": {
+		"tags": [
+		  "Jobs"
+		],
+		"parameters": [
+		  {
+			"$ref": "#/components/parameters/JobId"
+		  }
+		],
+		"summary": "API endpoint for retrieving a delivery job",
+		"description": "",
+		"responses": {
+		  "200": {
+			"$ref": "#/components/responses/requestedJobResponse"
+		  },
+		  "401": {
+			"$ref": "#/components/responses/401Unauthorized"
+		  },
+		  "404": {
+			"$ref": "#/components/responses/404NotFound"
+		  }
+		}
+	  },
+	  "patch": {
+		"tags": [
+		  "Jobs"
+		],
+		"description": "",
+		"summary": "API endpoint for updating details of a delivery job",
+		"parameters": [
+		  {
+			"$ref": "#/components/parameters/JobId"
+		  }
+		],
+		"requestBody": {
+		  "$ref": "#/components/requestBodies/updateJobRequest"
+		},
+		"responses": {
+		  "200": {
+			"$ref": "#/components/responses/updatedJobResponse"
+		  },
+		  "401": {
+			"$ref": "#/components/responses/401Unauthorized"
+		  },
+		  "403": {
+			"$ref": "#/components/responses/403Forbidden"
+		  },
+		  "404": {
+			"$ref": "#/components/responses/404NotFound"
+		  }
+		}
+	  },
+	  "delete": {
+		"tags": [
+		  "Jobs"
+		],
+		"description": "",
+		"summary": "API endpoint for cancelling a delivery job",
+		"parameters": [
+		  {
+			"$ref": "#/components/parameters/JobId"
+		  }
+		],
+		"responses": {
+		  "200": {
+			"$ref": "#/components/responses/deletedJobResponse"
+		  },
+		  "401": {
+			"$ref": "#/components/responses/401Unauthorized"
+		  },
+		  "403": {
+			"$ref": "#/components/responses/403Forbidden"
+		  },
+		  "404": {
+			"$ref": "#/components/responses/404NotFound"
+		  }
+		}
+	  }
+	}
+  }
+}

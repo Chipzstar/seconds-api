@@ -22,11 +22,33 @@ function genApiKey() {
 const clients = [
 	{
 		_id: nanoid(10),
+		email: "admin@gmail.com",
+		apiKey: "admin",
+		selectionStrategy: "default"
+	},
+	{
+		_id: nanoid(10),
 		email: "chisom.oguibe@gmail.com",
-		apiKey: genApiKey()
+		apiKey: genApiKey(),
+		selectionStrategy: "lowest-price"
+	},
+	{
+		_id: nanoid(10),
+		email: "olaoldapo7@gmail.com",
+		apiKey: genApiKey(),
+		selectionStrategy: "fastest-delivery-time"
 	}
 ]
 
 const jobs = []
+
+const providers = [
+	{
+		_id: nanoid(20),
+		name: "Snap",
+		quote: {},
+
+	}
+]
 
 module.exports = { clients, jobs };
