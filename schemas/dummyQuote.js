@@ -3,7 +3,7 @@ const moment = require("moment");
 
 const package_types = ["xlarge", "large", "medium", "small", "xsmall"]
 
-exports.dummyQuote = {
+exports.dummyJob = {
 	id: nanoid(9),
 	created_at: moment().toISOString(),
 	status: "searching",

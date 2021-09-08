@@ -7,6 +7,9 @@
 	"pickupPhoneNumber": {
 	  "type": "string"
 	},
+	"pickupEmailAddress": {
+	  "type": "string"
+	},
 	"pickupBusinessName": {
 	  "type": "string"
 	},
@@ -25,6 +28,9 @@
 	"dropoffPhoneNumber": {
 	  "type": "string"
 	},
+	  "dropoffEmailAddress": {
+		"type": "string"
+	  },
 	"dropoffBusinessName": {
 	  "type": "string"
 	},

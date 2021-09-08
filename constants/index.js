@@ -1,11 +1,17 @@
-exports.STATUS = {
+exports.DELIVERY_STATUS = {
 	CREATED: "created",
 	PENDING: "pending",
-	SCHEDULED: "scheduled",
+	DISPATCHED: "dispatched",
 	IN_PROGRESS: "in_progress",
 	COMPLETED: "completed",
 	CANCELLED: "cancelled",
 	EXPIRED: "expired"
+}
+
+exports.SELECTION_STRATEGIES = {
+	PRICE: "lowest-price",
+	ETA: "fastest-delivery-time",
+	RATING: "best-rating"
 }
 
 const numbers = '1234567890'

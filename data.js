@@ -1,5 +1,6 @@
 const { nanoid } = require('nanoid')
 const crypto = require("crypto");
+const {SELECTION_STRATEGIES} = require("./constants");
 
 function genApiKey() {
 	const rand = crypto.randomBytes(24);
@@ -24,31 +25,22 @@ const clients = [
 		_id: nanoid(10),
 		email: "admin@gmail.com",
 		apiKey: "admin",
-		selectionStrategy: "default"
+		selectionStrategy: SELECTION_STRATEGIES.ETA
 	},
 	{
 		_id: nanoid(10),
 		email: "chisom.oguibe@gmail.com",
 		apiKey: genApiKey(),
-		selectionStrategy: "lowest-price"
+		selectionStrategy: SELECTION_STRATEGIES.PRICE
 	},
 	{
 		_id: nanoid(10),
 		email: "olaoldapo7@gmail.com",
 		apiKey: genApiKey(),
-		selectionStrategy: "fastest-delivery-time"
+		selectionStrategy: SELECTION_STRATEGIES.ETA
 	}
 ]
 
 const jobs = []
-
-const providers = [
-	{
-		_id: nanoid(20),
-		name: "Snap",
-		quote: {},
-
-	}
-]
 
 module.exports = { clients, jobs };

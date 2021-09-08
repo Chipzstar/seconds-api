@@ -1,14 +1,17 @@
 require("dotenv").config();
 const express = require("express");
 const bodyParser = require('body-parser');
+const moment = require('moment-timezone');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const jobRoutes = require('./routes');
 const port = 3001;
+moment.tz.setDefault("Europe/London");
 
 const swaggerJSDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
+const {validateApiKey} = require("./middleware/auth");
 
 const swaggerDefinition = {
 	openapi: '3.0.0',
@@ -69,6 +72,9 @@ app.use(cors());
 
 // adding morgan to log HTTP requests
 app.use(morgan('combined'));
+
+// add middleware
+app.use(validateApiKey)
 
 // defining an endpoint to return a welcome message
 app.get('/', (req, res) => {

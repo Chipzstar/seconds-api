@@ -2,10 +2,10 @@ require("dotenv").config();
 const express = require("express");
 const moment = require("moment");
 const axios = require('axios');
-const {customAlphabet} = require("nanoid")
-const {checkApiKey, stuartProviderRequest, genReferenceNumber, genDummyQuote} = require("./helpers");
-const {jobs, clients} = require('../data')
-const {alphabet} = require("../constants");
+const {customAlphabet} = require("nanoid");
+const { genReferenceNumber, genDummyQuote, getStuartQuote, chooseBestProvider} = require("./helpers");
+const {jobs, clients} = require('../data');
+const {alphabet, DELIVERY_STATUS, SELECTION_STRATEGIES} = require("../constants");
 
 /**
  * The first entry point to Seconds API service,
@@ -14,60 +14,56 @@ const {alphabet} = require("../constants");
 const nanoid = customAlphabet(alphabet, 24)
 
 exports.createJob = async (req, res) => {
-	const {
-		pickupAddress,
-		pickupPhoneNumber,
-		pickupEmailAddress,
-		pickupBusinessName,
-		pickupFirstName,
-		pickupLastName,
-		pickupInstructions,
-		dropoffAddress,
-		dropoffPhoneNumber,
-		dropoffEmailAddress,
-		dropoffBusinessName,
-		dropoffFirstName,
-		dropoffLastName,
-		dropoffInstructions,
-		packageDeliveryMode,
-		packageDropoffStartTime,
-		packageDropoffEndTime,
-		packagePickupStartTime,
-		packagePickupEndTime,
-		packageDescription,
-		packageValue,
-		packageTax,
-		itemsCount,
-	} = req.body;
-	const {authorization} = req.headers;
-	const QUOTES = []
-	if (authorization === undefined) {
-		return res.status(401).json({
-			code: 401,
-			message: "No valid API key provided!"
-		})
-	}
-	if (checkApiKey(authorization)) {
-		// check the client that made the request
-		let foundClient = clients.find(client => client.apiKey === authorization)
+	try {
+		const {
+			pickupAddress,
+			pickupPhoneNumber,
+			pickupEmailAddress,
+			pickupBusinessName,
+			pickupFirstName,
+			pickupLastName,
+			pickupInstructions,
+			dropoffAddress,
+			dropoffPhoneNumber,
+			dropoffEmailAddress,
+			dropoffBusinessName,
+			dropoffFirstName,
+			dropoffLastName,
+			dropoffInstructions,
+			packageDeliveryMode,
+			packageDropoffStartTime,
+			packageDropoffEndTime,
+			packagePickupStartTime,
+			packagePickupEndTime,
+			packageDescription,
+			packageValue,
+			packageTax,
+			itemsCount,
+		} = req.body;
+		const {authorization: apiKey} = req.headers;
+		const QUOTES = []
+		let foundClient = clients.find(client => client.apiKey === apiKey)
 		// lookup the selection strategy
 		let selectionStrategy = foundClient["selectionStrategy"]
 		//generate client reference number
 		let clientRefNumber = genReferenceNumber();
+		// QUOTE AGGREGATION
 		// send delivery request to integrated providers
-		let stuartQuote = await stuartProviderRequest(clientRefNumber, req.body)
+		let stuartQuote = await getStuartQuote(clientRefNumber, req.body)
 		QUOTES.push(stuartQuote)
 		// create dummy quotes
-		let dummyQuote1 = genDummyQuote(clientRefNumber, req.body)
+		let dummyQuote1 = genDummyQuote(clientRefNumber, "dummy_provider_1")
 		QUOTES.push(dummyQuote1)
-		let dummyQuote2 = genDummyQuote(clientRefNumber, req.body)
+		let dummyQuote2 = genDummyQuote(clientRefNumber, "dummy_provider_2")
 		QUOTES.push(dummyQuote2)
-		let dummyQuote3 = genDummyQuote(clientRefNumber, req.body)
+		let dummyQuote3 = genDummyQuote(clientRefNumber, "dummy_provider_3")
 		QUOTES.push(dummyQuote3)
+		// Use selection strategy to select the winner quote
+		let bestQuote = chooseBestProvider(selectionStrategy, QUOTES)
+		console.log({ bestQuote })
 
-		// QUOTE AGGREGATION
-		let response = {
-			createdAt: moment.now(),
+		let job = {
+			createdAt: moment().toISOString(),
 			id: `job_${nanoid()}`,
 			jobSpecification: {
 				id: `spec_${nanoid()}`,
@@ -107,39 +103,43 @@ exports.createJob = async (req, res) => {
 				}]
 			},
 			selectedConfiguration: {
-				createdAt: "2021-06-22T18:16:54.025917",
+				createdAt: moment().toISOString(),
 				tasks: [
 					{
 						delivery: packageDeliveryMode,
 						id: `task_${nanoid()}`,
 						providerId: null,
-						quotes: [
-							{
-								createdTime: "2021-06-22T18:16:56",
-								currency: "GBP",
-								dropoffEta: "2021-09-22T19:52:56",
-								expireTime: "2021-09-22T18:21:56",
-								id: `quote_${nanoid()}`,
-								pickupWindow: "2021-06-22T18:16:56.361353",
-								price: 13.04,
-								providerId: "partner_1"
-							}]
+						quotes: QUOTES
 					}]
 			},
-			status: "CREATED",
+			status: DELIVERY_STATUS.CREATED,
+			winnerQuote: bestQuote.id
 		}
-		jobs.push(response)
+		// Append the selected provider job to the jobs database
+		jobs.push(job)
 		console.log("Num jobs:", jobs.length)
 		return res.status(200).json({
-			QUOTES
+			...job
 		})
+	} catch (e) {
+		return res.status(400).json({
+			code: 400,
+			message: "Unknown error occurred!"
+		});
 	}
-	return res.status(403).json({
-		code: 403,
-		message: "The API key doesn't have permissions to perform the request."
-	});
 }
-
+/**
+ * List Jobs - The API endpoint for listing all jobs currently in progress
+ * @constructor
+ * @param req - request object
+ * @param res - response object
+ * @returns {Promise<*>}
+ */
+exports.listJobs = async (req, res) => {
+	return res.status(200).json({
+		jobs
+	})
+}
 /**
  * Get Job - The API endpoint for retrieving created delivery jobs
  * @constructor
@@ -148,8 +148,7 @@ exports.createJob = async (req, res) => {
  * @returns {Promise<*>}
  */
 exports.getJob = async (req, res) => {
-	const {authorization} = req.headers;
-	if (checkApiKey(authorization)) {
+	try {
 		let foundJob = jobs.find(job => job.id === req.params["job_id"])
 		if (foundJob) {
 			return res.status(200).json({
@@ -162,14 +161,13 @@ exports.getJob = async (req, res) => {
 				message: "Not Found"
 			})
 		}
-	} else {
-		return res.status(401).json({
-			code: 401,
-			description: `Invalid API key`,
-			message: "Unauthorized"
+	} catch (err) {
+		return res.status(500).json({
+			...err
 		})
 	}
 }
+
 /**
  * Update Job - The API endpoint for updating details of a delivery job
  * @param req - request object
@@ -192,8 +190,7 @@ exports.updateJob = async (req, res) => {
 		packageValue: value,
 		itemsCount,
 	} = req.body;
-	const {authorization} = req.headers;
-	if (checkApiKey(authorization)) {
+	try {
 		let jobIndex = jobs.findIndex(job => job.id === req.params["job_id"])
 		if (jobIndex !== -1) {
 			jobs.forEach((job, index) => {
@@ -235,11 +232,10 @@ exports.updateJob = async (req, res) => {
 				message: "Not Found"
 			})
 		}
-	} else {
-		return res.status(401).json({
-			code: 401,
-			description: `Invalid API key`,
-			message: "Unauthorized"
+	} catch (e) {
+		console.error(e)
+		return res.status(500).json({
+			...e
 		})
 	}
 }
@@ -251,9 +247,8 @@ exports.updateJob = async (req, res) => {
  * @returns {Promise<*>}
  */
 exports.deleteJob = async (req, res) => {
-	const {authorization} = req.headers;
-	const jobId = req.params["job_id"]
-	if (checkApiKey(authorization)) {
+	try {
+		const jobId = req.params["job_id"]
 		let jobIndex = jobs.findIndex(job => job.id === jobId)
 		if (jobIndex !== -1) {
 			jobs.splice(jobIndex, 1)
@@ -269,11 +264,10 @@ exports.deleteJob = async (req, res) => {
 				message: "Not Found"
 			})
 		}
-	} else {
-		return res.status(401).json({
-			code: 401,
-			description: `Invalid API key`,
-			message: "Unauthorized"
+	} catch (err) {
+		console.error(err)
+		return res.status(500).json({
+			...err
 		})
 	}
 }
