@@ -83,7 +83,7 @@ function genDummyQuote(refNumber, providerId) {
 		currency: "GBP",
 		providerId,
 	}
-	console.log(quote)
+	//console.log(quote)
 	return {
 		...quote
 	}

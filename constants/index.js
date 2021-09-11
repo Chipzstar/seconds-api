@@ -1,3 +1,5 @@
+exports.AUTHORIZATION_KEY = "X-Seconds-Api-Key".toLowerCase();
+
 exports.DELIVERY_STATUS = {
 	CREATED: "created",
 	PENDING: "pending",

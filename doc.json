@@ -24,7 +24,7 @@
 	  "ApiKeyAuth": {
 		"type": "apiKey",
 		"in": "header",
-		"name": "Authorization"
+		"name": "X-Seconds-Api-Key"
 	  }
 	},
 	"schemas": {
@@ -99,10 +99,10 @@
 			  "dropoffLastName": "Oladapo",
 			  "dropoffInstructions": "Leave in the front porch, if not available",
 			  "packageDeliveryMode": "Any",
-			  "packageDropoffStartTime": "2021-09-08T15:45:14+0000",
-			  "packageDropoffEndTime": "2021-09-08T16:00:14+0000",
-			  "packagePickupStartTime": "2021-09-08T15:15:14+0000",
-			  "packagePickupEndTime": "2021-09-08T15:21:14+0000",
+			  "packageDropoffStartTime": "2021-09-10T15:45:14+0000",
+			  "packageDropoffEndTime": "2021-09-10T16:00:14+0000",
+			  "packagePickupStartTime": "2021-09-10T15:15:14+0000",
+			  "packagePickupEndTime": "2021-09-10T15:21:14+0000",
 			  "packageDescription": "Xbox One S Console",
 			  "packageValue": 250.00,
 			  "packageTax": 0.2,

@@ -3,9 +3,10 @@ const express = require("express");
 const moment = require("moment");
 const axios = require('axios');
 const {customAlphabet} = require("nanoid");
-const { genReferenceNumber, genDummyQuote, getStuartQuote, chooseBestProvider} = require("./helpers");
-const {jobs, clients} = require('../data');
-const {alphabet, DELIVERY_STATUS, SELECTION_STRATEGIES} = require("../constants");
+const {genReferenceNumber, genDummyQuote, getStuartQuote, chooseBestProvider} = require("./helpers");
+const { jobs } = require('../data');
+const db = require('../models');
+const {alphabet, DELIVERY_STATUS, AUTHORIZATION_KEY} = require("../constants");
 
 /**
  * The first entry point to Seconds API service,
@@ -40,9 +41,10 @@ exports.createJob = async (req, res) => {
 			packageTax,
 			itemsCount,
 		} = req.body;
-		const {authorization: apiKey} = req.headers;
+		const apiKey = req.headers[AUTHORIZATION_KEY];
 		const QUOTES = []
-		let foundClient = clients.find(client => client.apiKey === apiKey)
+		const foundClient = await db.User.findOne({ "apiKey": apiKey }, {})
+		console.log(foundClient)
 		// lookup the selection strategy
 		let selectionStrategy = foundClient["selectionStrategy"]
 		//generate client reference number
@@ -60,7 +62,7 @@ exports.createJob = async (req, res) => {
 		QUOTES.push(dummyQuote3)
 		// Use selection strategy to select the winner quote
 		let bestQuote = chooseBestProvider(selectionStrategy, QUOTES)
-		console.log({ bestQuote })
+		console.log({bestQuote})
 
 		let job = {
 			createdAt: moment().toISOString(),
@@ -116,7 +118,9 @@ exports.createJob = async (req, res) => {
 			winnerQuote: bestQuote.id
 		}
 		// Append the selected provider job to the jobs database
-		jobs.push(job)
+		//jobs.push(job)
+		// Add the delivery to the database
+
 		console.log("Num jobs:", jobs.length)
 		return res.status(200).json({
 			...job

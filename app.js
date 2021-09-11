@@ -39,7 +39,7 @@ const swaggerDefinition = {
 			ApiKeyAuth: {
 				type: "apiKey",
 				in: "header",
-				name: "Authorization"
+				name: "X-Seconds-Api-Key"
 			}
 		}
 	},
@@ -51,13 +51,15 @@ const swaggerDefinition = {
 const options = {
 	swaggerDefinition,
 	// Paths to files containing OpenAPI definitions
-	apis: ['./routes/stuart.js'],
+	apis: ['./routes/index.js'],
 };
 
 const swaggerSpec = swaggerJSDoc(options);
 
 // defining the Express app
 const app = express();
+const db = require('./models/index');
+
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.set('port', process.env.PORT || port);
 
