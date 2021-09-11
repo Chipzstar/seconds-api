@@ -6,7 +6,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const jobRoutes = require('./routes');
-const port = 3001;
+const port = process.env.PORT || 3001;
 moment.tz.setDefault("Europe/London");
 
 const swaggerJSDoc = require('swagger-jsdoc');
@@ -56,36 +56,36 @@ const options = {
 
 const swaggerSpec = swaggerJSDoc(options);
 
-// defining the Express app
-const app = express();
+// defining the Express index
+const index = express();
 const db = require('./models/index');
 
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-app.set('port', process.env.PORT || port);
+index.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+index.set('port', process.env.PORT || port);
 
 // adding Helmet to enhance your API's security
-app.use(helmet());
+index.use(helmet());
 
 // using bodyParser to parse JSON bodies into JS objects
-app.use(bodyParser.json());
+index.use(bodyParser.json());
 
 // enabling CORS for all requests
-app.use(cors());
+index.use(cors());
 
 // adding morgan to log HTTP requests
-app.use(morgan('combined'));
+index.use(morgan('combined'));
 
 // add middleware
-app.use(validateApiKey)
+index.use(validateApiKey)
 
 // defining an endpoint to return a welcome message
-app.get('/', (req, res) => {
+index.get('/', (req, res) => {
 	res.send("WELCOME TO SECONDS API");
 });
 
-app.use('/api/v1/jobs', jobRoutes);
+index.use('/api/v1/jobs', jobRoutes);
 
 // starting the server
-app.listen(port, () => {
+index.listen(port, () => {
 	console.log(`listening on port ${port}`);
 });
