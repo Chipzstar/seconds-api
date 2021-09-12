@@ -120,8 +120,8 @@ exports.createJob = async (req, res) => {
 		// Append the selected provider job to the jobs database
 		//jobs.push(job)
 		// Add the delivery to the database
-
-		console.log("Num jobs:", jobs.length)
+		const updatedClient = await db.User.updateOne({ apiKey }, { $push: { jobs: job }}, { new: true})
+		console.log(updatedClient)
 		return res.status(200).json({
 			...job
 		})

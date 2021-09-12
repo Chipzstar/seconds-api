@@ -47,7 +47,7 @@ const userSchema = new mongoose.Schema({
 	selectionStrategy: {
 		type: String,
 	},
-	deliveryJobs: [],
+	jobs: [],
 });
 
 userSchema.pre("save", async function(next) {
