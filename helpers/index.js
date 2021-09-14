@@ -66,7 +66,7 @@ exports.createJob = async (req, res) => {
 
 		let job = {
 			createdAt: moment().toISOString(),
-			id: `job_${nanoid()}`,
+			jobId: `job_${nanoid()}`,
 			jobSpecification: {
 				id: `spec_${nanoid()}`,
 				packages: [{
@@ -106,21 +106,18 @@ exports.createJob = async (req, res) => {
 			},
 			selectedConfiguration: {
 				createdAt: moment().toISOString(),
-				tasks: [
-					{
-						delivery: packageDeliveryMode,
-						id: `task_${nanoid()}`,
-						providerId: null,
-						quotes: QUOTES
-					}]
+				delivery: packageDeliveryMode,
+				winnerQuote: bestQuote.id,
+				providerId: bestQuote.providerId,
+				quotes: QUOTES
 			},
 			status: DELIVERY_STATUS.CREATED,
-			winnerQuote: bestQuote.id
 		}
 		// Append the selected provider job to the jobs database
-		//jobs.push(job)
+		const createdJob = db.Job.create({...job})
+		console.log(createdJob)
 		// Add the delivery to the database
-		const updatedClient = await db.User.updateOne({ apiKey }, { $push: { jobs: job }}, { new: true})
+		const updatedClient = await db.User.updateOne({ apiKey }, { $push: { jobs: job.jobId }}, { new: true})
 		console.log(updatedClient)
 		return res.status(200).json({
 			...job

@@ -1,13 +1,13 @@
 exports.AUTHORIZATION_KEY = "X-Seconds-Api-Key".toLowerCase();
 
 exports.DELIVERY_STATUS = {
-	CREATED: "created",
-	PENDING: "pending",
-	DISPATCHED: "dispatched",
-	IN_PROGRESS: "in_progress",
-	COMPLETED: "completed",
-	CANCELLED: "cancelled",
-	EXPIRED: "expired"
+	CREATED: "created".toUpperCase(),
+	PENDING: "pending".toUpperCase(),
+	DISPATCHED: "dispatched".toUpperCase(),
+	IN_PROGRESS: "in_progress".toUpperCase(),
+	COMPLETED: "completed".toUpperCase(),
+	CANCELLED: "cancelled".toUpperCase(),
+	EXPIRED: "expired".toUpperCase()
 }
 
 exports.SELECTION_STRATEGIES = {
