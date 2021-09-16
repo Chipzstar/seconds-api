@@ -70,6 +70,10 @@ function chooseBestProvider(strategy, quotes) {
 	}
 }
 
+function genOrderNumber(number){
+	return number.toString().padStart(4, "0")
+}
+
 function genDummyQuote(refNumber, providerId) {
 	let distance = (Math.random() * (15 - 2) + 2).toFixed(2);
 	let duration = Math.floor(Math.random() * (3600 - 600) + 600);
@@ -209,7 +213,7 @@ async function stuartJobRequest(refNumber, params) {
 	const payload = {
 		job: {
 			...JobRequestSchema,
-			pickup_at: moment('05/09/2021 09:15:00', "DD/MM/YYYY hh:mm:ss"),
+			pickup_at: moment(packagePickupStartTime, "DD/MM/YYYY hh:mm:ss"),
 			assignment_code: genAssignmentCode(),
 			pickups: [
 				{
@@ -259,4 +263,4 @@ async function stuartJobRequest(refNumber, params) {
 	}
 }
 
-module.exports = { genReferenceNumber, genDummyQuote, getStuartQuote, chooseBestProvider }
+module.exports = { genReferenceNumber, genDummyQuote, getStuartQuote, chooseBestProvider, genOrderNumber }

@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
+const {Schema} = require("mongoose");
 
 const userSchema = new mongoose.Schema({
 	email: {
@@ -27,7 +28,7 @@ const userSchema = new mongoose.Schema({
 		type: String,
 		default: ""
 	},
-	shopDetails: {
+	shopify: {
 		orders: [],
 		products: [],
 		shopId: String,
@@ -47,7 +48,7 @@ const userSchema = new mongoose.Schema({
 	selectionStrategy: {
 		type: String,
 	},
-	jobs: [],
+	jobs: [{type: Schema.Types.ObjectId, ref: 'Job'}],
 });
 
 userSchema.pre("save", async function(next) {

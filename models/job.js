@@ -1,13 +1,13 @@
 const mongoose = require("mongoose");
 
 const jobSchema = new mongoose.Schema({
-	jobId: {
-		type: String,
-		required: true,
-		unique: true
-	},
 	jobSpecification: {
-		id: [],
+		id: String,
+		orderNumber: {
+			type: String,
+			unique: true,
+			required: true,
+		},
 		packages: []
 	},
 	selectedConfiguration: {

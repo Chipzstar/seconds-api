@@ -2,8 +2,9 @@ require("dotenv").config();
 const express = require("express");
 const moment = require("moment");
 const axios = require('axios');
+const orderid = require('order-id')('seconds')
 const {customAlphabet} = require("nanoid");
-const {genReferenceNumber, genDummyQuote, getStuartQuote, chooseBestProvider} = require("./helpers");
+const {genReferenceNumber, genDummyQuote, getStuartQuote, chooseBestProvider, genOrderNumber} = require("./helpers");
 const { jobs } = require('../data');
 const db = require('../models');
 const {alphabet, DELIVERY_STATUS, AUTHORIZATION_KEY} = require("../constants");
@@ -62,13 +63,14 @@ exports.createJob = async (req, res) => {
 		QUOTES.push(dummyQuote3)
 		// Use selection strategy to select the winner quote
 		let bestQuote = chooseBestProvider(selectionStrategy, QUOTES)
-		console.log({bestQuote})
-
+		//generate new order number
+		//const orderId = orderid.generate();
+		const jobs = await db.Job.find({})
 		let job = {
 			createdAt: moment().toISOString(),
-			jobId: `job_${nanoid()}`,
 			jobSpecification: {
 				id: `spec_${nanoid()}`,
+				orderNumber: genOrderNumber(jobs.length),
 				packages: [{
 					description: packageDescription,
 					dropoffLocation: {
@@ -114,33 +116,24 @@ exports.createJob = async (req, res) => {
 			status: DELIVERY_STATUS.CREATED,
 		}
 		// Append the selected provider job to the jobs database
-		const createdJob = db.Job.create({...job})
+		const createdJob = await db.Job.create({...job})
 		console.log(createdJob)
 		// Add the delivery to the database
-		const updatedClient = await db.User.updateOne({ apiKey }, { $push: { jobs: job.jobId }}, { new: true})
+		const updatedClient = await db.User.updateOne({ apiKey }, { $push: { jobs: createdJob._id }}, { new: true})
 		console.log(updatedClient)
 		return res.status(200).json({
-			...job
+			jobId: createdJob._id,
+			...job,
 		})
 	} catch (e) {
+		console.error(e)
 		return res.status(400).json({
 			code: 400,
 			message: "Unknown error occurred!"
 		});
 	}
 }
-/**
- * List Jobs - The API endpoint for listing all jobs currently in progress
- * @constructor
- * @param req - request object
- * @param res - response object
- * @returns {Promise<*>}
- */
-exports.listJobs = async (req, res) => {
-	return res.status(200).json({
-		jobs
-	})
-}
+
 /**
  * Get Job - The API endpoint for retrieving created delivery jobs
  * @constructor
@@ -269,6 +262,37 @@ exports.deleteJob = async (req, res) => {
 		console.error(err)
 		return res.status(500).json({
 			...err
+		})
+	}
+}
+
+/**
+ * List Jobs - The API endpoint for listing all jobs currently in progress
+ * @constructor
+ * @param req - request object
+ * @param res - response object
+ * @returns {Promise<*>}
+ */
+exports.listJobs = async (req, res, next) => {
+	try {
+		const { email } = req.body;
+		const user = await db.User.findOne({"email": email }, {})
+		console.log(user.jobs)
+		const jobs = []
+		for (let jobId of user.jobs) {
+			const { _doc } = await db.Job.findById(jobId, {}, {new: true})
+			console.log(_doc)
+			jobs.push({..._doc})
+		}
+		return res.status(200).json({
+			jobs,
+			message: "All jobs returned!"
+		})
+	} catch (err) {
+		console.error(err)
+		return next({
+			status: 400,
+			message: err.message
 		})
 	}
 }
