@@ -1,5 +1,5 @@
 const express = require("express");
-const {createJob, getJob, updateJob, deleteJob, listJobs} = require("../helpers");
+const {createJob, getJob, updateJob, deleteJob, listJobs, updateStatus} = require("../helpers");
 const router = express.Router();
 
 router.post("/", listJobs)
@@ -74,6 +74,7 @@ router.get("/:job_id", getJob)
  *       200:
  *         ...
  */
+router.post("/:job_id", updateStatus)
 router.patch("/:job_id", updateJob)
 /**
  * @swagger

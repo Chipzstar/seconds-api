@@ -5,7 +5,7 @@ const axios = require('axios');
 const orderid = require('order-id')('seconds')
 const {customAlphabet} = require("nanoid");
 const {genReferenceNumber, genDummyQuote, getStuartQuote, chooseBestProvider, genOrderNumber} = require("./helpers");
-const { jobs } = require('../data');
+const {jobs} = require('../data');
 const db = require('../models');
 const {alphabet, DELIVERY_STATUS, AUTHORIZATION_KEY} = require("../constants");
 
@@ -44,7 +44,7 @@ exports.createJob = async (req, res) => {
 		} = req.body;
 		const apiKey = req.headers[AUTHORIZATION_KEY];
 		const QUOTES = []
-		const foundClient = await db.User.findOne({ "apiKey": apiKey }, {})
+		const foundClient = await db.User.findOne({"apiKey": apiKey}, {})
 		console.log(foundClient)
 		// lookup the selection strategy
 		let selectionStrategy = foundClient["selectionStrategy"]
@@ -119,7 +119,7 @@ exports.createJob = async (req, res) => {
 		const createdJob = await db.Job.create({...job})
 		console.log(createdJob)
 		// Add the delivery to the database
-		const updatedClient = await db.User.updateOne({ apiKey }, { $push: { jobs: createdJob._id }}, { new: true})
+		const updatedClient = await db.User.updateOne({apiKey}, {$push: {jobs: createdJob._id}}, {new: true})
 		console.log(updatedClient)
 		return res.status(200).json({
 			jobId: createdJob._id,
@@ -162,6 +162,33 @@ exports.getJob = async (req, res) => {
 	}
 }
 
+exports.updateStatus = async (req, res, next) => {
+	const { status } = req.body;
+	const { job_id } = req.params;
+	try {
+		console.log(req.body)
+		if (!Object.keys(req.body).length) {
+			return res.status(400).json({
+				code: 400,
+				description: "Your payload has no properties to update the job",
+				message: "Missing Payload!"
+			})
+		}
+		let job = await db.Job.findByIdAndUpdate(job_id, {"status": status}, {new: true})
+		let jobs = await db.Job.find({}, {}, {new: true})
+		console.log(jobs)
+		return res.status(200).json({
+			updatedJobs: jobs,
+			message: "Job status updated!"
+		})
+	} catch (e) {
+		return res.status(404).json({
+			code: 404,
+			description: `No job found with ID: ${job_id}`,
+			message: "Not Found"
+		})
+	}
+}
 /**
  * Update Job - The API endpoint for updating details of a delivery job
  * @param req - request object
@@ -169,6 +196,7 @@ exports.getJob = async (req, res) => {
  * @returns {Promise<*>}
  */
 exports.updateJob = async (req, res) => {
+	console.log(req.body)
 	if (!Object.keys(req.body).length) {
 		return res.status(400).json({
 			code: 400,
@@ -177,6 +205,7 @@ exports.updateJob = async (req, res) => {
 		})
 	}
 	const {
+		status,
 		packageDescription: description,
 		pickupInstructions,
 		dropoffInstructions,
@@ -275,12 +304,12 @@ exports.deleteJob = async (req, res) => {
  */
 exports.listJobs = async (req, res, next) => {
 	try {
-		const { email } = req.body;
-		const user = await db.User.findOne({"email": email }, {})
+		const {email} = req.body;
+		const user = await db.User.findOne({"email": email}, {})
 		console.log(user.jobs)
 		const jobs = []
 		for (let jobId of user.jobs) {
-			const { _doc } = await db.Job.findById(jobId, {}, {new: true})
+			const {_doc} = await db.Job.findById(jobId, {}, {new: true})
 			console.log(_doc)
 			jobs.push({..._doc})
 		}
