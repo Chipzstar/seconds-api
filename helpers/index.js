@@ -143,6 +143,7 @@ exports.createJob = async (req, res) => {
  */
 exports.getJob = async (req, res) => {
 	try {
+
 		let foundJob = jobs.find(job => job.id === req.params["job_id"])
 		if (foundJob) {
 			return res.status(200).json({
@@ -322,6 +323,64 @@ exports.listJobs = async (req, res, next) => {
 		return next({
 			status: 400,
 			message: err.message
+		})
+	}
+}
+
+exports.getQuotes = async (req, res, next) => {
+	console.log(req.body)
+	try {
+		const {
+			pickupAddress,
+			pickupPhoneNumber,
+			pickupEmailAddress,
+			pickupBusinessName,
+			pickupFirstName,
+			pickupLastName,
+			pickupInstructions,
+			dropoffAddress,
+			dropoffPhoneNumber,
+			dropoffEmailAddress,
+			dropoffBusinessName,
+			dropoffFirstName,
+			dropoffLastName,
+			dropoffInstructions,
+			packageDropoffStartTime,
+			packageDropoffEndTime,
+			packagePickupStartTime,
+			packagePickupEndTime,
+			packageDescription,
+			packageValue,
+			itemsCount,
+		} = req.body;
+		const apiKey = req.headers[AUTHORIZATION_KEY];
+		console.log("KEY:", apiKey)
+		const QUOTES = []
+		const foundClient = await db.User.findOne({"apiKey": apiKey}, {})
+		console.log(foundClient)
+		let selectionStrategy = foundClient["selectionStrategy"]
+		//generate client reference number
+		let clientRefNumber = genReferenceNumber();
+		// QUOTE AGGREGATION
+		// send delivery request to integrated providers
+		let stuartQuote = await getStuartQuote(clientRefNumber, req.body)
+		QUOTES.push(stuartQuote)
+		// create dummy quotes
+		let dummyQuote1 = genDummyQuote(clientRefNumber, "dummy_provider_1")
+		QUOTES.push(dummyQuote1)
+		let dummyQuote2 = genDummyQuote(clientRefNumber, "dummy_provider_2")
+		QUOTES.push(dummyQuote2)
+		let dummyQuote3 = genDummyQuote(clientRefNumber, "dummy_provider_3")
+		QUOTES.push(dummyQuote3)
+		// Use selection strategy to select the winner quote
+		let bestQuote = chooseBestProvider(selectionStrategy, QUOTES)
+		return res.status(200).json({
+			quotes: QUOTES,
+			bestQuote
+		})
+	} catch (err) {
+		return res.status(500).json({
+			...err
 		})
 	}
 }

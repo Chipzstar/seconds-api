@@ -43,7 +43,7 @@ function calculateFare(distance) {
 		fare = fare + 1
 	}
 	fare = fare + (distance * 1.50) + 0.25
-	return fare
+	return fare.toFixed(2)
 }
 
 function chooseBestProvider(strategy, quotes) {
@@ -109,15 +109,9 @@ async function getStuartQuote(refNumber, params) {
 		dropoffFirstName,
 		dropoffLastName,
 		dropoffInstructions,
-		package, DeliveryMode,
 		packageDropoffStartTime,
 		packageDropoffEndTime,
 		packagePickupStartTime,
-		packagePickupEndTime,
-		packageDescription,
-		packageValue,
-		packageTax,
-		itemsCount
 	} = params;
 	const payload = {
 		job: {

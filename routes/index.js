@@ -1,8 +1,9 @@
 const express = require("express");
-const {createJob, getJob, updateJob, deleteJob, listJobs, updateStatus} = require("../helpers");
+const {createJob, getJob, updateJob, deleteJob, listJobs, updateStatus, getQuotes} = require("../helpers");
 const router = express.Router();
 
 router.post("/", listJobs)
+router.post("/quotes", getQuotes)
 /**
  * @swagger
  * /jobs/create:
