@@ -113,7 +113,7 @@ exports.createJob = async (req, res) => {
 				providerId: bestQuote.providerId,
 				quotes: QUOTES
 			},
-			status: DELIVERY_STATUS.CREATED,
+			status: DELIVERY_STATUS.NEW,
 		}
 		// Append the selected provider job to the jobs database
 		const createdJob = await db.Job.create({...job})

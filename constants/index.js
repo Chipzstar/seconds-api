@@ -1,7 +1,7 @@
 exports.AUTHORIZATION_KEY = "X-Seconds-Api-Key".toLowerCase();
 
 exports.DELIVERY_STATUS = {
-	CREATED: "created".toUpperCase(),
+	NEW: "new".toUpperCase(),
 	PENDING: "pending".toUpperCase(),
 	DISPATCHED: "dispatched".toUpperCase(),
 	IN_PROGRESS: "in_progress".toUpperCase(),
