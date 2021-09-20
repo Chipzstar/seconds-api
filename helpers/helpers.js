@@ -53,6 +53,8 @@ function chooseBestProvider(strategy, quotes) {
 	let bestEtaIndex;
 	let bestPrice = Infinity
 	let bestEta = Infinity
+	console.log(quotes[0]);
+	console.log("----------");
 	quotes.forEach(({price, dropoffEta, providerId}, index) => {
 		if (price < bestPrice) {
 			bestPrice = price
@@ -96,14 +98,21 @@ function genDummyQuote(refNumber, providerId) {
 }
 
 async function getClientSelectionStrategy(apiKey){
-	console.log("KEY:", apiKey);
-	const foundClient = await db.User.findOne({"apiKey": apiKey}, {});
-	console.log(foundClient);
-	return foundClient["selectionStrategy"];
+	try{
+		console.log("KEY:", apiKey);
+		const foundClient = await db.User.findOne({"apiKey": apiKey}, {});
+		console.log(foundClient);
+		//look up selection strategy
+		return foundClient["selectionStrategy"];
+	}catch (err) {
+		console.error(err)
+		throw err
+	}
 }
 
 async function getResultantQuotes(requestBody) {
 	try {
+		const QUOTES = []
 		//generate client reference number
 		let referenceNumber = genJobReference();
 		// QUOTE AGGREGATION

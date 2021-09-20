@@ -42,29 +42,13 @@ exports.createJob = async (req, res) => {
 			packageTax,
 			itemsCount,
 		} = req.body;
+		//fetch api key
 		const apiKey = req.headers[AUTHORIZATION_KEY];
-		const QUOTES = []
-		const foundClient = await db.User.findOne({"apiKey": apiKey}, {})
-		console.log(foundClient)
-		// lookup the selection strategy
-		let selectionStrategy = foundClient["selectionStrategy"]
-		//generate client reference number
-		let jobReference = genJobReference();
-		// QUOTE AGGREGATION
-		// send delivery request to integrated providers
-		let gophrQuote = await getGophrQuote(jobReference, req.body)
-		let stuartQuote = await getStuartQuote(jobReference, req.body)
-		QUOTES.push(stuartQuote)
-		QUOTES.push(gophrQuote)
-		// create dummy quotes
-		let dummyQuote1 = genDummyQuote(jobReference, "dummy_provider_1")
-		QUOTES.push(dummyQuote1)
-		let dummyQuote2 = genDummyQuote(jobReference, "dummy_provider_2")
-		QUOTES.push(dummyQuote2)
-		let dummyQuote3 = genDummyQuote(jobReference, "dummy_provider_3")
-		QUOTES.push(dummyQuote3)
+		console.log("KEY:", apiKey);
+		let selectionStrategy = await getClientSelectionStrategy(apiKey);
+		let QUOTES = await getResultantQuotes(req.body);
 		// Use selection strategy to select the winner quote
-		let bestQuote = chooseBestProvider(selectionStrategy, QUOTES)
+		let bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
 		const jobs = await db.Job.find({})
 		let job = {
 			createdAt: moment().toISOString(),
@@ -201,8 +185,8 @@ exports.getQuotes = async (req, res) => {
 		  packageValue,
 		  itemsCount,
 	   } = req.body;
-	   let selectionStrategy = getClientSelectionStrategy(req.headers[AUTHORIZATION_KEY]);
-	   let QUOTES = getResultantQuotes(req.body);
+	   let selectionStrategy = await getClientSelectionStrategy(req.headers[AUTHORIZATION_KEY]);
+	   let QUOTES = await getResultantQuotes(req.body);
 	   let bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
 	   return res.status(200).json({
 		  quotes: QUOTES,
