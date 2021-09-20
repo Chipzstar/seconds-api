@@ -126,9 +126,14 @@ exports.createJob = async (req, res) => {
 			...job,
 		})
 	} catch (e) {
-		console.error(e)
-		return res.status(400).json({
-			code: 400,
+		console.error("ERROR:", e)
+		if (e.message) {
+			return res.status(e.code).json({
+				error: e
+			})
+		}
+		return res.status(500).json({
+			code: 500,
 			message: "Unknown error occurred!"
 		});
 	}

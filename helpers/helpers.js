@@ -4,7 +4,7 @@ const crypto = require("crypto");
 const moment = require("moment-timezone");
 const {nanoid} = require("nanoid");
 const {quoteSchema} = require("../schemas/quote");
-const {SELECTION_STRATEGIES} = require("../constants");
+const {SELECTION_STRATEGIES, ERROR_CODES} = require("../constants");
 
 function genAssignmentCode() {
 	const rand = crypto.randomBytes(7);
@@ -113,10 +113,11 @@ async function getStuartQuote(refNumber, params) {
 		packageDropoffEndTime,
 		packagePickupStartTime,
 	} = params;
+	console.log("Time:", packagePickupStartTime)
 	const payload = {
 		job: {
 			...JobRequestSchema,
-			pickup_at: moment(packagePickupStartTime, "DD/MM/YYYY hh:mm:ss"),
+			pickup_at: moment(packagePickupStartTime).format("DD/MM/YYYY HH:mm:ss"),
 			assignment_code: genAssignmentCode(),
 			pickups: [
 				{
@@ -173,7 +174,11 @@ async function getStuartQuote(refNumber, params) {
 		return quote
 	} catch (err) {
 		console.error(err)
-		throw err
+		if (err.response.status === ERROR_CODES.UNPROCESSABLE_ENTITY){
+			throw { code: err.response.status, ...err.response.data }
+		} else {
+			throw err
+		}
 	}
 }
 

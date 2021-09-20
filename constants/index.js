@@ -16,6 +16,10 @@ exports.SELECTION_STRATEGIES = {
 	RATING: "best-rating"
 }
 
+exports.ERROR_CODES = {
+	UNPROCESSABLE_ENTITY: 422
+}
+
 const numbers = '1234567890'
 const lowerCase = 'abcdefghijklmnopqrstuvwxyz'
 const upperCase = lowerCase.toUpperCase()
