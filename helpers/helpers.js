@@ -1,6 +1,7 @@
 const axios = require("axios");
 const {JobRequestSchema, pickupSchema, dropoffSchema} = require("../schemas/stuart/CreateJob");
 const qs = require("qs");
+const db = require("../models");
 const crypto = require("crypto");
 const moment = require("moment-timezone");
 const {nanoid} = require("nanoid");
@@ -94,6 +95,36 @@ function genDummyQuote(refNumber, providerId) {
 	}
 }
 
+async function getClientSelectionStrategy(apiKey){
+	console.log("KEY:", apiKey);
+	const foundClient = await db.User.findOne({"apiKey": apiKey}, {});
+	console.log(foundClient);
+	return foundClient["selectionStrategy"];
+}
+
+async function getResultantQuotes(requestBody) {
+	try {
+		//generate client reference number
+		let referenceNumber = genJobReference();
+		// QUOTE AGGREGATION
+		// send delivery request to integrated providers
+		let stuartQuote = await getStuartQuote(referenceNumber, requestBody)
+		let gophrQuote = await getGophrQuote(referenceNumber, requestBody)
+		QUOTES.push(stuartQuote)
+		QUOTES.push(gophrQuote)
+		// create dummy quotes
+		let dummyQuote1 = genDummyQuote(referenceNumber, "dummy_provider_1")
+		QUOTES.push(dummyQuote1)
+		let dummyQuote2 = genDummyQuote(referenceNumber, "dummy_provider_2")
+		QUOTES.push(dummyQuote2)
+		let dummyQuote3 = genDummyQuote(referenceNumber, "dummy_provider_3")
+		QUOTES.push(dummyQuote3)
+		return QUOTES
+	} catch (err) {
+		console.error(err)
+	}
+}
+
 async function getGophrQuote(refNumber, params)	{
 	const {
 		pickupAddress,
@@ -157,7 +188,6 @@ async function getGophrQuote(refNumber, params)	{
 		console.error(err)
 		throw err
 	}
-	
 }
 
 async function getStuartQuote(reference, params) {
@@ -330,4 +360,4 @@ async function stuartJobRequest(refNumber, params) {
 	}
 }
 
-module.exports = { genJobReference, genDummyQuote, getStuartQuote, chooseBestProvider, genOrderNumber }
+module.exports = { genJobReference, genDummyQuote, getClientSelectionStrategy, getGophrQuote, getStuartQuote, chooseBestProvider, genOrderNumber, getResultantQuotes }
