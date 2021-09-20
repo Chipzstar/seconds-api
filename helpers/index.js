@@ -53,7 +53,9 @@ exports.createJob = async (req, res) => {
 		// QUOTE AGGREGATION
 		// send delivery request to integrated providers
 		let stuartQuote = await getStuartQuote(clientRefNumber, req.body)
+		let gophrQuote = await getGophrQuote(clientRefNumber, req.body)
 		QUOTES.push(stuartQuote)
+		QUOTES.push(gophrQuote)
 		// create dummy quotes
 		let dummyQuote1 = genDummyQuote(clientRefNumber, "dummy_provider_1")
 		QUOTES.push(dummyQuote1)

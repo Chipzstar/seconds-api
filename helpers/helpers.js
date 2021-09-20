@@ -1,10 +1,12 @@
 const axios = require("axios");
+const qs = require("qs");
 const {JobRequestSchema, pickupSchema, dropoffSchema} = require("../schemas/stuart");
 const crypto = require("crypto");
 const moment = require("moment-timezone");
 const {nanoid} = require("nanoid");
 const {quoteSchema} = require("../schemas/quote");
 const {SELECTION_STRATEGIES} = require("../constants");
+
 
 function genAssignmentCode() {
 	const rand = crypto.randomBytes(7);
@@ -93,6 +95,70 @@ function genDummyQuote(refNumber, providerId) {
 	}
 }
 
+async function getGophrQuote(refNumber, params)	{
+	const {
+		pickupAddress,
+		pickupPhoneNumber,
+		pickupEmailAddress,
+		pickupBusinessName,
+		pickupFirstName,
+		pickupLastName,
+		pickupInstructions,
+		dropoffAddress,
+		dropoffPhoneNumber,
+		dropoffEmailAddress,
+		dropoffBusinessName,
+		dropoffFirstName,
+		dropoffLastName,
+		dropoffInstructions,
+		packageDeliveryMode,
+		packageDropoffStartTime,
+		packageDropoffEndTime,
+		packagePickupStartTime,
+		packagePickupEndTime,
+		packageDescription,
+		packageValue,
+		packageTax,
+		itemsCount
+	} = params;
+	const payload = qs.stringify({
+		'api_key': `${process.env.GOPHR_API_KEY}`,
+		'pickup_address1': '9 White Lion Street',
+		'pickup_postcode': 'N1 9PD',
+		'pickup_city': 'London',
+		'pickup_country_code': 'GBR',
+		'size_x': '10',
+		'size_y': '10',
+		'size_z': '30',
+		'weight': '12',
+		'earliest_pickup_time': packagePickupStartTime,
+		'delivery_address1': '250 Reede Road',
+		'delivery_city': 'Dagenham',
+		'delivery_postcode': 'RM10 8EH',
+		'delivery_country_code': 'GBR'
+	});
+	try {
+		const config = {headers: {'Content-Type': 'application/x-www-form-urlencoded'}};
+		const quoteURL = 'https://api-sandbox.gophr.com/v1/commercial-api/get-a-quote'
+		let { price_net:price, delivery_eta:dropoffEta } = (await axios.post(quoteURL, payload, config)).data
+		const quote = {
+			...quoteSchema,
+			id: `quote_${nanoid(15)}`,
+			price,
+			currency: 'GBP',
+			dropoffEta,
+			providerId: 'Gophr',
+			createdAt: moment().toISOString(),
+			expireTime: moment().add(5, "minutes").toISOString(),
+		}
+		console.log(quote)
+		return quote
+	} catch (err) {
+		console.error(err)
+		throw err
+	}
+	
+}
 async function getStuartQuote(refNumber, params) {
 	const {
 		pickupAddress,
@@ -109,7 +175,7 @@ async function getStuartQuote(refNumber, params) {
 		dropoffFirstName,
 		dropoffLastName,
 		dropoffInstructions,
-		package, DeliveryMode,
+		packageDeliveryMode,
 		packageDropoffStartTime,
 		packageDropoffEndTime,
 		packagePickupStartTime,
@@ -199,7 +265,7 @@ async function stuartJobRequest(refNumber, params) {
 		dropoffFirstName,
 		dropoffLastName,
 		dropoffInstructions,
-		package, DeliveryMode,
+		packageDeliveryMode,
 		packageDropoffStartTime,
 		packageDropoffEndTime,
 		packagePickupStartTime,
@@ -263,4 +329,4 @@ async function stuartJobRequest(refNumber, params) {
 	}
 }
 
-module.exports = { genReferenceNumber, genDummyQuote, getStuartQuote, chooseBestProvider, genOrderNumber }
+module.exports = { genReferenceNumber, genDummyQuote, getGophrQuote, getStuartQuote, chooseBestProvider, genOrderNumber }
