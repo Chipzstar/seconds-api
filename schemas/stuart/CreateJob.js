@@ -33,5 +33,5 @@ const JobRequestSchema = {
 	dropoffs: []
 }
 
-module.exports = { pickupSchema, dropoffSchema,JobRequestSchema }
+module.exports = { pickupSchema, dropoffSchema, JobRequestSchema }
 

@@ -52,8 +52,10 @@ exports.createJob = async (req, res) => {
 		let jobReference = genJobReference();
 		// QUOTE AGGREGATION
 		// send delivery request to integrated providers
+		let gophrQuote = await getGophrQuote(jobReference, req.body)
 		let stuartQuote = await getStuartQuote(jobReference, req.body)
 		QUOTES.push(stuartQuote)
+		QUOTES.push(gophrQuote)
 		// create dummy quotes
 		let dummyQuote1 = genDummyQuote(jobReference, "dummy_provider_1")
 		QUOTES.push(dummyQuote1)
@@ -147,7 +149,6 @@ exports.createJob = async (req, res) => {
  */
 exports.getJob = async (req, res) => {
 	try {
-
 		let foundJob = jobs.find(job => job.id === req.params["job_id"])
 		if (foundJob) {
 			return res.status(200).json({
@@ -365,11 +366,13 @@ exports.getQuotes = async (req, res, next) => {
 		console.log(foundClient)
 		let selectionStrategy = foundClient["selectionStrategy"]
 		//generate client reference number
-		let jobReference = genReferenceNumber();
+		let jobReference = genJobReference();
 		// QUOTE AGGREGATION
 		// send delivery request to integrated providers
 		let stuartQuote = await getStuartQuote(jobReference, req.body)
+		let gophrQuote = await getGophrQuote(jobReference, req.body)
 		QUOTES.push(stuartQuote)
+		QUOTES.push(gophrQuote)
 		// create dummy quotes
 		let dummyQuote1 = genDummyQuote(jobReference, "dummy_provider_1")
 		QUOTES.push(dummyQuote1)

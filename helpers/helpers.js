@@ -1,5 +1,6 @@
 const axios = require("axios");
 const {JobRequestSchema, pickupSchema, dropoffSchema} = require("../schemas/stuart/CreateJob");
+const qs = require("qs");
 const crypto = require("crypto");
 const moment = require("moment-timezone");
 const {nanoid} = require("nanoid");
@@ -93,6 +94,71 @@ function genDummyQuote(refNumber, providerId) {
 	}
 }
 
+async function getGophrQuote(refNumber, params)	{
+	const {
+		pickupAddress,
+		pickupPhoneNumber,
+		pickupEmailAddress,
+		pickupBusinessName,
+		pickupFirstName,
+		pickupLastName,
+		pickupInstructions,
+		dropoffAddress,
+		dropoffPhoneNumber,
+		dropoffEmailAddress,
+		dropoffBusinessName,
+		dropoffFirstName,
+		dropoffLastName,
+		dropoffInstructions,
+		packageDeliveryMode,
+		packageDropoffStartTime,
+		packageDropoffEndTime,
+		packagePickupStartTime,
+		packagePickupEndTime,
+		packageDescription,
+		packageValue,
+		packageTax,
+		itemsCount
+	} = params;
+	const payload = qs.stringify({
+		'api_key': `${process.env.GOPHR_API_KEY}`,
+		'pickup_address1': '9 White Lion Street',
+		'pickup_postcode': 'N1 9PD',
+		'pickup_city': 'London',
+		'pickup_country_code': 'GBR',
+		'size_x': '10',
+		'size_y': '10',
+		'size_z': '30',
+		'weight': '12',
+		'earliest_pickup_time': packagePickupStartTime,
+		'delivery_address1': '250 Reede Road',
+		'delivery_city': 'Dagenham',
+		'delivery_postcode': 'RM10 8EH',
+		'delivery_country_code': 'GBR'
+	});
+	try {
+		const config = {headers: {'Content-Type': 'application/x-www-form-urlencoded'}};
+		const quoteURL = 'https://api-sandbox.gophr.com/v1/commercial-api/get-a-quote'
+		let { price_net:price, delivery_eta:dropoffEta } = (await axios.post(quoteURL, payload, config)).data
+		const quote = {
+			...quoteSchema,
+			id: `quote_${nanoid(15)}`,
+			price,
+			currency: 'GBP',
+			dropoffEta,
+			providerId: 'Gophr',
+			createdAt: moment().toISOString(),
+			expireTime: moment().add(5, "minutes").toISOString(),
+		}
+		console.log(quote)
+		return quote
+	} catch (err) {
+		console.error(err)
+		throw err
+	}
+	
+}
+
 async function getStuartQuote(reference, params) {
 	const {
 		pickupAddress,
@@ -109,6 +175,7 @@ async function getStuartQuote(reference, params) {
 		dropoffFirstName,
 		dropoffLastName,
 		dropoffInstructions,
+		packageDeliveryMode,
 		packageDropoffStartTime,
 		packageDropoffEndTime,
 		packagePickupStartTime,
@@ -155,7 +222,7 @@ async function getStuartQuote(reference, params) {
 		}
 	}
 	try {
-		const config = {headers: {Authorization: `Bearer ${process.env.STUART_ACCESS_TOKEN_2}`}};
+		const config = {headers: {Authorization: `Bearer ${process.env.STUART_ACCESS_TOKEN}`}};
 		const priceURL = "https://api.sandbox.stuart.com/v2/jobs/pricing"
 		const etaURL = "https://api.sandbox.stuart.com/v2/jobs/eta"
 		let { amount:price, currency } = (await axios.post(priceURL, payload, config)).data
@@ -198,7 +265,7 @@ async function stuartJobRequest(refNumber, params) {
 		dropoffFirstName,
 		dropoffLastName,
 		dropoffInstructions,
-		package, DeliveryMode,
+		packageDeliveryMode,
 		packageDropoffStartTime,
 		packageDropoffEndTime,
 		packagePickupStartTime,
