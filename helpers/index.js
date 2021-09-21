@@ -63,8 +63,6 @@ exports.createJob = async (req, res) => {
 		QUOTES.push(dummyQuote3)
 		// Use selection strategy to select the winner quote
 		let bestQuote = chooseBestProvider(selectionStrategy, QUOTES)
-		//generate new order number
-		//const orderId = orderid.generate();
 		const jobs = await db.Job.find({})
 		let job = {
 			createdAt: moment().toISOString(),
@@ -107,6 +105,7 @@ exports.createJob = async (req, res) => {
 				}]
 			},
 			selectedConfiguration: {
+				clientReferenceNumber: clientRefNumber,
 				createdAt: moment().toISOString(),
 				delivery: packageDeliveryMode,
 				winnerQuote: bestQuote.id,
@@ -312,12 +311,13 @@ exports.listJobs = async (req, res, next) => {
 	try {
 		const {email} = req.body;
 		const user = await db.User.findOne({"email": email}, {})
-		console.log(user.jobs)
 		const jobs = []
 		for (let jobId of user.jobs) {
-			const {_doc} = await db.Job.findById(jobId, {}, {new: true})
-			console.log(_doc)
-			jobs.push({..._doc})
+			const job = await db.Job.findById(jobId, {}, {new: true})
+			if (job) {
+				console.log(job["_doc"])
+				jobs.push({...job["_doc"]})
+			}
 		}
 		return res.status(200).json({
 			jobs,
