@@ -1,8 +1,8 @@
 const express = require("express");
-const { newDelivery } = require("../helpers/stuart");
+const { newJob } = require("../helpers/stuart");
 const router = express.Router();
 
-router.post("/new-delivery", newDelivery)
+router.post("/new-delivery", newJob)
 
 module.exports = router;
 
