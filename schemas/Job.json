@@ -125,6 +125,9 @@
 	"selectedConfiguration": {
 	  "type": "object",
 	  "properties": {
+		"clientReferenceNumber":  {
+		  "type": "string"
+		},
 		"createdAt": {
 		  "type": "string"
 		},

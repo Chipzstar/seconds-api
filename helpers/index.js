@@ -43,17 +43,23 @@ exports.createJob = async (req, res) => {
 			itemsCount,
 		} = req.body;
 		//fetch api key
+		//generate client reference number
+		const clientRefNumber = genJobReference();
 		const apiKey = req.headers[AUTHORIZATION_KEY];
 		console.log("KEY:", apiKey);
-		const selectionStrategy = await getClientSelectionStrategy(apiKey);
+		const selectionStrategy = await getClientSelectionStrategy(apiKey, clientRefNumber);
 		const QUOTES = await getResultantQuotes(req.body);
 		// Use selection strategy to select the winner quote
 		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
+		//generate new order number
+		//const orderId = orderid.generate();
+		// based on selected quote call selected provider api
+		const providerId = await providerCreatesJob(bestQuote.providerId, clientRefNumber, req.body)
 		const jobs = await db.Job.find({})
 		let job = {
 			createdAt: moment().toISOString(),
 			jobSpecification: {
-				id: `spec_${nanoid()}`,
+				id: providerId,
 				orderNumber: genOrderNumber(jobs.length),
 				packages: [{
 					description: packageDescription,
@@ -91,6 +97,7 @@ exports.createJob = async (req, res) => {
 				}]
 			},
 			selectedConfiguration: {
+				clientReferenceNumber: clientRefNumber,
 				createdAt: moment().toISOString(),
 				delivery: packageDeliveryMode,
 				winnerQuote: bestQuote.id,
@@ -105,8 +112,6 @@ exports.createJob = async (req, res) => {
 		// Add the delivery to the database
 		const updatedClient = await db.User.updateOne({apiKey}, {$push: {jobs: createdJob._id}}, {new: true})
 		console.log(updatedClient)
-		// based on selected quote call selected provider api
-		let response = await providerCreatesJob(job)
 		return res.status(200).json({
 			jobId: createdJob._id,
 			...job,

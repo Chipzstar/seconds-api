@@ -11,6 +11,7 @@ const jobSchema = new mongoose.Schema({
 		packages: []
 	},
 	selectedConfiguration: {
+		clientReferenceNumber: "",
 		createdAt: Date,
 		jobReference: "",
 		delivery: "",

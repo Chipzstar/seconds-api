@@ -78,21 +78,19 @@ function genOrderNumber(number){
 	return number.toString().padStart(4, "0")
 }
 
-async function providerCreatesJob(job){
-	switch(job.selectedConfiguration.providerId){
+async function providerCreatesJob(job, ref, body){
+	switch(job){
+		/*
 		case 'Stuart':
-			await createJobStuart();
+			return await stuartJobRequest(ref, body);
 		case 'Gophr':
-			await createJobGofer();
+			return await gophrJobRequest(ref, body);
+		//in case dummy wins
+		*/
+		//testing
+		default:
+			return await stuartJobRequest(ref, body);
 	}
-}
-
-async function createJobStuart(){
-
-}
-
-async function createJobGofer(){
-
 }
 
 function genDummyQuote(refNumber, providerId) {
@@ -126,11 +124,9 @@ async function getClientSelectionStrategy(apiKey){
 	}
 }
 
-async function getResultantQuotes(requestBody) {
-	try {
+async function getResultantQuotes(requestBody, referenceNumber) {
+	try{
 		const QUOTES = []
-		//generate client reference number
-		let referenceNumber = genJobReference();
 		// QUOTE AGGREGATION
 		// send delivery request to integrated providers
 		let stuartQuote = await getStuartQuote(referenceNumber, requestBody)
@@ -178,7 +174,7 @@ async function getGophrQuote(refNumber, params)	{
 		itemsCount
 	} = params;
 	const payload = qs.stringify({
-		'api_key': 'sand-1c8d46f1-0ddf-11ec-9428-42010a840077',
+		'api_key': `${process.env.GOPHR_API_KEY}`,
 		'pickup_address1': '9 White Lion Street',
 		'pickup_postcode': 'N1 9PD',
 		'pickup_city': 'London',
@@ -306,6 +302,63 @@ async function getStuartQuote(reference, params) {
 	}
 }
 
+async function gophrJobRequest(refNumber, params) {
+	const {
+		pickupAddress,
+		pickupPhoneNumber,
+		pickupEmailAddress,
+		pickupBusinessName,
+		pickupFirstName,
+		pickupLastName,
+		pickupInstructions,
+		dropoffAddress,
+		dropoffPhoneNumber,
+		dropoffEmailAddress,
+		dropoffBusinessName,
+		dropoffFirstName,
+		dropoffLastName,
+		dropoffInstructions,
+		packageDeliveryMode,
+		packageDropoffStartTime,
+		packageDropoffEndTime,
+		packagePickupStartTime,
+		packagePickupEndTime,
+		packageDescription,
+		packageValue,
+		packageTax,
+		itemsCount
+	} = params;
+	const payload = qs.stringify({
+		'api_key': `${process.env.GOPHR_API_KEY}`,
+		'external_id': `${refNumber}`,
+		'pickup_address1': '9 White Lion Street',
+		'pickup_person_name': `${pickupFirstName} + ' ' + ${pickupLastName}`,
+		'pickup_mobile_number': `${pickupPhoneNumber}`,
+		'delivery_person_name': `${dropoffFirstName} + ' ' + ${dropoffLastName}`,
+		'delivery_mobile_number': `${dropoffPhoneNumber}`,
+		'pickup_postcode': 'N1 9PD',
+		'pickup_city': 'London',
+		// 'pickup_country_code': 'GBR',
+		'size_x': '10',
+		'size_y': '10',
+		'size_z': '30',
+		'weight': '12',
+		// 'earliest_pickup_time': packagePickupStartTime,
+		'delivery_address1': '250 Reede Road',
+		'delivery_city': 'Dagenham',
+		'delivery_postcode': 'RM10 8EH',
+		// 'delivery_country_code': 'GBR'
+	});
+	try {
+		const config = {headers: {'Content-Type': 'application/x-www-form-urlencoded'}};
+		const quoteURL = 'https://api-sandbox.gophr.com/v1/commercial-api/create-confirm-job'
+		return { job_id } = (await axios.post(quoteURL, payload, config)).data
+	} catch (err) {
+		console.error(err)
+		throw err
+	}
+}
+
 async function stuartJobRequest(refNumber, params) {
 	const {
 		pickupAddress,
@@ -378,7 +431,7 @@ async function stuartJobRequest(refNumber, params) {
 		const path = "/v2/jobs";
 		let URL = baseURL + path
 		const config = {headers: {Authorization: `Bearer ${process.env.STUART_ACCESS_TOKEN}`}};
-		return (await axios.post(URL, payload, config)).data
+		return { id } = (await axios.post(URL, payload, config)).data
 	} catch (err) {
 		console.error(err)
 		throw err
