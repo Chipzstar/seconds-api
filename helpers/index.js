@@ -7,7 +7,7 @@ const {customAlphabet} = require("nanoid");
 const {genReferenceNumber, genDummyQuote, getStuartQuote, chooseBestProvider, genOrderNumber} = require("./helpers");
 const {jobs} = require('../data');
 const db = require('../models');
-const {alphabet, DELIVERY_STATUS, AUTHORIZATION_KEY} = require("../constants");
+const {alphabet, STATUS, AUTHORIZATION_KEY} = require("../constants");
 
 /**
  * The first entry point to Seconds API service,
@@ -112,7 +112,7 @@ exports.createJob = async (req, res) => {
 				providerId: bestQuote.providerId,
 				quotes: QUOTES
 			},
-			status: DELIVERY_STATUS.NEW,
+			status: STATUS.NEW,
 		}
 		// Append the selected provider job to the jobs database
 		const createdJob = await db.Job.create({...job})

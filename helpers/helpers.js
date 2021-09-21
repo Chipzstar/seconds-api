@@ -1,10 +1,10 @@
 const axios = require("axios");
-const {JobRequestSchema, pickupSchema, dropoffSchema} = require("../schemas/stuart");
+const {JobRequestSchema, pickupSchema, dropoffSchema} = require("../schemas/stuart/CreateJob");
 const crypto = require("crypto");
 const moment = require("moment-timezone");
 const {nanoid} = require("nanoid");
 const {quoteSchema} = require("../schemas/quote");
-const {SELECTION_STRATEGIES, ERROR_CODES} = require("../constants");
+const { SELECTION_STRATEGIES, ERROR_CODES } = require("../constants");
 
 function genAssignmentCode() {
 	const rand = crypto.randomBytes(7);
