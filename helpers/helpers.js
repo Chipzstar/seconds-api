@@ -78,6 +78,23 @@ function genOrderNumber(number){
 	return number.toString().padStart(4, "0")
 }
 
+async function providerCreatesJob(job){
+	switch(job.selectedConfiguration.providerId){
+		case 'Stuart':
+			await createJobStuart();
+		case 'Gophr':
+			await createJobGofer();
+	}
+}
+
+async function createJobStuart(){
+
+}
+
+async function createJobGofer(){
+
+}
+
 function genDummyQuote(refNumber, providerId) {
 	let distance = (Math.random() * (15 - 2) + 2).toFixed(2);
 	let duration = Math.floor(Math.random() * (3600 - 600) + 600);
@@ -99,7 +116,6 @@ function genDummyQuote(refNumber, providerId) {
 
 async function getClientSelectionStrategy(apiKey){
 	try{
-		console.log("KEY:", apiKey);
 		const foundClient = await db.User.findOne({"apiKey": apiKey}, {});
 		console.log(foundClient);
 		//look up selection strategy
@@ -131,6 +147,7 @@ async function getResultantQuotes(requestBody) {
 		return QUOTES
 	} catch (err) {
 		console.error(err)
+		throw err
 	}
 }
 
@@ -361,7 +378,6 @@ async function stuartJobRequest(refNumber, params) {
 		const path = "/v2/jobs";
 		let URL = baseURL + path
 		const config = {headers: {Authorization: `Bearer ${process.env.STUART_ACCESS_TOKEN}`}};
-		console.log(URL)
 		return (await axios.post(URL, payload, config)).data
 	} catch (err) {
 		console.error(err)
@@ -369,4 +385,5 @@ async function stuartJobRequest(refNumber, params) {
 	}
 }
 
-module.exports = { genJobReference, genDummyQuote, getClientSelectionStrategy, getGophrQuote, getStuartQuote, chooseBestProvider, genOrderNumber, getResultantQuotes }
+module.exports = { genJobReference, genDummyQuote, getClientSelectionStrategy, getGophrQuote,
+	getStuartQuote, chooseBestProvider, genOrderNumber, getResultantQuotes, providerCreatesJob }

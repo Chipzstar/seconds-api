@@ -4,7 +4,7 @@ const moment = require("moment");
 const axios = require('axios');
 const orderid = require('order-id')('seconds')
 const {customAlphabet} = require("nanoid");
-const {genJobReference, genDummyQuote, getClientSelectionStrategy, getStuartQuote, chooseBestProvider, genOrderNumber, getGophrQuote, getResultantQuotes} = require("./helpers");
+const {genJobReference, genDummyQuote, getClientSelectionStrategy, getStuartQuote, providerCreatesJob, chooseBestProvider, genOrderNumber, getGophrQuote, getResultantQuotes} = require("./helpers");
 const {jobs} = require('../data');
 const db = require('../models');
 const {alphabet, STATUS, AUTHORIZATION_KEY} = require("../constants");
@@ -45,10 +45,10 @@ exports.createJob = async (req, res) => {
 		//fetch api key
 		const apiKey = req.headers[AUTHORIZATION_KEY];
 		console.log("KEY:", apiKey);
-		let selectionStrategy = await getClientSelectionStrategy(apiKey);
-		let QUOTES = await getResultantQuotes(req.body);
+		const selectionStrategy = await getClientSelectionStrategy(apiKey);
+		const QUOTES = await getResultantQuotes(req.body);
 		// Use selection strategy to select the winner quote
-		let bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
+		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
 		const jobs = await db.Job.find({})
 		let job = {
 			createdAt: moment().toISOString(),
@@ -91,7 +91,6 @@ exports.createJob = async (req, res) => {
 				}]
 			},
 			selectedConfiguration: {
-				jobReference,
 				createdAt: moment().toISOString(),
 				delivery: packageDeliveryMode,
 				winnerQuote: bestQuote.id,
@@ -106,6 +105,8 @@ exports.createJob = async (req, res) => {
 		// Add the delivery to the database
 		const updatedClient = await db.User.updateOne({apiKey}, {$push: {jobs: createdJob._id}}, {new: true})
 		console.log(updatedClient)
+		// based on selected quote call selected provider api
+		let response = await providerCreatesJob(job)
 		return res.status(200).json({
 			jobId: createdJob._id,
 			...job,
@@ -185,9 +186,9 @@ exports.getQuotes = async (req, res) => {
 		  packageValue,
 		  itemsCount,
 	   } = req.body;
-	   let selectionStrategy = await getClientSelectionStrategy(req.headers[AUTHORIZATION_KEY]);
-	   let QUOTES = await getResultantQuotes(req.body);
-	   let bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
+	   const selectionStrategy = await getClientSelectionStrategy(req.headers[AUTHORIZATION_KEY]);
+	   const QUOTES = await getResultantQuotes(req.body);
+	   const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
 	   return res.status(200).json({
 		  quotes: QUOTES,
 		  bestQuote
@@ -226,6 +227,7 @@ exports.updateStatus = async (req, res, next) => {
 		})
 	}
 }
+
 /**
  * Update Job - The API endpoint for updating details of a delivery job
  * @param req - request object
