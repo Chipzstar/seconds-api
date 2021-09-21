@@ -17,7 +17,7 @@ const validateApiKey = async (req, res, next) => {
 			})
 		}
 		// check if the incoming request is from a fleet provider
-		if (apiKey === AUTH_KEYS.STUART_1 || apiKey === AUTH_KEYS.STUART_2) {
+		if (apiKey === AUTH_KEYS.STUART) {
 			console.log("API Key is valid!")
 			isValid = true
 		}

@@ -3,11 +3,10 @@ exports.AUTHORIZATION_KEY = "X-Seconds-Api-Key".toLowerCase();
 exports.DELIVERY_STATUS = {
 	NEW: "new".toUpperCase(),
 	PENDING: "pending".toUpperCase(),
-	DISPATCHED: "dispatched".toUpperCase(),
-	IN_PROGRESS: "in_progress".toUpperCase(),
+	DISPATCHING: "dispatching".toUpperCase(),
+	EN_ROUTE: "en-route".toUpperCase(),
 	COMPLETED: "completed".toUpperCase(),
-	CANCELLED: "cancelled".toUpperCase(),
-	EXPIRED: "expired".toUpperCase()
+	CANCELLED: "cancelled".toUpperCase()
 }
 
 exports.SELECTION_STRATEGIES = {
@@ -21,8 +20,7 @@ exports.ERROR_CODES = {
 }
 
 exports.AUTH_KEYS = {
-	STUART_1: "d59328cec7b021d59f15208616d14c8d4653477c3db9d7eaa08629fa0bc3e395",
-	STUART_2: "0657f2829bd0fbc08d813ae6dbba45c485d9c503263c391cb3b9a8ec6811d223"
+	STUART: "d59328cec7b021d59f15208616d14c8d4653477c3db9d7eaa08629fa0bc3e395"
 }
 
 const numbers = '1234567890'
