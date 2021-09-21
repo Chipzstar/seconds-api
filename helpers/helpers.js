@@ -155,7 +155,7 @@ async function getStuartQuote(refNumber, params) {
 		}
 	}
 	try {
-		const config = {headers: {Authorization: `Bearer ${process.env.STUART_ACCESS_TOKEN}`}};
+		const config = {headers: {Authorization: `Bearer ${process.env.STUART_ACCESS_TOKEN_2}`}};
 		const priceURL = "https://api.sandbox.stuart.com/v2/jobs/pricing"
 		const etaURL = "https://api.sandbox.stuart.com/v2/jobs/eta"
 		let { amount:price, currency } = (await axios.post(priceURL, payload, config)).data
