@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require("express")
-const {clients} = require("../data");
+const { clients } = require("../data");
 const { AUTHORIZATION_KEY } = require("../constants");
 const db = require('../models');
 

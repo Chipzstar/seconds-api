@@ -11,9 +11,9 @@ exports.DELIVERY_STATUS = {
 }
 
 exports.SELECTION_STRATEGIES = {
-	PRICE: "lowest-price",
-	ETA: "fastest-delivery-time",
-	RATING: "best-rating"
+	PRICE: "price",
+	ETA: "eta",
+	RATING: "rating"
 }
 
 exports.ERROR_CODES = {
