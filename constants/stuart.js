@@ -1,8 +1,7 @@
 exports.JOB_STATUS = {
 	NEW: "new",
 	PENDING: "searching",
-	DISPATCHING: "in_progress",
-	EN_ROUTE: "in_progress",
+	IN_PROGRESS: "in_progress",
 	COMPLETED: "finished",
 	CANCELLED: "canceled"
 }
