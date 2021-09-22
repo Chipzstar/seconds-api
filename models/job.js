@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const jobSchema = new mongoose.Schema({
 	jobSpecification: {
-		id: Number,
+		id: String,
 		orderNumber: {
 			type: String,
 			unique: true,
@@ -11,7 +11,7 @@ const jobSchema = new mongoose.Schema({
 		packages: []
 	},
 	selectedConfiguration: {
-		clientReferenceNumber: "",
+		jobReference: "",
 		createdAt: Date,
 		jobReference: "",
 		delivery: "",

@@ -97,7 +97,7 @@ exports.createJob = async (req, res) => {
 				}]
 			},
 			selectedConfiguration: {
-				clientReferenceNumber: clientRefNumber,
+				jobReference: clientRefNumber,
 				createdAt: moment().toISOString(),
 				delivery: packageDeliveryMode,
 				winnerQuote: bestQuote.id,
