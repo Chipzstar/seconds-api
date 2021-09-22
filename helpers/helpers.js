@@ -89,6 +89,7 @@ async function providerCreatesJob(job, ref, body){
 		*/
 		//testing
 		default:
+			console.log('STUARTTTTTTTTTTTTT')
 			return await stuartJobRequest(ref, body);
 	}
 }
@@ -352,7 +353,8 @@ async function gophrJobRequest(refNumber, params) {
 	try {
 		const config = {headers: {'Content-Type': 'application/x-www-form-urlencoded'}};
 		const quoteURL = 'https://api-sandbox.gophr.com/v1/commercial-api/create-confirm-job'
-		return { job_id } = (await axios.post(quoteURL, payload, config)).data
+		const { job_id } = (await axios.post(quoteURL, payload, config)).data
+		return job_id
 	} catch (err) {
 		console.error(err)
 		throw err
@@ -432,7 +434,8 @@ async function stuartJobRequest(refNumber, params) {
 		let URL = baseURL + path
 		const config = {headers: {Authorization: `Bearer ${process.env.STUART_ACCESS_TOKEN}`}};
 
-		return { id } = (await axios.post(URL, payload, config)).data
+		const { id } = (await axios.post(URL, payload, config)).data
+		return id
 	} catch (err) {
 		console.error(err)
 		throw err
