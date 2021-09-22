@@ -92,13 +92,13 @@ exports.deliveryUpdate = async (req, res) => {
 			if (type && type === "create") {
 				console.log("DELIVERY CREATE")
 				console.log(data)
-				await updateDelivery(data.currentDelivery)
+				await updateDelivery(data)
 				response = {...data }
 			}
 			if (type && type === "update") {
 				console.log("DELIVERY UPDATE")
 				console.log(data)
-				await updateDelivery(data.currentDelivery)
+				await updateDelivery(data)
 				response = {...data }
 				// const foundJob = await db.Job.findOne({"clientReferenceNumber": clientReferenceNumber}, {})
 				// console.log(foundJob)
