@@ -91,25 +91,6 @@ async function providerCreatesJob(job, ref, body) {
 	}
 }
 
-/*function genDummyQuote(refNumber, providerId) {
-	let distance = (Math.random() * (15 - 2) + 2).toFixed(2);
-	let duration = Math.floor(Math.random() * (3600 - 600) + 600);
-	let quote = {
-		...quoteSchema,
-		createdAt: moment().toISOString(),
-		id: `quote_${nanoid(15)}`,
-		dropoffEta: moment().add(duration, "seconds").toISOString(),
-		expireTime: moment().add(5, "minutes").toISOString(),
-		price: calculateFare(distance),
-		currency: "GBP",
-		providerId,
-	}
-	//console.log(quote)
-	return {
-		...quote
-	}
-}*/
-
 async function getClientSelectionStrategy(apiKey) {
 	try {
 		const foundClient = await db.User.findOne({"apiKey": apiKey}, {});
@@ -353,8 +334,8 @@ async function gophrJobRequest(refNumber, params) {
 		const creatJobURL = 'https://api-sandbox.gophr.com/v1/commercial-api/create-confirm-job'
 		const {data} = (await axios.post(creatJobURL, payload, config)).data
 		console.log(data)
-		const {job_id} = data
-		return job_id
+		const { job_id, private_job_url } = data
+		return { id: job_id, trackingURL: private_job_url }
 	} catch (err) {
 		console.error(err)
 		throw err
@@ -427,8 +408,9 @@ async function stuartJobRequest(refNumber, params) {
 		const path = "/v2/jobs";
 		let URL = baseURL + path
 		const config = {headers: {Authorization: `Bearer ${process.env.STUART_ACCESS_TOKEN}`}};
-		let {id} = (await axios.post(URL, payload, config)).data
-		return String(id)
+		let data = (await axios.post(URL, payload, config)).data
+		console.log(data)
+		return { id: String(data.id), trackingURL: data.deliveries[0].tracking_url }
 	} catch (err) {
 		console.error(err)
 		throw err
