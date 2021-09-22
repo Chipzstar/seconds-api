@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const jobSchema = new mongoose.Schema({
 	jobSpecification: {
-		id: String,
+		id: Number,
 		orderNumber: {
 			type: String,
 			unique: true,

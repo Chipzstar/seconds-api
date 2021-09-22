@@ -12,7 +12,7 @@
 	  "type": "object",
 	  "properties": {
 		"id": {
-		  "type": "string"
+		  "type": "integer"
 		},
 		"packages": {
 		  "type": "array",
@@ -126,7 +126,7 @@
 	  "type": "object",
 	  "properties": {
 		"clientReferenceNumber":  {
-		  "type": "string"
+		"type": "string"
 		},
 		"createdAt": {
 		  "type": "string"
