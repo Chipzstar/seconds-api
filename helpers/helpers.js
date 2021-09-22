@@ -67,19 +67,19 @@ function chooseBestProvider(strategy, quotes) {
 			bestEtaIndex = index
 		}
 	})
-	if (strategy === SELECTION_STRATEGIES.PRICE){
+	if (strategy === SELECTION_STRATEGIES.PRICE) {
 		return quotes[bestPriceIndex]
 	} else {
 		return quotes[bestEtaIndex]
 	}
 }
 
-function genOrderNumber(number){
+function genOrderNumber(number) {
 	return number.toString().padStart(4, "0")
 }
 
-async function providerCreatesJob(job, ref, body){
-	switch(job){
+async function providerCreatesJob(job, ref, body) {
+	switch (job) {
 		/*
 		case 'Stuart':
 			return await stuartJobRequest(ref, body);
@@ -90,7 +90,7 @@ async function providerCreatesJob(job, ref, body){
 		//testing
 		default:
 			console.log('GOPHYRRRR')
-			return await stuartJobRequest(ref, body);
+			return await gophrJobRequest(ref, body);
 	}
 }
 
@@ -113,20 +113,20 @@ function genDummyQuote(refNumber, providerId) {
 	}
 }
 
-async function getClientSelectionStrategy(apiKey){
-	try{
+async function getClientSelectionStrategy(apiKey) {
+	try {
 		const foundClient = await db.User.findOne({"apiKey": apiKey}, {});
 		console.log(foundClient);
 		//look up selection strategy
 		return foundClient["selectionStrategy"];
-	}catch (err) {
+	} catch (err) {
 		console.error(err)
 		throw err
 	}
 }
 
 async function getResultantQuotes(requestBody, referenceNumber) {
-	try{
+	try {
 		const QUOTES = []
 		// QUOTE AGGREGATION
 		// send delivery request to integrated providers
@@ -135,12 +135,12 @@ async function getResultantQuotes(requestBody, referenceNumber) {
 		QUOTES.push(stuartQuote)
 		QUOTES.push(gophrQuote)
 		// create dummy quotes
-		let dummyQuote1 = genDummyQuote(referenceNumber, "dummy_provider_1")
-		QUOTES.push(dummyQuote1)
-		let dummyQuote2 = genDummyQuote(referenceNumber, "dummy_provider_2")
-		QUOTES.push(dummyQuote2)
-		let dummyQuote3 = genDummyQuote(referenceNumber, "dummy_provider_3")
-		QUOTES.push(dummyQuote3)
+		// let dummyQuote1 = genDummyQuote(referenceNumber, "dummy_provider_1")
+		// QUOTES.push(dummyQuote1)
+		// let dummyQuote2 = genDummyQuote(referenceNumber, "dummy_provider_2")
+		// QUOTES.push(dummyQuote2)
+		// let dummyQuote3 = genDummyQuote(referenceNumber, "dummy_provider_3")
+		// QUOTES.push(dummyQuote3)
 		return QUOTES
 	} catch (err) {
 		console.error(err)
@@ -148,8 +148,8 @@ async function getResultantQuotes(requestBody, referenceNumber) {
 	}
 }
 
-async function getGophrQuote(refNumber, params)	{
-	const {
+async function getGophrQuote(refNumber, params) {
+	/*const {
 		pickupAddress,
 		pickupPhoneNumber,
 		pickupEmailAddress,
@@ -173,7 +173,7 @@ async function getGophrQuote(refNumber, params)	{
 		packageValue,
 		packageTax,
 		itemsCount
-	} = params;
+	} = params;*/
 	const payload = qs.stringify({
 		'api_key': `${process.env.GOPHR_API_KEY}`,
 		'pickup_address1': '9 White Lion Street',
@@ -193,8 +193,8 @@ async function getGophrQuote(refNumber, params)	{
 	try {
 		const config = {headers: {'Content-Type': 'application/x-www-form-urlencoded'}};
 		const quoteURL = 'https://api-sandbox.gophr.com/v1/commercial-api/get-a-quote'
-		let { data } = (await axios.post(quoteURL, payload, config)).data
-		let { price_net:price, delivery_eta:dropoffEta } = data;
+		let {data} = (await axios.post(quoteURL, payload, config)).data
+		let {price_net: price, delivery_eta: dropoffEta} = data;
 		const quote = {
 			...quoteSchema,
 			id: `quote_${nanoid(15)}`,
@@ -229,10 +229,9 @@ async function getStuartQuote(reference, params) {
 		dropoffFirstName,
 		dropoffLastName,
 		dropoffInstructions,
-		packageDeliveryMode,
 		packageDropoffStartTime,
 		packageDropoffEndTime,
-		packagePickupStartTime,
+		packagePickupStartTime
 	} = params;
 	console.log("Time:", packagePickupStartTime)
 	const payload = {
@@ -279,8 +278,8 @@ async function getStuartQuote(reference, params) {
 		const config = {headers: {Authorization: `Bearer ${process.env.STUART_ACCESS_TOKEN}`}};
 		const priceURL = "https://api.sandbox.stuart.com/v2/jobs/pricing"
 		const etaURL = "https://api.sandbox.stuart.com/v2/jobs/eta"
-		let { amount:price, currency } = (await axios.post(priceURL, payload, config)).data
-		let { eta } = (await axios.post(etaURL, payload, config)).data
+		let {amount: price, currency} = (await axios.post(priceURL, payload, config)).data
+		let {eta} = (await axios.post(etaURL, payload, config)).data
 		const quote = {
 			...quoteSchema,
 			id: `quote_${nanoid(15)}`,
@@ -319,15 +318,10 @@ async function gophrJobRequest(refNumber, params) {
 		dropoffFirstName,
 		dropoffLastName,
 		dropoffInstructions,
-		packageDeliveryMode,
 		packageDropoffStartTime,
 		packageDropoffEndTime,
 		packagePickupStartTime,
-		packagePickupEndTime,
-		packageDescription,
-		packageValue,
-		packageTax,
-		itemsCount
+		packagePickupEndTime
 	} = params;
 	const payload = qs.stringify({
 		'api_key': `${process.env.GOPHR_API_KEY}`,
@@ -335,8 +329,12 @@ async function gophrJobRequest(refNumber, params) {
 		'pickup_address1': '9 White Lion Street',
 		'pickup_person_name': `${pickupFirstName} + ' ' + ${pickupLastName}`,
 		'pickup_mobile_number': `${pickupPhoneNumber}`,
+		'pickup_company_name': `${pickupBusinessName}`,
+		'pickup_email': pickupEmailAddress,
 		'delivery_person_name': `${dropoffFirstName} + ' ' + ${dropoffLastName}`,
 		'delivery_mobile_number': `${dropoffPhoneNumber}`,
+		'delivery_company_name': `${dropoffBusinessName}`,
+		'delivery_email': dropoffEmailAddress,
 		'pickup_postcode': 'N1 9PD',
 		'pickup_city': 'London',
 		// 'pickup_country_code': 'GBR',
@@ -344,7 +342,10 @@ async function gophrJobRequest(refNumber, params) {
 		'size_y': '10',
 		'size_z': '30',
 		'weight': '12',
-		// 'earliest_pickup_time': packagePickupStartTime,
+		'earliest_pickup_time': packagePickupStartTime,
+		'pickup_deadline': packagePickupEndTime,
+		'earliest_delivery_time': packageDropoffStartTime,
+		'dropoff_deadline': packageDropoffEndTime,
 		'delivery_address1': '250 Reede Road',
 		'delivery_city': 'Dagenham',
 		'delivery_postcode': 'RM10 8EH',
@@ -352,9 +353,10 @@ async function gophrJobRequest(refNumber, params) {
 	});
 	try {
 		const config = {headers: {'Content-Type': 'application/x-www-form-urlencoded'}};
-		const quoteURL = 'https://api-sandbox.gophr.com/v1/commercial-api/create-confirm-job'
-		const { data } = (await axios.post(quoteURL, payload, config)).data
-		const { job_id } = data
+		const creatJobURL = 'https://api-sandbox.gophr.com/v1/commercial-api/create-confirm-job'
+		const {data} = (await axios.post(creatJobURL, payload, config)).data
+		console.log(data)
+		const {job_id} = data
 		return job_id
 	} catch (err) {
 		console.error(err)
@@ -378,15 +380,9 @@ async function stuartJobRequest(refNumber, params) {
 		dropoffFirstName,
 		dropoffLastName,
 		dropoffInstructions,
-		packageDeliveryMode,
 		packageDropoffStartTime,
 		packageDropoffEndTime,
 		packagePickupStartTime,
-		packagePickupEndTime,
-		packageDescription,
-		packageValue,
-		packageTax,
-		itemsCount
 	} = params;
 
 	const payload = {
@@ -435,7 +431,7 @@ async function stuartJobRequest(refNumber, params) {
 		let URL = baseURL + path
 		const config = {headers: {Authorization: `Bearer ${process.env.STUART_ACCESS_TOKEN}`}};
 
-		let { id } = (await axios.post(URL, payload, config)).data
+		let {id} = (await axios.post(URL, payload, config)).data
 		return '' + id
 	} catch (err) {
 		console.error(err)
@@ -443,5 +439,7 @@ async function stuartJobRequest(refNumber, params) {
 	}
 }
 
-module.exports = { genJobReference, genDummyQuote, getClientSelectionStrategy, getGophrQuote,
-	getStuartQuote, chooseBestProvider, genOrderNumber, getResultantQuotes, providerCreatesJob }
+module.exports = {
+	genJobReference, genDummyQuote, getClientSelectionStrategy, getGophrQuote,
+	getStuartQuote, chooseBestProvider, genOrderNumber, getResultantQuotes, providerCreatesJob
+}

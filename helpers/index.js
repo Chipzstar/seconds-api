@@ -4,7 +4,7 @@ const moment = require("moment");
 const axios = require('axios');
 const orderid = require('order-id')('seconds')
 const {customAlphabet} = require("nanoid");
-const {genJobReference, genDummyQuote, getClientSelectionStrategy, getStuartQuote, providerCreatesJob, chooseBestProvider, genOrderNumber, getGophrQuote, getResultantQuotes} = require("./helpers");
+const {genJobReference, getClientSelectionStrategy, providerCreatesJob, chooseBestProvider, genOrderNumber, getResultantQuotes} = require("./helpers");
 const {jobs} = require('../data');
 const db = require('../models');
 const {alphabet, STATUS, AUTHORIZATION_KEY} = require("../constants");
@@ -54,12 +54,12 @@ exports.createJob = async (req, res) => {
 		//generate new order number
 		//const orderId = orderid.generate();
 		// based on selected quote call selected provider api
-		const providerId = await providerCreatesJob(bestQuote.providerId, clientRefNumber, req.body)
+		const spec_id = await providerCreatesJob(bestQuote.providerId, clientRefNumber, req.body)
 		const jobs = await db.Job.find({})
 		let job = {
 			createdAt: moment().toISOString(),
 			jobSpecification: {
-				id: providerId,
+				id: spec_id,
 				orderNumber: genOrderNumber(jobs.length),
 				packages: [{
 					description: packageDescription,
@@ -108,10 +108,8 @@ exports.createJob = async (req, res) => {
 		}
 		// Append the selected provider job to the jobs database
 		const createdJob = await db.Job.create({...job})
-		console.log(createdJob)
 		// Add the delivery to the database
-		const updatedClient = await db.User.updateOne({apiKey}, {$push: {jobs: createdJob._id}}, {new: true})
-		console.log(updatedClient)
+		await db.User.updateOne({apiKey}, {$push: {jobs: createdJob._id}}, {new: true})
 		return res.status(200).json({
 			jobId: createdJob._id,
 			...job,
@@ -168,29 +166,6 @@ exports.getJob = async (req, res) => {
 exports.getQuotes = async (req, res) => {
 	console.log(req.body)
 	try {
-	   const {
-		  pickupAddress,
-		  pickupPhoneNumber,
-		  pickupEmailAddress,
-		  pickupBusinessName,
-		  pickupFirstName,
-		  pickupLastName,
-		  pickupInstructions,
-		  dropoffAddress,
-		  dropoffPhoneNumber,
-		  dropoffEmailAddress,
-		  dropoffBusinessName,
-		  dropoffFirstName,
-		  dropoffLastName,
-		  dropoffInstructions,
-		  packageDropoffStartTime,
-		  packageDropoffEndTime,
-		  packagePickupStartTime,
-		  packagePickupEndTime,
-		  packageDescription,
-		  packageValue,
-		  itemsCount,
-	   } = req.body;
 	   const selectionStrategy = await getClientSelectionStrategy(req.headers[AUTHORIZATION_KEY]);
 	   const QUOTES = await getResultantQuotes(req.body);
 	   const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
@@ -217,7 +192,7 @@ exports.updateStatus = async (req, res, next) => {
 				message: "Missing Payload!"
 			})
 		}
-		let job = await db.Job.findByIdAndUpdate(job_id, {"status": status}, {new: true})
+		await db.Job.findByIdAndUpdate(job_id, {"status": status}, {new: true})
 		let jobs = await db.Job.find({}, {}, {new: true})
 		console.log(jobs)
 		return res.status(200).json({
@@ -344,6 +319,7 @@ exports.deleteJob = async (req, res) => {
  * @constructor
  * @param req - request object
  * @param res - response object
+ * @param next - moves to the next helper function
  * @returns {Promise<*>}
  */
 exports.listJobs = async (req, res, next) => {
