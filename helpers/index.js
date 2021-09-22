@@ -54,7 +54,7 @@ exports.createJob = async (req, res) => {
 		//generate new order number
 		//const orderId = orderid.generate();
 		// based on selected quote call selected provider api
-		const spec_id = await providerCreatesJob(bestQuote.providerId, clientRefNumber, req.body)
+		const spec_id = await providerCreatesJob(bestQuote.providerId.toLowerCase(), clientRefNumber, req.body)
 		const jobs = await db.Job.find({})
 		let job = {
 			createdAt: moment().toISOString(),

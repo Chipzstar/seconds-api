@@ -11,7 +11,6 @@ const jobSchema = new mongoose.Schema({
 		packages: []
 	},
 	selectedConfiguration: {
-		jobReference: "",
 		createdAt: Date,
 		jobReference: "",
 		delivery: "",

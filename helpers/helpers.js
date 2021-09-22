@@ -6,7 +6,7 @@ const crypto = require("crypto");
 const moment = require("moment-timezone");
 const {nanoid} = require("nanoid");
 const {quoteSchema} = require("../schemas/quote");
-const { SELECTION_STRATEGIES, ERROR_CODES } = require("../constants");
+const {SELECTION_STRATEGIES, ERROR_CODES, PROVIDERS} = require("../constants");
 
 function genAssignmentCode() {
 	const rand = crypto.randomBytes(7);
@@ -80,21 +80,18 @@ function genOrderNumber(number) {
 
 async function providerCreatesJob(job, ref, body) {
 	switch (job) {
-		/*
-		case 'Stuart':
+		case PROVIDERS.STUART:
 			return await stuartJobRequest(ref, body);
-		case 'Gophr':
+		case PROVIDERS.GOPHR:
 			return await gophrJobRequest(ref, body);
-		//in case dummy wins
-		*/
-		//testing
+		//default case for testing
 		default:
 			console.log('GOPHYRRRR')
-			return await gophrJobRequest(ref, body);
+			return await stuartJobRequest(ref, body);
 	}
 }
 
-function genDummyQuote(refNumber, providerId) {
+/*function genDummyQuote(refNumber, providerId) {
 	let distance = (Math.random() * (15 - 2) + 2).toFixed(2);
 	let duration = Math.floor(Math.random() * (3600 - 600) + 600);
 	let quote = {
@@ -111,7 +108,7 @@ function genDummyQuote(refNumber, providerId) {
 	return {
 		...quote
 	}
-}
+}*/
 
 async function getClientSelectionStrategy(apiKey) {
 	try {
@@ -134,13 +131,13 @@ async function getResultantQuotes(requestBody, referenceNumber) {
 		let gophrQuote = await getGophrQuote(referenceNumber, requestBody)
 		QUOTES.push(stuartQuote)
 		QUOTES.push(gophrQuote)
-		// create dummy quotes
-		// let dummyQuote1 = genDummyQuote(referenceNumber, "dummy_provider_1")
-		// QUOTES.push(dummyQuote1)
-		// let dummyQuote2 = genDummyQuote(referenceNumber, "dummy_provider_2")
-		// QUOTES.push(dummyQuote2)
-		// let dummyQuote3 = genDummyQuote(referenceNumber, "dummy_provider_3")
-		// QUOTES.push(dummyQuote3)
+		/*create dummy quotes
+		let dummyQuote1 = genDummyQuote(referenceNumber, "dummy_provider_1")
+		QUOTES.push(dummyQuote1)
+		let dummyQuote2 = genDummyQuote(referenceNumber, "dummy_provider_2")
+		QUOTES.push(dummyQuote2)
+		let dummyQuote3 = genDummyQuote(referenceNumber, "dummy_provider_3")
+		QUOTES.push(dummyQuote3)*/
 		return QUOTES
 	} catch (err) {
 		console.error(err)
@@ -294,8 +291,8 @@ async function getStuartQuote(reference, params) {
 		return quote
 	} catch (err) {
 		console.error(err)
-		if (err.response.status === ERROR_CODES.UNPROCESSABLE_ENTITY){
-			throw { code: err.response.status, ...err.response.data }
+		if (err.response.status === ERROR_CODES.UNPROCESSABLE_ENTITY) {
+			throw {code: err.response.status, ...err.response.data}
 		} else {
 			throw err
 		}
@@ -430,9 +427,8 @@ async function stuartJobRequest(refNumber, params) {
 		const path = "/v2/jobs";
 		let URL = baseURL + path
 		const config = {headers: {Authorization: `Bearer ${process.env.STUART_ACCESS_TOKEN}`}};
-
 		let {id} = (await axios.post(URL, payload, config)).data
-		return '' + id
+		return String(id)
 	} catch (err) {
 		console.error(err)
 		throw err
@@ -440,6 +436,10 @@ async function stuartJobRequest(refNumber, params) {
 }
 
 module.exports = {
-	genJobReference, genDummyQuote, getClientSelectionStrategy, getGophrQuote,
-	getStuartQuote, chooseBestProvider, genOrderNumber, getResultantQuotes, providerCreatesJob
+	genJobReference,
+	getClientSelectionStrategy,
+	chooseBestProvider,
+	genOrderNumber,
+	getResultantQuotes,
+	providerCreatesJob
 }

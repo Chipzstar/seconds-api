@@ -15,6 +15,11 @@ exports.SELECTION_STRATEGIES = {
 	RATING: "rating"
 }
 
+exports.PROVIDERS = {
+	STUART: "stuart",
+	GOPHR: "gophr"
+}
+
 exports.ERROR_CODES = {
 	UNPROCESSABLE_ENTITY: 422
 }
