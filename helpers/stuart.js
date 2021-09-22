@@ -31,10 +31,29 @@ function translateStuartStatus(value) {
 	}
 }
 
-async function update(data) {
+async function updateJob(data) {
 	try {
 		console.log(data)
 		const {status: STATUS, jobReference: REFERENCE} = data;
+		console.log({STATUS, REFERENCE})
+		// update the status for the current job
+		const updatedJob = await db.Job.findOneAndUpdate(
+			{"selectedConfiguration.jobReference": REFERENCE},
+			{"status": translateStuartStatus(STATUS)},
+			{new: true}
+		)
+		console.log(updatedJob)
+		return updatedJob
+	} catch (err) {
+		console.error(err)
+		throw err
+	}
+}
+
+async function updateDelivery(data) {
+	try {
+		console.log(data)
+		const {status: STATUS, clientReference: REFERENCE} = data;
 		console.log({STATUS, REFERENCE})
 		// update the status for the current job
 		const updatedJob = await db.Job.findOneAndUpdate(
@@ -60,24 +79,24 @@ exports.deliveryUpdate = async (req, res) => {
 		if (event && event === "job") {
 			if (type && type === "create") {
 				console.log("JOB CREATE")
-				await update(data)
+				await updateJob(data)
 				response = {...data}
 			}
 			if (type && type === "update") {
 				console.log("JOB UPDATE")
-				await update(data)
+				await updateJob(data)
 				response = {...data}
 			}
 		}
 		if (event && event === "delivery") {
 			if (type && type === "create") {
 				console.log("DELIVERY CREATE")
-				await update(data)
+				await updateDelivery(data.currentDelivery)
 				response = {...data }
 			}
 			if (type && type === "update") {
 				console.log("DELIVERY UPDATE")
-				await update(data)
+				await updateDelivery(data.currentDelivery)
 				response = {...data }
 				// const foundJob = await db.Job.findOne({"clientReferenceNumber": clientReferenceNumber}, {})
 				// console.log(foundJob)
