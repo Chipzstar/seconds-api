@@ -20,7 +20,7 @@ function genApiKey() {
  *  This is only for testing purposes. A database of clients will be used in production
  * @type {[{apiKey: string, _id: string, email: string}]}
  */
-const clients = [
+/*const clients = [
 	{
 		_id: nanoid(10),
 		email: "admin@gmail.com",
@@ -39,8 +39,8 @@ const clients = [
 		apiKey: genApiKey(),
 		selectionStrategy: SELECTION_STRATEGIES.ETA
 	}
-]
+]*/
 
 const jobs = []
 
-module.exports = { clients, jobs };
+module.exports = { jobs };

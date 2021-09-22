@@ -60,6 +60,7 @@ const swaggerSpec = swaggerJSDoc(options);
 // defining the Express index
 const index = express();
 const db = require('./models/index');
+const {genJobReference} = require("./helpers/helpers");
 
 index.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 index.set('port', process.env.PORT || port);
@@ -90,4 +91,5 @@ index.use('/api/v1/stuart', stuartRoutes);
 // starting the server
 index.listen(port, () => {
 	console.log(`listening on port ${port}`);
+	genJobReference()
 });

@@ -1,4 +1,4 @@
-const {AUTHORIZATION_KEY, STATUS} = require("../constants");
+const { STATUS } = require("../constants");
 const db = require("../models");
 const {JOB_STATUS} = require("../constants/stuart");
 
@@ -28,8 +28,9 @@ async function update(data) {
 		console.log({STATUS, REFERENCE})
 		// update the status for the current job
 		const updatedJob = await db.Job.findOneAndUpdate(
-			{"selectedConfiguration.clientReferenceNumber": REFERENCE},
-			{"status": translateStuartStatus(STATUS)}
+			{"selectedConfiguration.jobReference": REFERENCE},
+			{"status": translateStuartStatus(STATUS)},
+			{new: true}
 		)
 		console.log(updatedJob)
 		return updatedJob
@@ -46,8 +47,6 @@ exports.deliveryUpdate = async (req, res) => {
 		let response = {
 			message: "event unrecognised"
 		}
-		let STATUS = "UNKNOWN"
-		let REFERENCE = "N/A"
 		if (event && event === "job") {
 			if (type && type === "create") {
 				console.log("JOB CREATE")

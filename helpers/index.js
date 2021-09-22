@@ -4,7 +4,7 @@ const moment = require("moment");
 const axios = require('axios');
 const orderid = require('order-id')('seconds')
 const {customAlphabet} = require("nanoid");
-const {genReferenceNumber, genDummyQuote, getStuartQuote, chooseBestProvider, genOrderNumber} = require("./helpers");
+const { genJobReference, genDummyQuote, getStuartQuote, chooseBestProvider, genOrderNumber} = require("./helpers");
 const {jobs} = require('../data');
 const db = require('../models');
 const {alphabet, STATUS, AUTHORIZATION_KEY} = require("../constants");
@@ -49,17 +49,17 @@ exports.createJob = async (req, res) => {
 		// lookup the selection strategy
 		let selectionStrategy = foundClient["selectionStrategy"]
 		//generate client reference number
-		let clientRefNumber = genReferenceNumber();
+		let jobReference = genJobReference();
 		// QUOTE AGGREGATION
 		// send delivery request to integrated providers
-		let stuartQuote = await getStuartQuote(clientRefNumber, req.body)
+		let stuartQuote = await getStuartQuote(jobReference, req.body)
 		QUOTES.push(stuartQuote)
 		// create dummy quotes
-		let dummyQuote1 = genDummyQuote(clientRefNumber, "dummy_provider_1")
+		let dummyQuote1 = genDummyQuote(jobReference, "dummy_provider_1")
 		QUOTES.push(dummyQuote1)
-		let dummyQuote2 = genDummyQuote(clientRefNumber, "dummy_provider_2")
+		let dummyQuote2 = genDummyQuote(jobReference, "dummy_provider_2")
 		QUOTES.push(dummyQuote2)
-		let dummyQuote3 = genDummyQuote(clientRefNumber, "dummy_provider_3")
+		let dummyQuote3 = genDummyQuote(jobReference, "dummy_provider_3")
 		QUOTES.push(dummyQuote3)
 		// Use selection strategy to select the winner quote
 		let bestQuote = chooseBestProvider(selectionStrategy, QUOTES)
@@ -105,7 +105,7 @@ exports.createJob = async (req, res) => {
 				}]
 			},
 			selectedConfiguration: {
-				clientReferenceNumber: clientRefNumber,
+				jobReference,
 				createdAt: moment().toISOString(),
 				delivery: packageDeliveryMode,
 				winnerQuote: bestQuote.id,
@@ -365,17 +365,17 @@ exports.getQuotes = async (req, res, next) => {
 		console.log(foundClient)
 		let selectionStrategy = foundClient["selectionStrategy"]
 		//generate client reference number
-		let clientRefNumber = genReferenceNumber();
+		let jobReference = genReferenceNumber();
 		// QUOTE AGGREGATION
 		// send delivery request to integrated providers
-		let stuartQuote = await getStuartQuote(clientRefNumber, req.body)
+		let stuartQuote = await getStuartQuote(jobReference, req.body)
 		QUOTES.push(stuartQuote)
 		// create dummy quotes
-		let dummyQuote1 = genDummyQuote(clientRefNumber, "dummy_provider_1")
+		let dummyQuote1 = genDummyQuote(jobReference, "dummy_provider_1")
 		QUOTES.push(dummyQuote1)
-		let dummyQuote2 = genDummyQuote(clientRefNumber, "dummy_provider_2")
+		let dummyQuote2 = genDummyQuote(jobReference, "dummy_provider_2")
 		QUOTES.push(dummyQuote2)
-		let dummyQuote3 = genDummyQuote(clientRefNumber, "dummy_provider_3")
+		let dummyQuote3 = genDummyQuote(jobReference, "dummy_provider_3")
 		QUOTES.push(dummyQuote3)
 		// Use selection strategy to select the winner quote
 		let bestQuote = chooseBestProvider(selectionStrategy, QUOTES)

@@ -20,7 +20,7 @@ function genAssignmentCode() {
 	return str;
 }
 
-function genReferenceNumber() {
+function genJobReference() {
 	const rand = crypto.randomBytes(16);
 	let chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".repeat(2)
 
@@ -30,7 +30,7 @@ function genReferenceNumber() {
 		let index = rand[i] % chars.length;
 		str += chars[index];
 	}
-	console.log("Generated Reference Number:", str);
+	console.log("Generated Reference:", str);
 	return str;
 }
 
@@ -93,7 +93,7 @@ function genDummyQuote(refNumber, providerId) {
 	}
 }
 
-async function getStuartQuote(refNumber, params) {
+async function getStuartQuote(reference, params) {
 	const {
 		pickupAddress,
 		pickupPhoneNumber,
@@ -138,7 +138,7 @@ async function getStuartQuote(refNumber, params) {
 					...dropoffSchema,
 					package_type: "medium",
 					package_description: "Gaming console",
-					client_reference: refNumber,
+					client_reference: reference,
 					address: dropoffAddress,
 					comment: dropoffInstructions,
 					contact: {
@@ -262,4 +262,4 @@ async function stuartJobRequest(refNumber, params) {
 	}
 }
 
-module.exports = { genReferenceNumber, genDummyQuote, getStuartQuote, chooseBestProvider, genOrderNumber }
+module.exports = { genJobReference, genDummyQuote, getStuartQuote, chooseBestProvider, genOrderNumber }
