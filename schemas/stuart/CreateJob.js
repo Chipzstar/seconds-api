@@ -27,11 +27,5 @@ const dropoffSchema = {
 	end_customer_time_window_end: ""
 }
 
-const JobRequestSchema = {
-	assignment_code: "",
-	pickups: [],
-	dropoffs: []
-}
-
-module.exports = { pickupSchema, dropoffSchema, JobRequestSchema }
+module.exports = { pickupSchema, dropoffSchema }
 

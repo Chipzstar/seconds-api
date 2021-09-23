@@ -19,6 +19,7 @@ exports.createJob = async (req, res) => {
 	try {
 		const {
 			pickupAddress,
+			pickupFormattedAddress,
 			pickupPhoneNumber,
 			pickupEmailAddress,
 			pickupBusinessName,
@@ -26,6 +27,7 @@ exports.createJob = async (req, res) => {
 			pickupLastName,
 			pickupInstructions,
 			dropoffAddress,
+			dropoffFormattedAddress,
 			dropoffPhoneNumber,
 			dropoffEmailAddress,
 			dropoffBusinessName,
@@ -64,9 +66,10 @@ exports.createJob = async (req, res) => {
 				packages: [{
 					description: packageDescription,
 					dropoffLocation: {
-						address: dropoffAddress,
-						city: "Hull",
-						postcode: "HU9 9JF",
+						fullAddress: dropoffAddress,
+						street_address: dropoffFormattedAddress.street,
+						city: dropoffFormattedAddress.city,
+						postcode: dropoffFormattedAddress.postcode,
 						country: "UK",
 						phoneNumber: dropoffPhoneNumber,
 						email: dropoffEmailAddress,
@@ -81,9 +84,10 @@ exports.createJob = async (req, res) => {
 					pickupStartTime: packagePickupStartTime,
 					pickupEndTime: packagePickupEndTime,
 					pickupLocation: {
-						address: pickupAddress,
-						city: "Plymouth",
-						postcode: "PL2 2PB",
+						fullAddress: pickupAddress,
+						street_address: pickupFormattedAddress.street,
+						city: pickupFormattedAddress.city,
+						postcode: pickupFormattedAddress.postcode,
 						country: "UK",
 						phoneNumber: pickupPhoneNumber,
 						email: pickupEmailAddress,
@@ -165,13 +169,13 @@ exports.getJob = async (req, res) => {
  * @returns {Promise<*>}
  */
 exports.getQuotes = async (req, res) => {
-	console.log(req.body)
 	try {
 	   const selectionStrategy = await getClientSelectionStrategy(req.headers[AUTHORIZATION_KEY]);
-	   const QUOTES = await getResultantQuotes(req.body);
-	   const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
+	   console.log("Strategy: ",selectionStrategy)
+	   const quotes = await getResultantQuotes(req.body);
+	   const bestQuote = chooseBestProvider(selectionStrategy, quotes);
 	   return res.status(200).json({
-		  quotes: QUOTES,
+		  quotes,
 		  bestQuote
 	   })
 	} catch (err) {

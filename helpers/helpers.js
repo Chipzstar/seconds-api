@@ -1,5 +1,5 @@
 const axios = require("axios");
-const {JobRequestSchema, pickupSchema, dropoffSchema} = require("../schemas/stuart/CreateJob");
+const { pickupSchema, dropoffSchema } = require("../schemas/stuart/CreateJob");
 const qs = require("qs");
 const db = require("../models");
 const crypto = require("crypto");
@@ -36,7 +36,7 @@ function genJobReference() {
 	return str;
 }
 
-function calculateFare(distance) {
+/*function calculateFare(distance) {
 	let fare = 0.0
 	if (distance > 1) {
 		fare = fare + 3.5
@@ -46,30 +46,29 @@ function calculateFare(distance) {
 	}
 	fare = fare + (distance * 1.50) + 0.25
 	return fare.toFixed(2)
-}
+}*/
 
 function chooseBestProvider(strategy, quotes) {
 	let bestPriceIndex;
 	let bestEtaIndex;
 	let bestPrice = Infinity
 	let bestEta = Infinity
-	console.log(quotes[0]);
-	console.log("----------");
 	quotes.forEach(({price, dropoffEta, providerId}, index) => {
 		if (price < bestPrice) {
 			bestPrice = price
 			bestPriceIndex = index
 		}
 		let duration = moment.duration(moment(dropoffEta).diff(moment())).asSeconds()
-		//console.log({providerId, duration})
 		if (duration < bestEta) {
 			bestEta = duration
 			bestEtaIndex = index
 		}
 	})
 	if (strategy === SELECTION_STRATEGIES.PRICE) {
+		console.log("BEST:", quotes[bestPriceIndex])
 		return quotes[bestPriceIndex]
 	} else {
+		console.log("BEST:", quotes[bestEtaIndex])
 		return quotes[bestEtaIndex]
 	}
 }
@@ -81,12 +80,14 @@ function genOrderNumber(number) {
 async function providerCreatesJob(job, ref, body) {
 	switch (job) {
 		case PROVIDERS.STUART:
+			console.log("STUAAART")
 			return await stuartJobRequest(ref, body);
 		case PROVIDERS.GOPHR:
+			console.log('GOPHRRRR')
 			return await gophrJobRequest(ref, body);
 		//default case for testing
 		default:
-			console.log('GOPHYRRRR')
+			console.log('GOPHRRRR')
 			return await stuartJobRequest(ref, body);
 	}
 }
@@ -94,7 +95,6 @@ async function providerCreatesJob(job, ref, body) {
 async function getClientSelectionStrategy(apiKey) {
 	try {
 		const foundClient = await db.User.findOne({"apiKey": apiKey}, {});
-		console.log(foundClient);
 		//look up selection strategy
 		return foundClient["selectionStrategy"];
 	} catch (err) {
@@ -112,13 +112,6 @@ async function getResultantQuotes(requestBody, referenceNumber) {
 		let gophrQuote = await getGophrQuote(referenceNumber, requestBody)
 		QUOTES.push(stuartQuote)
 		QUOTES.push(gophrQuote)
-		/*create dummy quotes
-		let dummyQuote1 = genDummyQuote(referenceNumber, "dummy_provider_1")
-		QUOTES.push(dummyQuote1)
-		let dummyQuote2 = genDummyQuote(referenceNumber, "dummy_provider_2")
-		QUOTES.push(dummyQuote2)
-		let dummyQuote3 = genDummyQuote(referenceNumber, "dummy_provider_3")
-		QUOTES.push(dummyQuote3)*/
 		return QUOTES
 	} catch (err) {
 		console.error(err)
@@ -127,46 +120,30 @@ async function getResultantQuotes(requestBody, referenceNumber) {
 }
 
 async function getGophrQuote(refNumber, params) {
-	/*const {
-		pickupAddress,
-		pickupPhoneNumber,
-		pickupEmailAddress,
-		pickupBusinessName,
-		pickupFirstName,
-		pickupLastName,
-		pickupInstructions,
-		dropoffAddress,
-		dropoffPhoneNumber,
-		dropoffEmailAddress,
-		dropoffBusinessName,
-		dropoffFirstName,
-		dropoffLastName,
-		dropoffInstructions,
-		packageDeliveryMode,
-		packageDropoffStartTime,
-		packageDropoffEndTime,
+	const {
+		pickupFormattedAddress,
+		dropoffFormattedAddress,
 		packagePickupStartTime,
-		packagePickupEndTime,
-		packageDescription,
-		packageValue,
-		packageTax,
-		itemsCount
-	} = params;*/
+		packageDropoffStartTime
+	} = params;
+	console.log(packagePickupStartTime)
+	console.log(packageDropoffStartTime)
 	const payload = qs.stringify({
 		'api_key': `${process.env.GOPHR_API_KEY}`,
-		'pickup_address1': '9 White Lion Street',
-		'pickup_postcode': 'N1 9PD',
-		'pickup_city': 'London',
-		// 'pickup_country_code': 'GBR',
+		'pickup_address1': pickupFormattedAddress.street,
+		'pickup_postcode': pickupFormattedAddress.postcode,
+		'pickup_city': pickupFormattedAddress.city,
+		'pickup_country_code': pickupFormattedAddress.countryCode,
 		'size_x': '10',
 		'size_y': '10',
 		'size_z': '30',
 		'weight': '12',
-		// 'earliest_pickup_time': packagePickupStartTime,
-		'delivery_address1': '250 Reede Road',
-		'delivery_city': 'Dagenham',
-		'delivery_postcode': 'RM10 8EH',
-		// 'delivery_country_code': 'GBR'
+		...(packagePickupStartTime) && {'earliest_pickup_time': moment(packagePickupStartTime).toISOString()},
+		...(packageDropoffStartTime) && {'earliest_delivery_time': moment(packageDropoffStartTime).toISOString()},
+		'delivery_address1': dropoffFormattedAddress.street,
+		'delivery_city': dropoffFormattedAddress.city,
+		'delivery_postcode': dropoffFormattedAddress.postcode,
+		'delivery_country_code': dropoffFormattedAddress.countryCode,
 	});
 	try {
 		const config = {headers: {'Content-Type': 'application/x-www-form-urlencoded'}};
@@ -178,8 +155,8 @@ async function getGophrQuote(refNumber, params) {
 			id: `quote_${nanoid(15)}`,
 			price,
 			currency: 'GBP',
-			dropoffEta,
-			providerId: 'Gophr',
+			dropoffEta: moment(dropoffEta).toISOString(),
+			providerId: PROVIDERS.GOPHR,
 			createdAt: moment().toISOString(),
 			expireTime: moment().add(5, "minutes").toISOString(),
 		}
@@ -211,11 +188,10 @@ async function getStuartQuote(reference, params) {
 		packageDropoffEndTime,
 		packagePickupStartTime
 	} = params;
-	console.log("Time:", packagePickupStartTime)
+
 	const payload = {
 		job: {
-			...JobRequestSchema,
-			pickup_at: moment(packagePickupStartTime).format("DD/MM/YYYY HH:mm:ss"),
+			...(packagePickupStartTime) && { pickup_at: packagePickupStartTime },
 			assignment_code: genAssignmentCode(),
 			pickups: [
 				{
@@ -245,8 +221,8 @@ async function getStuartQuote(reference, params) {
 						email: dropoffEmailAddress,
 						company: dropoffBusinessName
 					},
-					end_customer_time_window_start: packageDropoffStartTime,
-					end_customer_time_window_end: packageDropoffEndTime
+					...(packageDropoffStartTime) && { end_customer_time_window_start: packageDropoffStartTime },
+					...(packageDropoffEndTime) && { end_customer_time_window_end: packageDropoffEndTime }
 				}
 			]
 		}
@@ -263,7 +239,7 @@ async function getStuartQuote(reference, params) {
 			price,
 			currency,
 			dropoffEta: moment().add(eta, "seconds").toISOString(),
-			providerId: "Stuart",
+			providerId: PROVIDERS.STUART,
 			createdAt: moment().toISOString(),
 			expireTime: moment().add(5, "minutes").toISOString(),
 		}
@@ -281,14 +257,14 @@ async function getStuartQuote(reference, params) {
 
 async function gophrJobRequest(refNumber, params) {
 	const {
-		pickupAddress,
+		pickupFormattedAddress,
 		pickupPhoneNumber,
 		pickupEmailAddress,
 		pickupBusinessName,
 		pickupFirstName,
 		pickupLastName,
 		pickupInstructions,
-		dropoffAddress,
+		dropoffFormattedAddress,
 		dropoffPhoneNumber,
 		dropoffEmailAddress,
 		dropoffBusinessName,
@@ -298,12 +274,13 @@ async function gophrJobRequest(refNumber, params) {
 		packageDropoffStartTime,
 		packageDropoffEndTime,
 		packagePickupStartTime,
-		packagePickupEndTime
+		packagePickupEndTime,
+		packageValue
 	} = params;
+
 	const payload = qs.stringify({
 		'api_key': `${process.env.GOPHR_API_KEY}`,
 		'external_id': `${refNumber}`,
-		'pickup_address1': '9 White Lion Street',
 		'pickup_person_name': `${pickupFirstName} + ' ' + ${pickupLastName}`,
 		'pickup_mobile_number': `${pickupPhoneNumber}`,
 		'pickup_company_name': `${pickupBusinessName}`,
@@ -312,9 +289,11 @@ async function gophrJobRequest(refNumber, params) {
 		'delivery_mobile_number': `${dropoffPhoneNumber}`,
 		'delivery_company_name': `${dropoffBusinessName}`,
 		'delivery_email': dropoffEmailAddress,
-		'pickup_postcode': 'N1 9PD',
-		'pickup_city': 'London',
-		// 'pickup_country_code': 'GBR',
+		'pickup_address1': pickupFormattedAddress.street,
+		'pickup_city': pickupFormattedAddress.city,
+		'pickup_postcode': pickupFormattedAddress.postcode,
+		'pickup_country_code': pickupFormattedAddress.countryCode,
+		'pickup_tips_how_to_find': pickupInstructions,
 		'size_x': '10',
 		'size_y': '10',
 		'size_z': '30',
@@ -323,18 +302,20 @@ async function gophrJobRequest(refNumber, params) {
 		'pickup_deadline': packagePickupEndTime,
 		'earliest_delivery_time': packageDropoffStartTime,
 		'dropoff_deadline': packageDropoffEndTime,
-		'delivery_address1': '250 Reede Road',
-		'delivery_city': 'Dagenham',
-		'delivery_postcode': 'RM10 8EH',
-		// 'delivery_country_code': 'GBR'
+		'delivery_address1': dropoffFormattedAddress.street,
+		'delivery_city': dropoffFormattedAddress.city,
+		'delivery_postcode': dropoffFormattedAddress.postcode,
+		'delivery_country_code': dropoffFormattedAddress.countryCode,
+		'delivery_tips_how_to_find': dropoffInstructions,
+		'order_value': packageValue
 	});
 	try {
 		const config = {headers: {'Content-Type': 'application/x-www-form-urlencoded'}};
 		const creatJobURL = 'https://api-sandbox.gophr.com/v1/commercial-api/create-confirm-job'
 		const {data} = (await axios.post(creatJobURL, payload, config)).data
 		console.log(data)
-		const { job_id, private_job_url } = data
-		return { id: job_id, trackingURL: private_job_url }
+		const { job_id, public_tracker_url } = data
+		return { id: job_id, trackingURL: public_tracker_url }
 	} catch (err) {
 		console.error(err)
 		throw err
@@ -360,11 +341,11 @@ async function stuartJobRequest(refNumber, params) {
 		packageDropoffStartTime,
 		packageDropoffEndTime,
 		packagePickupStartTime,
+		packageDescription
 	} = params;
 
 	const payload = {
 		job: {
-			...JobRequestSchema,
 			pickup_at: moment(packagePickupStartTime, "DD/MM/YYYY hh:mm:ss"),
 			assignment_code: genAssignmentCode(),
 			pickups: [
@@ -384,8 +365,8 @@ async function stuartJobRequest(refNumber, params) {
 			dropoffs: [
 				{
 					...dropoffSchema,
-					package_type: "medium",
-					package_description: "Gaming console",
+					package_type: "small",
+					package_description: packageDescription,
 					client_reference: refNumber,
 					address: dropoffAddress,
 					comment: dropoffInstructions,
