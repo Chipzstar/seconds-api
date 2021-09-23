@@ -148,20 +148,26 @@ async function getGophrQuote(refNumber, params) {
 	try {
 		const config = {headers: {'Content-Type': 'application/x-www-form-urlencoded'}};
 		const quoteURL = 'https://api-sandbox.gophr.com/v1/commercial-api/get-a-quote'
-		let {data} = (await axios.post(quoteURL, payload, config)).data
-		let {price_net: price, delivery_eta: dropoffEta} = data;
-		const quote = {
-			...quoteSchema,
-			id: `quote_${nanoid(15)}`,
-			price,
-			currency: 'GBP',
-			dropoffEta: moment(dropoffEta).toISOString(),
-			providerId: PROVIDERS.GOPHR,
-			createdAt: moment().toISOString(),
-			expireTime: moment().add(5, "minutes").toISOString(),
+		let response = (await axios.post(quoteURL, payload, config)).data
+		//error checking
+		if (response.success) {
+			let {price_net: price, delivery_eta: dropoffEta} = response.data;
+			const quote = {
+				...quoteSchema,
+				id: `quote_${nanoid(15)}`,
+				price,
+				currency: 'GBP',
+				dropoffEta: moment(dropoffEta).toISOString(),
+				providerId: PROVIDERS.GOPHR,
+				createdAt: moment().toISOString(),
+				expireTime: moment().add(5, "minutes").toISOString(),
+			}
+			console.log(quote)
+			return quote
+		} else {
+			console.log(response.error)
+			throw response.error
 		}
-		console.log(quote)
-		return quote
 	} catch (err) {
 		console.error(err)
 		throw err
@@ -343,7 +349,8 @@ async function stuartJobRequest(refNumber, params) {
 		packagePickupStartTime,
 		packageDescription
 	} = params;
-
+	console.log(pickupAddress)
+	console.log(dropoffAddress)
 	const payload = {
 		job: {
 			pickup_at: moment(packagePickupStartTime, "DD/MM/YYYY hh:mm:ss"),
