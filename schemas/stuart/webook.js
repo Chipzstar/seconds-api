@@ -35,7 +35,3 @@ const JOB = {
 	},
 	deliveries: [{id: 100215436, clientReference: 'TESTING'}]
 }
-
-const DELIVERY = {
-
-}

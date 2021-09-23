@@ -235,7 +235,6 @@ async function getStuartQuote(reference, params) {
 				{
 					...dropoffSchema,
 					package_type: "medium",
-					package_description: "Gaming console",
 					client_reference: reference,
 					address: dropoffAddress,
 					comment: dropoffInstructions,
