@@ -56,6 +56,9 @@ exports.createJob = async (req, res) => {
 		const clientRefNumber = genJobReference();
 		const apiKey = req.headers[AUTHORIZATION_KEY];
 		const selectedProvider = req.headers[PROVIDER_ID]
+		console.log("---------------------------------------------")
+		console.log("SELECTED PROVIDER:", selectedProvider)
+		console.log("---------------------------------------------")
 		console.log("KEY:", apiKey);
 		const selectionStrategy = await getClientSelectionStrategy(apiKey, clientRefNumber);
 		const QUOTES = await getResultantQuotes(req.body);
@@ -67,6 +70,14 @@ exports.createJob = async (req, res) => {
 			trackingURL
 		} = await providerCreatesJob(selectedProvider ? selectedProvider.toLowerCase() : bestQuote.providerId.toLowerCase(), clientRefNumber, req.body)
 		const jobs = await db.Job.find({})
+
+		let providerId;
+		if (JSON.parse(selectedProvider) === null){
+			providerId = bestQuote.providerId
+		} else {
+			providerId = selectedProvider
+		}
+
 		let job = {
 			createdAt: moment().toISOString(),
 			jobSpecification: {
@@ -114,7 +125,7 @@ exports.createJob = async (req, res) => {
 				createdAt: moment().toISOString(),
 				delivery: packageDeliveryMode,
 				winnerQuote: bestQuote.id,
-				providerId: selectedProvider ? selectedProvider : bestQuote.providerId,
+				providerId,
 				trackingURL,
 				quotes: QUOTES
 			},
@@ -171,7 +182,7 @@ exports.getJob = async (req, res) => {
 }
 
 /**
- * Get Quotes - The API endpoint for retreiving the bestQuote and the list of quotes from relative providers
+ * Get Quotes - The API endpoint for retrieving the bestQuote and the list of quotes from relative providers
  * @constructor
  * @param req - request object
  * @param res - response object
