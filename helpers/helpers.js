@@ -238,13 +238,14 @@ async function getStuartQuote(reference, params) {
 		const priceURL = "https://api.sandbox.stuart.com/v2/jobs/pricing"
 		const etaURL = "https://api.sandbox.stuart.com/v2/jobs/eta"
 		let {amount: price, currency} = (await axios.post(priceURL, payload, config)).data
-		let {eta} = (await axios.post(etaURL, payload, config)).data
+		let data = (await axios.post(etaURL, payload, config)).data
+		console.log(data)
 		const quote = {
 			...quoteSchema,
 			id: `quote_${nanoid(15)}`,
 			price,
 			currency,
-			dropoffEta: moment().add(eta, "seconds").toISOString(),
+			dropoffEta: moment().add(data.eta, "seconds").toISOString(),
 			providerId: PROVIDERS.STUART,
 			createdAt: moment().toISOString(),
 			expireTime: moment().add(5, "minutes").toISOString(),

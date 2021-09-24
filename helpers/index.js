@@ -4,10 +4,17 @@ const moment = require("moment");
 const axios = require('axios');
 const orderid = require('order-id')('seconds')
 const {customAlphabet} = require("nanoid");
-const {genJobReference, getClientSelectionStrategy, providerCreatesJob, chooseBestProvider, genOrderNumber, getResultantQuotes} = require("./helpers");
+const {
+	genJobReference,
+	getClientSelectionStrategy,
+	providerCreatesJob,
+	chooseBestProvider,
+	genOrderNumber,
+	getResultantQuotes
+} = require("./helpers");
 const {jobs} = require('../data');
 const db = require('../models');
-const {alphabet, STATUS, AUTHORIZATION_KEY} = require("../constants");
+const {alphabet, STATUS, AUTHORIZATION_KEY, PROVIDER_ID} = require("../constants");
 
 /**
  * The first entry point to Seconds API service,
@@ -48,15 +55,17 @@ exports.createJob = async (req, res) => {
 		//generate client reference number
 		const clientRefNumber = genJobReference();
 		const apiKey = req.headers[AUTHORIZATION_KEY];
+		const selectedProvider = req.headers[PROVIDER_ID]
 		console.log("KEY:", apiKey);
 		const selectionStrategy = await getClientSelectionStrategy(apiKey, clientRefNumber);
 		const QUOTES = await getResultantQuotes(req.body);
 		// Use selection strategy to select the winner quote
 		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
-		//generate new order number
-		//const orderId = orderid.generate();
-		// based on selected quote call selected provider api
-		const {id: spec_id, trackingURL } = await providerCreatesJob(bestQuote.providerId.toLowerCase(), clientRefNumber, req.body)
+		// based on selected quote call selected provider api or use client's requested provider id is specified
+		const {
+			id: spec_id,
+			trackingURL
+		} = await providerCreatesJob(selectedProvider ? selectedProvider.toLowerCase() : bestQuote.providerId.toLowerCase(), clientRefNumber, req.body)
 		const jobs = await db.Job.find({})
 		let job = {
 			createdAt: moment().toISOString(),
@@ -105,7 +114,7 @@ exports.createJob = async (req, res) => {
 				createdAt: moment().toISOString(),
 				delivery: packageDeliveryMode,
 				winnerQuote: bestQuote.id,
-				providerId: bestQuote.providerId,
+				providerId: selectedProvider ? selectedProvider : bestQuote.providerId,
 				trackingURL,
 				quotes: QUOTES
 			},
@@ -170,24 +179,24 @@ exports.getJob = async (req, res) => {
  */
 exports.getQuotes = async (req, res) => {
 	try {
-	   const selectionStrategy = await getClientSelectionStrategy(req.headers[AUTHORIZATION_KEY]);
-	   console.log("Strategy: ",selectionStrategy)
-	   const quotes = await getResultantQuotes(req.body);
-	   const bestQuote = chooseBestProvider(selectionStrategy, quotes);
-	   return res.status(200).json({
-		  quotes,
-		  bestQuote
-	   })
+		const selectionStrategy = await getClientSelectionStrategy(req.headers[AUTHORIZATION_KEY]);
+		console.log("Strategy: ", selectionStrategy)
+		const quotes = await getResultantQuotes(req.body);
+		const bestQuote = chooseBestProvider(selectionStrategy, quotes);
+		return res.status(200).json({
+			quotes,
+			bestQuote
+		})
 	} catch (err) {
-	   return res.status(500).json({
-		  ...err
-	   })
+		return res.status(500).json({
+			...err
+		})
 	}
 }
 
 exports.updateStatus = async (req, res, next) => {
-	const { status } = req.body;
-	const { job_id } = req.params;
+	const {status} = req.body;
+	const {job_id} = req.params;
 	try {
 		console.log(req.body)
 		if (!Object.keys(req.body).length) {

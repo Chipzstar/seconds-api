@@ -1,4 +1,5 @@
 exports.AUTHORIZATION_KEY = "X-Seconds-Api-Key".toLowerCase();
+exports.PROVIDER_ID = "X-Seconds-Provider-Id".toLowerCase()
 
 exports.STATUS = {
 	NEW: "new".toUpperCase(),
