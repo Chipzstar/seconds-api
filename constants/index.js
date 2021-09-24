@@ -1,19 +1,32 @@
 exports.AUTHORIZATION_KEY = "X-Seconds-Api-Key".toLowerCase();
+exports.PROVIDER_ID = "X-Seconds-Provider-Id".toLowerCase()
 
-exports.DELIVERY_STATUS = {
-	CREATED: "created".toUpperCase(),
+exports.STATUS = {
+	NEW: "new".toUpperCase(),
 	PENDING: "pending".toUpperCase(),
-	DISPATCHED: "dispatched".toUpperCase(),
-	IN_PROGRESS: "in_progress".toUpperCase(),
+	DISPATCHING: "dispatching".toUpperCase(),
+	EN_ROUTE: "en-route".toUpperCase(),
 	COMPLETED: "completed".toUpperCase(),
-	CANCELLED: "cancelled".toUpperCase(),
-	EXPIRED: "expired".toUpperCase()
+	CANCELLED: "cancelled".toUpperCase()
 }
 
 exports.SELECTION_STRATEGIES = {
-	PRICE: "lowest-price",
-	ETA: "fastest-delivery-time",
-	RATING: "best-rating"
+	PRICE: "price",
+	ETA: "eta",
+	RATING: "rating"
+}
+
+exports.PROVIDERS = {
+	STUART: "stuart",
+	GOPHR: "gophr"
+}
+
+exports.ERROR_CODES = {
+	UNPROCESSABLE_ENTITY: 422
+}
+
+exports.AUTH_KEYS = {
+	STUART: "d59328cec7b021d59f15208616d14c8d4653477c3db9d7eaa08629fa0bc3e395"
 }
 
 const numbers = '1234567890'

@@ -1,5 +1,5 @@
 const express = require("express");
-const {createJob, getJob, updateJob, deleteJob, listJobs, updateStatus} = require("../helpers");
+const {createJob, getJob, getQuotes, updateJob, deleteJob, listJobs, updateStatus, createQuotes} = require("../helpers");
 const router = express.Router();
 
 router.post("/", listJobs)
@@ -41,6 +41,14 @@ router.post("/", listJobs)
  *             $ref: '#/components/schemas/Job'
  */
 router.post("/create", createJob)
+ /**
+  * @swagger
+  * /jobs/quotes:
+  *   post:
+  *     summary: API endpoint for retrieving best quote.
+  *     description: Finds the best quote for the client based on the selection strategy provided.
+  */
+router.post("/quotes", getQuotes)
 /**
  * @swagger
  * /jobs/{job_id}:
@@ -58,6 +66,7 @@ router.post("/create", createJob)
  *         ...
  */
 router.get("/:job_id", getJob)
+router.post("/:job_id", updateStatus)
 /**
  * @swagger
  * /jobs/{job_id}:
@@ -74,7 +83,6 @@ router.get("/:job_id", getJob)
  *       200:
  *         ...
  */
-router.post("/:job_id", updateStatus)
 router.patch("/:job_id", updateJob)
 /**
  * @swagger

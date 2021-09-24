@@ -4,10 +4,17 @@ const moment = require("moment");
 const axios = require('axios');
 const orderid = require('order-id')('seconds')
 const {customAlphabet} = require("nanoid");
-const {genReferenceNumber, genDummyQuote, getStuartQuote, chooseBestProvider, genOrderNumber} = require("./helpers");
+const {
+	genJobReference,
+	getClientSelectionStrategy,
+	providerCreatesJob,
+	chooseBestProvider,
+	genOrderNumber,
+	getResultantQuotes
+} = require("./helpers");
 const {jobs} = require('../data');
 const db = require('../models');
-const {alphabet, DELIVERY_STATUS, AUTHORIZATION_KEY} = require("../constants");
+const {alphabet, STATUS, AUTHORIZATION_KEY, PROVIDER_ID} = require("../constants");
 
 /**
  * The first entry point to Seconds API service,
@@ -19,6 +26,7 @@ exports.createJob = async (req, res) => {
 	try {
 		const {
 			pickupAddress,
+			pickupFormattedAddress,
 			pickupPhoneNumber,
 			pickupEmailAddress,
 			pickupBusinessName,
@@ -26,6 +34,7 @@ exports.createJob = async (req, res) => {
 			pickupLastName,
 			pickupInstructions,
 			dropoffAddress,
+			dropoffFormattedAddress,
 			dropoffPhoneNumber,
 			dropoffEmailAddress,
 			dropoffBusinessName,
@@ -42,41 +51,34 @@ exports.createJob = async (req, res) => {
 			packageTax,
 			itemsCount,
 		} = req.body;
-		const apiKey = req.headers[AUTHORIZATION_KEY];
-		const QUOTES = []
-		const foundClient = await db.User.findOne({"apiKey": apiKey}, {})
-		console.log(foundClient)
-		// lookup the selection strategy
-		let selectionStrategy = foundClient["selectionStrategy"]
+		//fetch api key
 		//generate client reference number
-		let clientRefNumber = genReferenceNumber();
-		// QUOTE AGGREGATION
-		// send delivery request to integrated providers
-		let stuartQuote = await getStuartQuote(clientRefNumber, req.body)
-		QUOTES.push(stuartQuote)
-		// create dummy quotes
-		let dummyQuote1 = genDummyQuote(clientRefNumber, "dummy_provider_1")
-		QUOTES.push(dummyQuote1)
-		let dummyQuote2 = genDummyQuote(clientRefNumber, "dummy_provider_2")
-		QUOTES.push(dummyQuote2)
-		let dummyQuote3 = genDummyQuote(clientRefNumber, "dummy_provider_3")
-		QUOTES.push(dummyQuote3)
+		const clientRefNumber = genJobReference();
+		const apiKey = req.headers[AUTHORIZATION_KEY];
+		const selectedProvider = req.headers[PROVIDER_ID]
+		console.log("KEY:", apiKey);
+		const selectionStrategy = await getClientSelectionStrategy(apiKey, clientRefNumber);
+		const QUOTES = await getResultantQuotes(req.body);
 		// Use selection strategy to select the winner quote
-		let bestQuote = chooseBestProvider(selectionStrategy, QUOTES)
-		//generate new order number
-		//const orderId = orderid.generate();
+		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
+		// based on selected quote call selected provider api or use client's requested provider id is specified
+		const {
+			id: spec_id,
+			trackingURL
+		} = await providerCreatesJob(selectedProvider ? selectedProvider.toLowerCase() : bestQuote.providerId.toLowerCase(), clientRefNumber, req.body)
 		const jobs = await db.Job.find({})
 		let job = {
 			createdAt: moment().toISOString(),
 			jobSpecification: {
-				id: `spec_${nanoid()}`,
+				id: spec_id,
 				orderNumber: genOrderNumber(jobs.length),
 				packages: [{
 					description: packageDescription,
 					dropoffLocation: {
-						address: dropoffAddress,
-						city: "Hull",
-						postcode: "HU9 9JF",
+						fullAddress: dropoffAddress,
+						street_address: dropoffFormattedAddress.street,
+						city: dropoffFormattedAddress.city,
+						postcode: dropoffFormattedAddress.postcode,
 						country: "UK",
 						phoneNumber: dropoffPhoneNumber,
 						email: dropoffEmailAddress,
@@ -91,9 +93,10 @@ exports.createJob = async (req, res) => {
 					pickupStartTime: packagePickupStartTime,
 					pickupEndTime: packagePickupEndTime,
 					pickupLocation: {
-						address: pickupAddress,
-						city: "Plymouth",
-						postcode: "PL2 2PB",
+						fullAddress: pickupAddress,
+						street_address: pickupFormattedAddress.street,
+						city: pickupFormattedAddress.city,
+						postcode: pickupFormattedAddress.postcode,
 						country: "UK",
 						phoneNumber: pickupPhoneNumber,
 						email: pickupEmailAddress,
@@ -107,28 +110,33 @@ exports.createJob = async (req, res) => {
 				}]
 			},
 			selectedConfiguration: {
+				jobReference: clientRefNumber,
 				createdAt: moment().toISOString(),
 				delivery: packageDeliveryMode,
 				winnerQuote: bestQuote.id,
-				providerId: bestQuote.providerId,
+				providerId: selectedProvider ? selectedProvider : bestQuote.providerId,
+				trackingURL,
 				quotes: QUOTES
 			},
-			status: DELIVERY_STATUS.CREATED,
+			status: STATUS.NEW,
 		}
 		// Append the selected provider job to the jobs database
 		const createdJob = await db.Job.create({...job})
-		console.log(createdJob)
 		// Add the delivery to the database
-		const updatedClient = await db.User.updateOne({apiKey}, {$push: {jobs: createdJob._id}}, {new: true})
-		console.log(updatedClient)
+		await db.User.updateOne({apiKey}, {$push: {jobs: createdJob._id}}, {new: true})
 		return res.status(200).json({
 			jobId: createdJob._id,
 			...job,
 		})
 	} catch (e) {
-		console.error(e)
-		return res.status(400).json({
-			code: 400,
+		console.error("ERROR:", e)
+		if (e.message) {
+			return res.status(e.code).json({
+				error: e
+			})
+		}
+		return res.status(500).json({
+			code: 500,
 			message: "Unknown error occurred!"
 		});
 	}
@@ -162,9 +170,33 @@ exports.getJob = async (req, res) => {
 	}
 }
 
+/**
+ * Get Quotes - The API endpoint for retreiving the bestQuote and the list of quotes from relative providers
+ * @constructor
+ * @param req - request object
+ * @param res - response object
+ * @returns {Promise<*>}
+ */
+exports.getQuotes = async (req, res) => {
+	try {
+		const selectionStrategy = await getClientSelectionStrategy(req.headers[AUTHORIZATION_KEY]);
+		console.log("Strategy: ", selectionStrategy)
+		const quotes = await getResultantQuotes(req.body);
+		const bestQuote = chooseBestProvider(selectionStrategy, quotes);
+		return res.status(200).json({
+			quotes,
+			bestQuote
+		})
+	} catch (err) {
+		return res.status(500).json({
+			...err
+		})
+	}
+}
+
 exports.updateStatus = async (req, res, next) => {
-	const { status } = req.body;
-	const { job_id } = req.params;
+	const {status} = req.body;
+	const {job_id} = req.params;
 	try {
 		console.log(req.body)
 		if (!Object.keys(req.body).length) {
@@ -174,7 +206,7 @@ exports.updateStatus = async (req, res, next) => {
 				message: "Missing Payload!"
 			})
 		}
-		let job = await db.Job.findByIdAndUpdate(job_id, {"status": status}, {new: true})
+		await db.Job.findByIdAndUpdate(job_id, {"status": status}, {new: true})
 		let jobs = await db.Job.find({}, {}, {new: true})
 		console.log(jobs)
 		return res.status(200).json({
@@ -189,6 +221,7 @@ exports.updateStatus = async (req, res, next) => {
 		})
 	}
 }
+
 /**
  * Update Job - The API endpoint for updating details of a delivery job
  * @param req - request object
@@ -300,18 +333,20 @@ exports.deleteJob = async (req, res) => {
  * @constructor
  * @param req - request object
  * @param res - response object
+ * @param next - moves to the next helper function
  * @returns {Promise<*>}
  */
 exports.listJobs = async (req, res, next) => {
 	try {
 		const {email} = req.body;
 		const user = await db.User.findOne({"email": email}, {})
-		console.log(user.jobs)
 		const jobs = []
 		for (let jobId of user.jobs) {
-			const {_doc} = await db.Job.findById(jobId, {}, {new: true})
-			console.log(_doc)
-			jobs.push({..._doc})
+			const job = await db.Job.findById(jobId, {}, {new: true})
+			if (job) {
+				console.log(job["_doc"])
+				jobs.push({...job["_doc"]})
+			}
 		}
 		return res.status(200).json({
 			jobs,

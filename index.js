@@ -6,6 +6,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const jobRoutes = require('./routes');
+const stuartRoutes = require('./routes/stuart')
 const port = process.env.PORT || 3001;
 moment.tz.setDefault("Europe/London");
 
@@ -59,6 +60,7 @@ const swaggerSpec = swaggerJSDoc(options);
 // defining the Express index
 const index = express();
 const db = require('./models/index');
+const {genJobReference} = require("./helpers/helpers");
 
 index.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 index.set('port', process.env.PORT || port);
@@ -84,8 +86,10 @@ index.get('/', (req, res) => {
 });
 
 index.use('/api/v1/jobs', jobRoutes);
+index.use('/api/v1/stuart', stuartRoutes);
 
 // starting the server
 index.listen(port, () => {
 	console.log(`listening on port ${port}`);
+	genJobReference()
 });

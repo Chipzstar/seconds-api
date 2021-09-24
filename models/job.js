@@ -12,6 +12,8 @@ const jobSchema = new mongoose.Schema({
 	},
 	selectedConfiguration: {
 		createdAt: Date,
+		jobReference: "",
+		trackingURL: "",
 		delivery: "",
 		winnerQuote: "",
 		providerId: "",
