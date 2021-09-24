@@ -14,7 +14,7 @@ const {
 } = require("./helpers");
 const {jobs} = require('../data');
 const db = require('../models');
-const {alphabet, STATUS, AUTHORIZATION_KEY, PROVIDER_ID} = require("../constants");
+const {alphabet, STATUS, AUTHORIZATION_KEY, PROVIDER_ID, PROVIDERS} = require("../constants");
 
 /**
  * The first entry point to Seconds API service,
@@ -71,8 +71,9 @@ exports.createJob = async (req, res) => {
 		} = await providerCreatesJob(selectedProvider ? selectedProvider.toLowerCase() : bestQuote.providerId.toLowerCase(), clientRefNumber, req.body)
 		const jobs = await db.Job.find({})
 
+		// checks if the fleet provider for the delivery was manually selected or not
 		let providerId;
-		if (JSON.parse(selectedProvider) === null){
+		if (selectedProvider === PROVIDERS.UNKNOWN){
 			providerId = bestQuote.providerId
 		} else {
 			providerId = selectedProvider

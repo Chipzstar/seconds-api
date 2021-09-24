@@ -18,7 +18,8 @@ exports.SELECTION_STRATEGIES = {
 
 exports.PROVIDERS = {
 	STUART: "stuart",
-	GOPHR: "gophr"
+	GOPHR: "gophr",
+	UNKNOWN: "unknown"
 }
 
 exports.ERROR_CODES = {
