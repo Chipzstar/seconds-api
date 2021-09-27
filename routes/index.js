@@ -1,5 +1,5 @@
 const express = require("express");
-const {createJob, getJob, getQuotes, updateJob, deleteJob, listJobs, updateStatus, createQuotes} = require("../helpers");
+const {createJob, getJob, getQuotes, updateJob, cancelJob, listJobs, updateStatus } = require("../helpers");
 const router = express.Router();
 
 router.post("/", listJobs)
@@ -100,7 +100,7 @@ router.patch("/:job_id", updateJob)
  *       200:
  *         ...
  */
-router.delete("/:job_id", deleteJob)
+router.delete("/:job_id", cancelJob)
 
 module.exports = router;
 

@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const packageSchema = require("./package");
 
 const jobSchema = new mongoose.Schema({
 	jobSpecification: {
@@ -8,7 +9,7 @@ const jobSchema = new mongoose.Schema({
 			unique: true,
 			required: true,
 		},
-		packages: []
+		packages: [packageSchema]
 	},
 	selectedConfiguration: {
 		createdAt: Date,

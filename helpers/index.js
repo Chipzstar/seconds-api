@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const moment = require("moment");
+const mongoose = require("mongoose");
 const axios = require('axios');
 const orderid = require('order-id')('seconds')
 const {customAlphabet} = require("nanoid");
@@ -74,7 +75,7 @@ exports.createJob = async (req, res) => {
 
 		// checks if the fleet provider for the delivery was manually selected or not
 		let providerId;
-		if (selectedProvider === PROVIDERS.UNKNOWN){
+		if (selectedProvider === PROVIDERS.UNKNOWN) {
 			providerId = bestQuote.providerId
 		} else {
 			providerId = selectedProvider
@@ -164,9 +165,11 @@ exports.createJob = async (req, res) => {
  */
 exports.getJob = async (req, res) => {
 	try {
-		let foundJob = jobs.find(job => job.id === req.params["job_id"])
+		const {job_id} = req.params;
+		let {_doc: {_id, ...foundJob}} = await db.Job.findById(job_id, {})
 		if (foundJob) {
 			return res.status(200).json({
+				jobId: job_id,
 				...foundJob
 			})
 		} else {
@@ -242,7 +245,6 @@ exports.updateStatus = async (req, res, next) => {
  * @returns {Promise<*>}
  */
 exports.updateJob = async (req, res) => {
-	console.log(req.body)
 	if (!Object.keys(req.body).length) {
 		return res.status(400).json({
 			code: 400,
@@ -251,57 +253,36 @@ exports.updateJob = async (req, res) => {
 		})
 	}
 	const {
-		status,
 		packageDescription: description,
 		pickupInstructions,
-		dropoffInstructions,
-		packageTax: tax,
-		packageValue: value,
-		itemsCount,
-	} = req.body;
+		dropoffInstructions
+	} = req.body
+	console.log(req.body)
 	try {
-		let jobIndex = jobs.findIndex(job => job.id === req.params["job_id"])
-		if (jobIndex !== -1) {
-			jobs.forEach((job, index) => {
-				if (jobIndex === index) {
-					// update the specific job
-					console.log(job)
-					jobs[index] = {
-						...job,
-						jobSpecification: {
-							...job.jobSpecification,
-							packages: [
-								{
-									...job.jobSpecification.packages[0],
-									description,
-									pickupLocation: {
-										...job.jobSpecification.packages[0].pickupLocation,
-										instructions: pickupInstructions
-									},
-									dropoffLocation: {
-										...job.jobSpecification.packages[0].dropoffLocation,
-										instructions: dropoffInstructions
-									},
-									value,
-									tax,
-									itemsCount,
-								}
-							]
-						}
-					}
-				}
-			})
-			return res.status(200).json({
-				...jobs[jobIndex]
-			})
+		let jobId = req.params["job_id"]
+		if (mongoose.Types.ObjectId.isValid(jobId)) {
+			const updatedJob = await db.Job.findOneAndUpdate({_id: jobId}, {
+				'$set': {
+					[`jobSpecification.packages.$[outer].description`]: description,
+				},
+			}, {new: true})
+			return updatedJob ?
+				res.status(200).json({
+					...updatedJob
+				}) : res.status(404).json({
+					code: 404,
+					description: `No job found with ID: ${jobId}`,
+					message: "Not Found"
+				})
 		} else {
-			return res.status(404).json({
+			res.status(404).json({
 				code: 404,
-				description: `No job found with ID: ${req.params["job_id"]}`,
+				description: `No job found with ID: ${jobId}`,
 				message: "Not Found"
 			})
 		}
-	} catch (e) {
+	} catch
+		(e) {
 		console.error(e)
 		return res.status(500).json({
 			...e
@@ -315,13 +296,12 @@ exports.updateJob = async (req, res) => {
  * @param res - response object
  * @returns {Promise<*>}
  */
-exports.deleteJob = async (req, res) => {
+exports.cancelJob = async (req, res) => {
 	try {
 		const jobId = req.params["job_id"]
-		let jobIndex = jobs.findIndex(job => job.id === jobId)
-		if (jobIndex !== -1) {
-			jobs.splice(jobIndex, 1)
-			console.log("Num jobs:", jobs.length)
+		let foundJob = await db.Job.findByIdAndUpdate(jobId, {"status": STATUS.CANCELLED}, {new: true})
+		console.log(foundJob)
+		if (foundJob) {
 			return res.status(200).json({
 				jobId,
 				cancelled: true
