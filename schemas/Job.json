@@ -14,6 +14,9 @@
 		"id": {
 		  "type": "string"
 		},
+		"orderNumber": {
+		  "type": "string"
+		},
 		"packages": {
 		  "type": "array",
 		  "items": {
@@ -125,61 +128,53 @@
 	"selectedConfiguration": {
 	  "type": "object",
 	  "properties": {
-		"jobReference":  {
+		"jobReference": {
 		  "type": "string"
 		},
 		"createdAt": {
 		  "type": "string"
 		},
-		"tasks": {
+		"delivery": {
+		  "type": "string"
+		},
+		"providerId": {
+		  "type": "string",
+		  "format": "nullable"
+		},
+		"quotes": {
 		  "type": "array",
 		  "items": {
 			"type": "object",
 			"properties": {
-			  "delivery": {
+			  "createdTime": {
+				"type": "string"
+			  },
+			  "currency": {
+				"type": "string"
+			  },
+			  "dropoffEta": {
+				"type": "string"
+			  },
+			  "expireTime": {
 				"type": "string"
 			  },
 			  "id": {
 				"type": "string"
 			  },
-			  "providerId": {
-				"type": "string",
-				"format": "nullable"
+			  "pickupWindow": {
+				"type": "string"
 			  },
-			  "quotes": {
-				"type": "array",
-				"items": {
-				  "type": "object",
-				  "properties": {
-					"createdTime": {
-					  "type": "string"
-					},
-					"currency": {
-					  "type": "string"
-					},
-					"dropoffEta": {
-					  "type": "string"
-					},
-					"expireTime": {
-					  "type": "string"
-					},
-					"id": {
-					  "type": "string"
-					},
-					"pickupWindow": {
-					  "type": "string"
-					},
-					"price": {
-					  "type": "number"
-					},
-					"providerId": {
-					  "type": "string"
-					}
-				  }
-				}
+			  "price": {
+				"type": "number"
+			  },
+			  "providerId": {
+				"type": "string"
 			  }
 			}
 		  }
+		},
+		"winnerQuote": {
+		  "type": "string"
 		}
 	  }
 	},

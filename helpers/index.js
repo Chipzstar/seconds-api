@@ -57,9 +57,10 @@ exports.createJob = async (req, res) => {
 		const apiKey = req.headers[AUTHORIZATION_KEY];
 		const selectedProvider = req.headers[PROVIDER_ID]
 		console.log("---------------------------------------------")
+		console.log("KEY:", apiKey);
+		console.log("---------------------------------------------")
 		console.log("SELECTED PROVIDER:", selectedProvider)
 		console.log("---------------------------------------------")
-		console.log("KEY:", apiKey);
 		const selectionStrategy = await getClientSelectionStrategy(apiKey, clientRefNumber);
 		const QUOTES = await getResultantQuotes(req.body);
 		// Use selection strategy to select the winner quote

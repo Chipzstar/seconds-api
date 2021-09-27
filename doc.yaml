@@ -59,6 +59,11 @@ components:
             $ref: '#/components/schemas/DeliveryRequirements'
           example:
             pickupAddress: 250 Reede Rd, Dagenham RM10 8EH
+            pickupFormattedAddress:
+              street: 250 Reede Road
+              city: Dagenham
+              postcode: RM10 8EH
+              countryCode: GB
             pickupPhoneNumber: '+447507210809'
             pickupEmailAddress: chisom.oguibe@googlemail.com
             pickupBusinessName: Humandroid
@@ -66,17 +71,22 @@ components:
             pickupLastName: Oguibe
             pickupInstructions: N/A
             dropoffAddress: 35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS
+            dropoffFormattedAddress:
+              street: 42 Linton Road
+              city: Barking
+              postcode: IG11 8FS
+              countryCode: GB
             dropoffPhoneNumber: '+447523958055'
-            dropoffEmail: olaoladapo7@gmail.com
+            dropoffEmailAddress: olaoladapo7@gmail.com
             dropoffBusinessName: Seconds
             dropoffFirstName: Ola
             dropoffLastName: Oladapo
             dropoffInstructions: Leave in the front porch, if not available
             packageDeliveryMode: Any
-            packageDropoffStartTime: 2021-09-10T15:45:14+0000
-            packageDropoffEndTime: 2021-09-10T16:00:14+0000
-            packagePickupStartTime: 2021-09-10T15:15:14+0000
-            packagePickupEndTime: 2021-09-10T15:21:14+0000
+            packageDropoffStartTime: 2021-09-30T15:45:14+0000
+            packageDropoffEndTime: 2021-09-30T16:00:14+0000
+            packagePickupStartTime: 2021-09-30T15:15:14+0000
+            packagePickupEndTime: 2021-09-30T15:21:14+0000
             packageDescription: Xbox One S Console
             packageValue: 250
             packageTax: 0.2
@@ -95,56 +105,66 @@ components:
           schema:
             $ref: '#/components/schemas/Job'
           example:
-            createdAt: 1630514605791
-            id: job_SKDo1qRpUveLU8@NWZ3:ofsC
+            createdAt: "2021-09-27T13:06:59.560Z"
+            jobId: 6151c1f38a9660a0241d2e06
             jobSpecification:
-              id: spec_72h|XTMrst9zEts7E'aa/PSq
+              id: 100172991
+              orderNumber: 0030
               packages:
                 - description: Xbox One S Console
                   dropoffLocation:
-                    address: Bush Hill Park Service Station, Great Cambridge Road, Enfield,EN1 1JD
-                    city: Hull
-                    postcode: HU9 9JF
+                    fullAddress: 35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS
+                    street_address: 42 Linton Road
+                    city: Barking
+                    postcode: IG11 8FS
                     country: UK
                     phoneNumber: '+447523958055'
-                    email: null
-                    firstName: Chisom
-                    lastName: Oguibe
-                    businessName: Humandroid
-                    instructions: Leave in the front porch, if not available
-                  dropoffStartTime: Mon Aug 30 2021 14:04:01 GMT+0000
-                  dropoffEndTime: Mon Aug 30 2021 14:24:01 GMT+0000
-                  itemsCount: 1
-                  pickupStartTime: Mon Aug 30 2021 13:44:01 GMT+0000
-                  pickupEndTime: Mon Aug 30 2021 13:50:01 GMT+0000
-                  pickupLocation:
-                    address: 5 St Stephens Road, Barnet, EN5 2TA
-                    city: Plymouth
-                    postcode: PL2 2PB
-                    country: UK
-                    phoneNumber: '+447507210809'
-                    email: null
+                    email: olaoladapo7@gmail.com
                     firstName: Ola
                     lastName: Oladapo
-                    businessName: NeedNowSnacks
+                    businessName: Weezy
+                    instructions: Leave in the front porch, if not available
+                  dropoffStartTime: 2021-09-10T15:45:14+0000
+                  dropoffEndTime: 2021-09-10T16:00:14+0000
+                  itemsCount: 1
+                  pickupStartTime: 2021-09-10T15:15:14+0000
+                  pickupEndTime: 2021-09-10T15:21:14+0000
+                  pickupLocation:
+                    fullAddress: 250 Reede Rd, Dagenham RM10 8EH
+                    city: Dagenham
+                    postcode: RM10 8EH
+                    country: UK
+                    phoneNumber: '+447507210809'
+                    email: chisom.oguibe@googlemail.com
+                    firstName: Chisom
+                    lastName: Oguibe
+                    businessName: Seconds Technologies
                     instructions: N/A
                   tax: 0.2
                   value: 250
             selectedConfiguration:
               createdAt: '2021-06-22T18:16:54.025917'
-              tasks:
-                - delivery: Any
-                  id: task_A2G0W*Qu;6D;[*2iEg-ot]6N
-                  providerId: null
-                  quotes:
-                    - createdTime: '2021-06-22T18:16:56'
-                      currency: GBP
-                      dropoffEta: '2021-09-22T19:52:56'
-                      expireTime: '2021-09-22T18:21:56'
-                      id: quote_4scqrEA,bItf||O9!0c1Qc1k
-                      pickupWindow: '2021-06-22T18:16:56.361353'
-                      price: 13.04
-                      providerId: partner_1
+              id: A2G0W*Qu;6D;[*2iEg-ot]6N
+              trackingURL: https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b
+              winnerQuote: quote_4scqrEA,bItf||O9!0c1Qc1k
+              providerId: stuart
+              quotes:
+              - createdTime: '2021-06-22T18:16:56'
+                currency: GBP
+                dropoffEta: '2021-09-22T19:52:56'
+                expireTime: '2021-09-22T18:21:56'
+                id: quote_4scqrEA,bItf||O9!0c1Qc1k
+                pickupWindow: '2021-06-22T18:16:56.361353'
+                price: 13.04
+                providerId: stuart
+              - createdTime: '2021-06-22T18:16:56'
+                currency: GBP
+                dropoffEta: '2021-09-22T19:52:56'
+                expireTime: '2021-09-22T18:21:56'
+                id: quote_4scqrEA@bItf21cewaxc
+                pickupWindow: '2021-06-22T18:16:56.361353'
+                price: 13.04
+                providerId: gophr
             status: CREATED
     requestedJobResponse:
       description: The requested job
@@ -153,56 +173,66 @@ components:
           schema:
             $ref: '#/components/schemas/Job'
           example:
-            createdAt: 1630514605791
-            id: job_SKDo1qRpUveLU8@NWZ3:ofsC
+            createdAt: "2021-09-27T13:06:59.560Z"
+            jobId: 6151c1f38a9660a0241d2e06
             jobSpecification:
-              id: spec_72h|XTMrst9zEts7E'aa/PSq
+              id: 100172991
+              orderNumber: 0030
               packages:
                 - description: Xbox One S Console
                   dropoffLocation:
-                    address: Bush Hill Park Service Station, Great Cambridge Road, Enfield,EN1 1JD
-                    city: Hull
-                    postcode: HU9 9JF
+                    fullAddress: 35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS
+                    street_address: 42 Linton Road
+                    city: Barking
+                    postcode: IG11 8FS
                     country: UK
                     phoneNumber: '+447523958055'
-                    email: null
-                    firstName: Chisom
-                    lastName: Oguibe
-                    businessName: Humandroid
-                    instructions: Leave in the front porch, if not available
-                  dropoffStartTime: Mon Aug 30 2021 14:04:01 GMT+0000
-                  dropoffEndTime: Mon Aug 30 2021 14:24:01 GMT+0000
-                  itemsCount: 1
-                  pickupStartTime: Mon Aug 30 2021 13:44:01 GMT+0000
-                  pickupEndTime: Mon Aug 30 2021 13:50:01 GMT+0000
-                  pickupLocation:
-                    address: 5 St Stephens Road, Barnet, EN5 2TA
-                    city: Plymouth
-                    postcode: PL2 2PB
-                    country: UK
-                    phoneNumber: '+447507210809'
-                    email: null
+                    email: olaoladapo7@gmail.com
                     firstName: Ola
                     lastName: Oladapo
-                    businessName: NeedNowSnacks
+                    businessName: Weezy
+                    instructions: Leave in the front porch, if not available
+                  dropoffStartTime: 2021-09-30T15:45:14+0000
+                  dropoffEndTime: 2021-09-30T16:00:14+0000
+                  itemsCount: 1
+                  pickupStartTime: 2021-09-30T15:15:14+0000
+                  pickupEndTime: 2021-09-30T15:21:14+0000
+                  pickupLocation:
+                    fullAddress: 250 Reede Rd, Dagenham RM10 8EH
+                    city: Dagenham
+                    postcode: RM10 8EH
+                    country: UK
+                    phoneNumber: '+447507210809'
+                    email: chisom.oguibe@googlemail.com
+                    firstName: Chisom
+                    lastName: Oguibe
+                    businessName: Seconds Technologies
                     instructions: N/A
                   tax: 0.2
                   value: 250
             selectedConfiguration:
               createdAt: '2021-06-22T18:16:54.025917'
-              tasks:
-                - delivery: Any
-                  id: task_A2G0W*Qu;6D;[*2iEg-ot]6N
-                  providerId: null
-                  quotes:
-                    - createdTime: '2021-06-22T18:16:56'
-                      currency: GBP
-                      dropoffEta: '2021-09-22T19:52:56'
-                      expireTime: '2021-09-22T18:21:56'
-                      id: quote_4scqrEA,bItf||O9!0c1Qc1k
-                      pickupWindow: '2021-06-22T18:16:56.361353'
-                      price: 13.04
-                      providerId: partner_1
+              id: A2G0W*Qu;6D;[*2iEg-ot]6N
+              trackingURL: https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b
+              winnerQuote: quote_4scqrEA,bItf||O9!0c1Qc1k
+              providerId: stuart
+              quotes:
+                - createdTime: '2021-06-22T18:16:56'
+                  currency: GBP
+                  dropoffEta: '2021-09-22T19:52:56'
+                  expireTime: '2021-09-22T18:21:56'
+                  id: quote_4scqrEA,bItf||O9!0c1Qc1k
+                  pickupWindow: '2021-06-22T18:16:56.361353'
+                  price: 13.04
+                  providerId: stuart
+                - createdTime: '2021-06-22T18:16:56'
+                  currency: GBP
+                  dropoffEta: '2021-09-22T19:52:56'
+                  expireTime: '2021-09-22T18:21:56'
+                  id: quote_4scqrEA@bItf21cewaxc
+                  pickupWindow: '2021-06-22T18:16:56.361353'
+                  price: 13.04
+                  providerId: gophr
             status: CREATED
     updatedJobResponse:
       description: The updated job
@@ -211,57 +241,67 @@ components:
           schema:
             $ref: '#/components/schemas/Job'
           example:
-            createdAt: 1630514605791
-            id: job_SKDo1qRpUveLU8@NWZ3:ofsC
+            createdAt: "2021-09-27T13:06:59.560Z"
+            jobId: 6151c1f38a9660a0241d2e06
             jobSpecification:
-              id: spec_72h|XTMrst9zEts7E'aa/PSq
+              id: 100172991
+              orderNumber: 0030
               packages:
                 - description: Xbox One S Console
                   dropoffLocation:
-                    address: Bush Hill Park Service Station, Great Cambridge Road, Enfield,EN1 1JD
-                    city: Hull
-                    postcode: HU9 9JF
+                    fullAddress: 35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS
+                    street_address: 42 Linton Road
+                    city: Barking
+                    postcode: IG11 8FS
                     country: UK
                     phoneNumber: '+447523958055'
-                    email: null
-                    firstName: Chisom
-                    lastName: Oguibe
-                    businessName: Humandroid
-                    instructions: Leave in the front porch, if not available
-                  dropoffStartTime: Mon Aug 30 2021 14:04:01 GMT+0000
-                  dropoffEndTime: Mon Aug 30 2021 14:24:01 GMT+0000
-                  itemsCount: 1
-                  pickupStartTime: Mon Aug 30 2021 13:44:01 GMT+0000
-                  pickupEndTime: Mon Aug 30 2021 13:50:01 GMT+0000
-                  pickupLocation:
-                    address: 5 St Stephens Road, Barnet, EN5 2TA
-                    city: Plymouth
-                    postcode: PL2 2PB
-                    country: UK
-                    phoneNumber: '+447507210809'
-                    email: null
+                    email: olaoladapo7@gmail.com
                     firstName: Ola
                     lastName: Oladapo
-                    businessName: NeedNowSnacks
+                    businessName: Weezy
+                    instructions: Enter reception area
+                  dropoffStartTime: 2021-09-10T15:45:14+0000
+                  dropoffEndTime: 2021-09-10T16:00:14+0000
+                  itemsCount: 1
+                  pickupStartTime: 2021-09-10T15:15:14+0000
+                  pickupEndTime: 2021-09-10T15:21:14+0000
+                  pickupLocation:
+                    fullAddress: 250 Reede Rd, Dagenham RM10 8EH
+                    city: Dagenham
+                    postcode: RM10 8EH
+                    country: UK
+                    phoneNumber: '+447507210809'
+                    email: chisom.oguibe@googlemail.com
+                    firstName: Chisom
+                    lastName: Oguibe
+                    businessName: Seconds Technologies
                     instructions: N/A
                   tax: 0.2
                   value: 250
             selectedConfiguration:
               createdAt: '2021-06-22T18:16:54.025917'
-              tasks:
-                - delivery: Any
-                  id: task_A2G0W*Qu;6D;[*2iEg-ot]6N
-                  providerId: null
-                  quotes:
-                    - createdTime: '2021-06-22T18:16:56'
-                      currency: GBP
-                      dropoffEta: '2021-09-22T19:52:56'
-                      expireTime: '2021-09-22T18:21:56'
-                      id: quote_4scqrEA,bItf||O9!0c1Qc1k
-                      pickupWindow: '2021-06-22T18:16:56.361353'
-                      price: 13.04
-                      providerId: partner_1
-            status: CREATED
+              id: A2G0W*Qu;6D;[*2iEg-ot]6N
+              trackingURL: https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b
+              winnerQuote: quote_4scqrEA,bItf||O9!0c1Qc1k
+              providerId: stuart
+              quotes:
+                - createdTime: '2021-06-22T18:16:56'
+                  currency: GBP
+                  dropoffEta: '2021-09-22T19:52:56'
+                  expireTime: '2021-09-22T18:21:56'
+                  id: quote_4scqrEA,bItf||O9!0c1Qc1k
+                  pickupWindow: '2021-06-22T18:16:56.361353'
+                  price: 13.04
+                  providerId: stuart
+                - createdTime: '2021-06-22T18:16:56'
+                  currency: GBP
+                  dropoffEta: '2021-09-22T19:52:56'
+                  expireTime: '2021-09-22T18:21:56'
+                  id: quote_4scqrEA@bItf21cewaxc
+                  pickupWindow: '2021-06-22T18:16:56.361353'
+                  price: 13.04
+                  providerId: gophr
+            status: DISPATCHING
     deletedJobResponse:
       description: Confirmation of cancelled job
       content:

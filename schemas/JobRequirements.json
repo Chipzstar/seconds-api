@@ -4,6 +4,23 @@
 	"pickupAddress": {
 	  "type": "string"
 	},
+	"pickupFormattedAddress": {
+	  "type": "object",
+	  "properties": {
+		"street": {
+		  "type": "string"
+		},
+		"city": {
+		  "type": "string"
+		},
+		"postcode": {
+		  "type": "string"
+		},
+		"countryCode": {
+		  "type": "string"
+		}
+	  }
+	},
 	"pickupPhoneNumber": {
 	  "type": "string"
 	},
@@ -25,12 +42,29 @@
 	"dropoffAddress": {
 	  "type": "string"
 	},
+	"dropoffFormattedAddress": {
+	  "type": "object",
+	  "properties": {
+		"street": {
+		  "type": "string"
+		},
+		"city": {
+		  "type": "string"
+		},
+		"postcode": {
+		  "type": "string"
+		},
+		"countryCode": {
+		  "type": "string"
+		}
+	  }
+	},
 	"dropoffPhoneNumber": {
 	  "type": "string"
 	},
-	  "dropoffEmailAddress": {
-		"type": "string"
-	  },
+	"dropoffEmailAddress": {
+	  "type": "string"
+	},
 	"dropoffBusinessName": {
 	  "type": "string"
 	},
