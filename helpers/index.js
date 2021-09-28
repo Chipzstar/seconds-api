@@ -13,7 +13,6 @@ const {
 	genOrderNumber,
 	getResultantQuotes
 } = require("./helpers");
-const {jobs} = require('../data');
 const db = require('../models');
 const {alphabet, STATUS, AUTHORIZATION_KEY, PROVIDER_ID, PROVIDERS} = require("../constants");
 
@@ -215,7 +214,7 @@ exports.getQuotes = async (req, res) => {
 	}
 }
 
-exports.updateStatus = async (req, res, next) => {
+exports.updateStatus = async (req, res) => {
 	const {status} = req.body;
 	const {job_id} = req.params;
 	try {
@@ -266,13 +265,19 @@ exports.updateJob = async (req, res) => {
 	try {
 		let jobId = req.params["job_id"]
 		if (mongoose.Types.ObjectId.isValid(jobId)) {
-			const updatedJob = await db.Job.findOneAndUpdate({_id: jobId}, {
+			let {_doc: {_id, ...updatedJob}} = await db.Job.findOneAndUpdate({_id: jobId}, {
 				'$set': {
-					[`jobSpecification.packages.$[outer].description`]: description,
+					"jobSpecification.packages.$[].description": description,
+					"jobSpecification.packages.$[].pickupLocation.instructions": pickupInstructions,
+					"jobSpecification.packages.$[].dropoffLocation.instructions": dropoffInstructions
 				},
-			}, {new: true})
+			}, {
+				new: true,
+				sanitizeProjection: true,
+			})
 			return updatedJob ?
 				res.status(200).json({
+					jobId: _id,
 					...updatedJob
 				}) : res.status(404).json({
 					code: 404,

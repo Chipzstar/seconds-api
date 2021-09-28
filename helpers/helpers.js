@@ -359,7 +359,7 @@ async function stuartJobRequest(refNumber, params) {
 	console.log(dropoffAddress)
 	const payload = {
 		job: {
-			pickup_at: moment(packagePickupStartTime, "DD/MM/YYYY hh:mm:ss"),
+			pickup_at: moment(packagePickupStartTime, "DD/MM/YYYY HH:mm:ss"),
 			assignment_code: genAssignmentCode(),
 			pickups: [
 				{
@@ -406,8 +406,8 @@ async function stuartJobRequest(refNumber, params) {
 		return {
 			id: String(data.id),
 			trackingURL: data.deliveries[0].tracking_url,
-			pickupAt: data.pickup_at,
-			dropoffAt: data.dropoff_at
+			pickupAt: data["pickup_at"],
+			dropoffAt: data["dropoff_at"]
 		}
 	} catch (err) {
 		console.error(err)
