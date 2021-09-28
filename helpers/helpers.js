@@ -83,11 +83,11 @@ async function providerCreatesJob(job, ref, body) {
 			console.log("STUAAART")
 			return await stuartJobRequest(ref, body);
 		case PROVIDERS.GOPHR:
-			console.log('GOPHRRRR')
+			console.log('Creating GOPHR Job')
 			return await gophrJobRequest(ref, body);
-		//default case for testing
+		// default case if no valid providerId was chosen
 		default:
-			console.log('GOPHRRRR')
+			console.log('Creating STUART Job')
 			return await stuartJobRequest(ref, body);
 	}
 }
@@ -318,11 +318,16 @@ async function gophrJobRequest(refNumber, params) {
 	});
 	try {
 		const config = {headers: {'Content-Type': 'application/x-www-form-urlencoded'}};
-		const creatJobURL = 'https://api-sandbox.gophr.com/v1/commercial-api/create-confirm-job'
-		const {data} = (await axios.post(creatJobURL, payload, config)).data
+		const createJobURL = 'https://api-sandbox.gophr.com/v1/commercial-api/create-confirm-job'
+		const {data} = (await axios.post(createJobURL, payload, config)).data
 		console.log(data)
-		const { job_id, public_tracker_url } = data
-		return { id: job_id, trackingURL: public_tracker_url }
+		const { job_id, public_tracker_url, pickup_eta, delivery_eta } = data
+		return {
+			id: job_id,
+			trackingURL: public_tracker_url,
+			pickupAt: pickup_eta,
+			dropoffAt: delivery_eta
+		}
 	} catch (err) {
 		console.error(err)
 		throw err
@@ -398,7 +403,12 @@ async function stuartJobRequest(refNumber, params) {
 		const config = {headers: {Authorization: `Bearer ${process.env.STUART_ACCESS_TOKEN}`}};
 		let data = (await axios.post(URL, payload, config)).data
 		console.log(data)
-		return { id: String(data.id), trackingURL: data.deliveries[0].tracking_url }
+		return {
+			id: String(data.id),
+			trackingURL: data.deliveries[0].tracking_url,
+			pickupAt: data.pickup_at,
+			dropoffAt: data.dropoff_at
+		}
 	} catch (err) {
 		console.error(err)
 		throw err

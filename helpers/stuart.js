@@ -2,6 +2,11 @@ const { STATUS } = require("../constants");
 const db = require("../models");
 const {JOB_STATUS, DELIVERY_STATUS} = require("../constants/stuart");
 
+/**
+ * Maps the current job status of a STUART delivery with the SECONDS delivery status
+ * @param value - delivery status returned from the stuart delivery update
+ * @returns {string|*}
+ */
 function translateStuartStatus(value) {
 	switch (value) {
 		case JOB_STATUS.NEW:
@@ -40,7 +45,7 @@ function translateStuartStatus(value) {
 async function updateJob(data) {
 	try {
 		console.log(data)
-		const {status: STATUS, jobReference: REFERENCE} = data;
+		const {status: STATUS, jobReference: REFERENCE, currentDelivery: { etaToOrigin, etaToDestination }} = data;
 		console.log({STATUS, REFERENCE})
 		// update the status for the current job
 		const updatedJob = await db.Job.findOneAndUpdate(
