@@ -101,6 +101,7 @@ router.patch("/:job_id", updateJob)
  *         ...
  */
 router.delete("/:job_id", cancelJob)
+router.post("")
 
 module.exports = router;
 

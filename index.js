@@ -1,14 +1,18 @@
 require("dotenv").config();
+
 const express = require("express");
 const bodyParser = require('body-parser');
 const moment = require('moment-timezone');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-const jobRoutes = require('./routes');
+const jobRoutes = require('./routes/jobs');
+const paymentRoutes = require('./routes/payments')
 const stuartRoutes = require('./routes/stuart')
 const port = process.env.PORT || 3001;
 moment.tz.setDefault("Europe/London");
+
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 const swaggerJSDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
@@ -86,6 +90,7 @@ index.get('/', (req, res) => {
 });
 
 index.use('/api/v1/jobs', jobRoutes);
+index.use('/api/v1/payments', paymentRoutes)
 index.use('/api/v1/stuart', stuartRoutes);
 
 // starting the server
