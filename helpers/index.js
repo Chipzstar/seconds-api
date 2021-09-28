@@ -62,24 +62,29 @@ exports.createJob = async (req, res) => {
 		console.log("---------------------------------------------")
 		console.log("SELECTED PROVIDER:", selectedProvider)
 		console.log("---------------------------------------------")
-		const selectionStrategy = await getClientSelectionStrategy(apiKey, clientRefNumber);
+		const selectionStrategy = await getClientSelectionStrategy(apiKey);
 		const QUOTES = await getResultantQuotes(req.body);
 		// Use selection strategy to select the winner quote
 		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
 		// based on selected quote call selected provider api or use client's requested provider id is specified
-		const {
-			id: spec_id,
-			trackingURL
-		} = await providerCreatesJob(selectedProvider ? selectedProvider.toLowerCase() : bestQuote.providerId.toLowerCase(), clientRefNumber, req.body)
-		const jobs = await db.Job.find({})
 
 		// checks if the fleet provider for the delivery was manually selected or not
 		let providerId;
+		console.log(selectedProvider === PROVIDERS.UNKNOWN)
 		if (selectedProvider === PROVIDERS.UNKNOWN) {
 			providerId = bestQuote.providerId
 		} else {
 			providerId = selectedProvider
 		}
+
+		const {
+			id: spec_id,
+			trackingURL,
+			pickupAt,
+			dropoffAt
+		} = await providerCreatesJob(providerId.toLowerCase(), clientRefNumber, req.body)
+
+		const jobs = await db.Job.find({})
 
 		let job = {
 			createdAt: moment().toISOString(),
@@ -101,10 +106,10 @@ exports.createJob = async (req, res) => {
 						businessName: dropoffBusinessName,
 						instructions: dropoffInstructions
 					},
-					dropoffStartTime: packageDropoffStartTime,
+					dropoffStartTime: dropoffAt ? moment(dropoffAt).toISOString() : packageDropoffStartTime,
 					dropoffEndTime: packageDropoffEndTime,
 					itemsCount,
-					pickupStartTime: packagePickupStartTime,
+					pickupStartTime: pickupAt ? moment(pickupAt).toISOString() : packagePickupStartTime,
 					pickupEndTime: packagePickupEndTime,
 					pickupLocation: {
 						fullAddress: pickupAddress,
