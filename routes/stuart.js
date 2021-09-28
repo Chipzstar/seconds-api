@@ -1,5 +1,5 @@
 const express = require("express");
-const { updateJob, updateDelivery  } = require("../helpers/stuart");
+const { update } = require("../helpers/stuart");
 const router = express.Router();
 
 router.post("/delivery-update", async (req, res) => {
@@ -12,12 +12,12 @@ router.post("/delivery-update", async (req, res) => {
 		if (event && event === "job") {
 			if (type && type === "create") {
 				console.log("JOB CREATE")
-				await updateJob(data)
+				await update(data, event.toLowerCase())
 				response = {...data}
 			}
 			if (type && type === "update") {
 				console.log("JOB UPDATE")
-				await updateJob(data)
+				await update(data, event.toLowerCase())
 				response = {...data}
 			}
 		}
@@ -25,13 +25,13 @@ router.post("/delivery-update", async (req, res) => {
 			if (type && type === "create") {
 				console.log("DELIVERY CREATE")
 				console.log(data)
-				await updateDelivery(data)
+				await update(data, event.toLowerCase())
 				response = {...data }
 			}
 			if (type && type === "update") {
 				console.log("DELIVERY UPDATE")
 				console.log(data)
-				await updateDelivery(data)
+				await update(data, event.toLowerCase())
 				response = {...data }
 				// const foundJob = await db.Job.findOne({"clientReferenceNumber": clientReferenceNumber}, {})
 				// console.log(foundJob)

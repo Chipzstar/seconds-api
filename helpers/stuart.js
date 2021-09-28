@@ -1,6 +1,7 @@
 const { STATUS } = require("../constants");
 const db = require("../models");
 const {JOB_STATUS, DELIVERY_STATUS} = require("../constants/stuart");
+const moment = require("moment");
 
 /**
  * Maps the current job status of a STUART delivery with the SECONDS delivery status
@@ -42,17 +43,30 @@ function translateStuartStatus(value) {
 	}
 }
 
-async function updateJob(data) {
+async function update(data, type) {
 	try {
 		console.log(data)
-		const {status: STATUS, jobReference: REFERENCE, currentDelivery: { etaToOrigin, etaToDestination }} = data;
+		const STATUS = data.status;
+		const REFERENCE = type === "job" ? data.jobReference : data.clientReference;
+		const { etaToOrigin, etaToDestination } = type === "job" ? data.currentDelivery : data;
 		console.log({STATUS, REFERENCE})
 		// update the status for the current job
-		const updatedJob = await db.Job.findOneAndUpdate(
+		await db.Job.findOneAndUpdate(
 			{"selectedConfiguration.jobReference": REFERENCE},
 			{"status": translateStuartStatus(STATUS)},
 			{new: true}
 		)
+		let {_doc: {_id, ...updatedJob}} = await db.Job.findOneAndUpdate(
+			{"selectedConfiguration.jobReference": REFERENCE},
+			{
+			'$set': {
+				"jobSpecification.packages.$[].pickupStartTime": moment(etaToOrigin).toISOString(),
+				"jobSpecification.packages.$[].dropoffStartTime": moment(etaToDestination).toISOString()
+			},
+		}, {
+			new: true,
+			sanitizeProjection: true,
+		})
 		console.log(updatedJob)
 		return updatedJob
 	} catch (err) {
@@ -61,23 +75,35 @@ async function updateJob(data) {
 	}
 }
 
-async function updateDelivery(data) {
+/*async function updateDelivery(data, type) {
 	try {
 		console.log(data)
-		const {status: STATUS, clientReference: REFERENCE} = data;
+		const {status: STATUS, clientReference: REFERENCE, } = data;
 		console.log({STATUS, REFERENCE})
 		// update the status for the current job
-		const updatedJob = await db.Job.findOneAndUpdate(
+		await db.Job.findOneAndUpdate(
 			{"selectedConfiguration.jobReference": REFERENCE},
 			{"status": translateStuartStatus(STATUS)},
 			{new: true}
 		)
+		let {_doc: {_id, ...updatedJob}} = await db.Job.findOneAndUpdate(
+			{"selectedConfiguration.jobReference": REFERENCE},
+			{
+				'$set': {
+					"jobSpecification.packages.$[].description": description,
+					"jobSpecification.packages.$[].pickupStartTime": moment(etaToOrigin).toISOString(),
+					"jobSpecification.packages.$[].dropoffStartTime": moment(etaToDestination).toISOString()
+				},
+			}, {
+				new: true,
+				sanitizeProjection: true,
+			})
 		console.log(updatedJob)
 		return updatedJob
 	} catch (err) {
 		console.error(err)
 		throw err
 	}
-}
+}*/
 
-module.exports = { updateDelivery, updateJob }
+module.exports = { update }

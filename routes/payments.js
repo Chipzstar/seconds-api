@@ -31,6 +31,7 @@ router.post("/new-customer", async (req, res) => {
 })
 
 router.post("/setup-intent", async (req, res) => {
+	//const { key } = req.body;
 	const key = uuidv4()
 	console.log(key)
 	try {
