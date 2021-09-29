@@ -33,15 +33,15 @@ router.post("/new-customer", async (req, res) => {
 router.post("/setup-intent", async (req, res) => {
 	//const { key } = req.body;
 	const key = uuidv4()
-	console.log(key)
+	console.log('-----+++++')
+	console.log(key, req.body)
 	try {
 		const setupIntent = await stripe.setupIntents.create({
 			payment_method_types: ['card'],
-		}, {
-			idempotencyKey: key
+			customer: req.body.stripeCustomerId
 		});
 		console.log(setupIntent)
-		res.status(200).json({client_secret: setupIntent.client_secret});
+		res.status(200).json(setupIntent);
 	} catch (e) {
 		console.error(e)
 		res.status(400).json({
