@@ -256,6 +256,8 @@ async function getStuartQuote(reference, params) {
 		console.error(err)
 		if (err.response.status === ERROR_CODES.UNPROCESSABLE_ENTITY) {
 			throw {code: err.response.status, ...err.response.data}
+		} else if (err.response.status === ERROR_CODES.INVALID_GRANT) {
+			throw {code: err.response.status, ...err.response.data}
 		} else {
 			throw err
 		}
