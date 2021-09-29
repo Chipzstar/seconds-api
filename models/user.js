@@ -45,8 +45,13 @@ const userSchema = new mongoose.Schema({
 	apiKey: {
 		type: String,
 	},
+	stripeCustomerId: {
+		type: String,
+		default: "",
+	},
 	selectionStrategy: {
 		type: String,
+		default: "eta"
 	},
 	jobs: [{type: Schema.Types.ObjectId, ref: 'Job'}],
 });
