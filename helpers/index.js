@@ -72,22 +72,26 @@ exports.createJob = async (req, res) => {
 		// based on selected quote call selected provider api or use client's requested provider id is specified
 
 		// checks if the fleet provider for the delivery was manually selected or not
-		let providerId;
+		let providerId, deliveryFee;
 		console.log(selectedProvider === PROVIDERS.UNKNOWN)
 		if (selectedProvider === PROVIDERS.UNKNOWN) {
 			providerId = bestQuote.providerId
+			deliveryFee = bestQuote.price
 		} else {
 			providerId = selectedProvider
+			let chosenQuote = QUOTES.find(quote => quote.providerId === selectedProvider.toLowerCase())
+			deliveryFee = chosenQuote ? chosenQuote.price : null
 		}
 		// check if user had a payment method before creating the order
 		let { stripeCustomerId, paymentMethodId } = await getStripeDetails(apiKey);
+
 		if (paymentMethodId) {
 			let idempotencyKey = uuidv4()
 			//create the payment intent for the new order
 			const paymentIntent = await stripe.paymentIntents.create({
 				// * 100 to convert from pounds to pennies
 				// * 0.1 to take 10%
-				amount: Math.floor((packageValue * 100) * 1.1),
+				amount: Math.floor((deliveryFee * 100) * 1.1),
 				customer: stripeCustomerId,
 				currency: 'GBP',
 				setup_future_usage: 'off_session',
