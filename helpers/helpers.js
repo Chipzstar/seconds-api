@@ -311,7 +311,7 @@ async function gophrJobRequest(refNumber, params) {
 	try {
 		const config = {headers: {'Content-Type': 'application/x-www-form-urlencoded'}};
 		const createJobURL = 'https://api-sandbox.gophr.com/v1/commercial-api/create-confirm-job'
-		const data = (await axios.post(createJobURL, payload, config)).data
+		const { data } = (await axios.post(createJobURL, payload, config)).data
 		console.log(data)
 		const { job_id, public_tracker_url, pickup_eta, delivery_eta } = data
 		return {
