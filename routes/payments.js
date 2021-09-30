@@ -37,7 +37,8 @@ router.post("/setup-intent", async (req, res) => {
 	try {
 		const setupIntent = await stripe.setupIntents.create({
 			payment_method_types: ['card'],
-			customer: req.body.stripeCustomerId
+			customer: req.body.stripeCustomerId,
+			email: req.body.email
 		});
 		console.log(setupIntent)
 		res.status(200).json(setupIntent);
