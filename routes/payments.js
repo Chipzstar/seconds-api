@@ -15,7 +15,23 @@ router.post("/setup-intent", async (req, res) => {
 		});
 		console.log(setupIntent)
 		res.status(200).json(setupIntent);
-		let { _doc: updatedUser} = await db.User.findOneAndUpdate({ "email": email }, { "paymentMethodId": setupIntent.payment_method }, { new: true})
+	} catch (e) {
+		console.error(e)
+		res.status(400).json({
+			error: {...e}
+		})
+	}
+})
+
+router.post("/add-payment-method", async (req, res) => {
+	const { paymentMethodId, email } = req.body;
+	console.log('!!!!!!!!!!!!!!!!!!!!')
+
+	console.log(paymentMethodId)
+	console.log(email)
+	//const key = uuidv4()
+	try {
+		let updatedUser = await db.User.findOneAndUpdate({ "email": email }, { "paymentMethodId": paymentMethodId }, { new: true})
 		console.log(updatedUser)
 	} catch (e) {
 		console.error(e)
