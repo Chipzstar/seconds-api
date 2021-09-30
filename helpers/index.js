@@ -87,7 +87,7 @@ exports.createJob = async (req, res) => {
 			const paymentIntent = await stripe.paymentIntents.create({
 				// * 100 to convert from pounds to pennies
 				// * 0.1 to take 10%
-				amount: (packageValue * 100 * 0.1),
+				amount: Math.floor((packageValue * 100) * 1.1),
 				customer: stripeCustomerId,
 				currency: 'GBP',
 				setup_future_usage: 'off_session',
