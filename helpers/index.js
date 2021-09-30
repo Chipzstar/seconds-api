@@ -1,8 +1,10 @@
 require("dotenv").config();
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const express = require("express");
 const moment = require("moment");
 const mongoose = require("mongoose");
 const axios = require('axios');
+const {v4: uuidv4} = require('uuid')
 const orderid = require('order-id')('seconds')
 const {customAlphabet} = require("nanoid");
 const {
@@ -11,7 +13,9 @@ const {
 	providerCreatesJob,
 	chooseBestProvider,
 	genOrderNumber,
-	getResultantQuotes
+	getResultantQuotes,
+	getStripeDetails,
+	confirmCharge
 } = require("./helpers");
 const db = require('../models');
 const {alphabet, STATUS, AUTHORIZATION_KEY, PROVIDER_ID, PROVIDERS} = require("../constants");
@@ -75,77 +79,104 @@ exports.createJob = async (req, res) => {
 		} else {
 			providerId = selectedProvider
 		}
-
-		const {
-			id: spec_id,
-			trackingURL,
-			pickupAt,
-			dropoffAt
-		} = await providerCreatesJob(providerId.toLowerCase(), clientRefNumber, req.body)
-
-		const jobs = await db.Job.find({})
-
-		let job = {
-			createdAt: moment().toISOString(),
-			jobSpecification: {
+		// check if user had a payment method before creating the order
+		let { stripeCustomerId, paymentMethodId } = await getStripeDetails(apiKey);
+		if (paymentMethodId) {
+			let idempotencyKey = uuidv4()
+			//create the payment intent for the new order
+			const paymentIntent = await stripe.paymentIntents.create({
+				// * 100 to convert from pounds to pennies
+				// * 0.1 to take 10%
+				amount: (packageValue * 100 * 0.1),
+				customer: stripeCustomerId,
+				currency: 'GBP',
+				setup_future_usage: 'off_session',
+				payment_method: paymentMethodId,
+				payment_method_types: ['card'],
+			}, {
+				idempotencyKey,
+			});
+			console.log("-------------------------------------------")
+			console.log("Payment Intent Created!", paymentIntent)
+			console.log("-------------------------------------------")
+			const {
 				id: spec_id,
-				orderNumber: genOrderNumber(jobs.length),
-				packages: [{
-					description: packageDescription,
-					dropoffLocation: {
-						fullAddress: dropoffAddress,
-						street_address: dropoffFormattedAddress.street,
-						city: dropoffFormattedAddress.city,
-						postcode: dropoffFormattedAddress.postcode,
-						country: "UK",
-						phoneNumber: dropoffPhoneNumber,
-						email: dropoffEmailAddress,
-						firstName: dropoffFirstName,
-						lastName: dropoffLastName,
-						businessName: dropoffBusinessName,
-						instructions: dropoffInstructions
-					},
-					dropoffStartTime: dropoffAt ? moment(dropoffAt).toISOString() : packageDropoffStartTime,
-					dropoffEndTime: packageDropoffEndTime,
-					itemsCount,
-					pickupStartTime: pickupAt ? moment(pickupAt).toISOString() : packagePickupStartTime,
-					pickupEndTime: packagePickupEndTime,
-					pickupLocation: {
-						fullAddress: pickupAddress,
-						street_address: pickupFormattedAddress.street,
-						city: pickupFormattedAddress.city,
-						postcode: pickupFormattedAddress.postcode,
-						country: "UK",
-						phoneNumber: pickupPhoneNumber,
-						email: pickupEmailAddress,
-						firstName: pickupFirstName,
-						lastName: pickupLastName,
-						businessName: pickupBusinessName,
-						instructions: pickupInstructions
-					},
-					tax: packageTax,
-					value: packageValue
-				}]
-			},
-			selectedConfiguration: {
-				jobReference: clientRefNumber,
-				createdAt: moment().toISOString(),
-				delivery: packageDeliveryMode,
-				winnerQuote: bestQuote.id,
-				providerId,
 				trackingURL,
-				quotes: QUOTES
-			},
-			status: STATUS.NEW,
+				pickupAt,
+				dropoffAt
+			} = await providerCreatesJob(providerId.toLowerCase(), clientRefNumber, req.body)
+
+			const jobs = await db.Job.find({})
+
+			let job = {
+				createdAt: moment().toISOString(),
+				jobSpecification: {
+					id: spec_id,
+					orderNumber: genOrderNumber(jobs.length),
+					packages: [{
+						description: packageDescription,
+						dropoffLocation: {
+							fullAddress: dropoffAddress,
+							street_address: dropoffFormattedAddress.street,
+							city: dropoffFormattedAddress.city,
+							postcode: dropoffFormattedAddress.postcode,
+							country: "UK",
+							phoneNumber: dropoffPhoneNumber,
+							email: dropoffEmailAddress,
+							firstName: dropoffFirstName,
+							lastName: dropoffLastName,
+							businessName: dropoffBusinessName,
+							instructions: dropoffInstructions
+						},
+						dropoffStartTime: dropoffAt ? moment(dropoffAt).toISOString() : packageDropoffStartTime,
+						dropoffEndTime: packageDropoffEndTime,
+						itemsCount,
+						pickupStartTime: pickupAt ? moment(pickupAt).toISOString() : packagePickupStartTime,
+						pickupEndTime: packagePickupEndTime,
+						pickupLocation: {
+							fullAddress: pickupAddress,
+							street_address: pickupFormattedAddress.street,
+							city: pickupFormattedAddress.city,
+							postcode: pickupFormattedAddress.postcode,
+							country: "UK",
+							phoneNumber: pickupPhoneNumber,
+							email: pickupEmailAddress,
+							firstName: pickupFirstName,
+							lastName: pickupLastName,
+							businessName: pickupBusinessName,
+							instructions: pickupInstructions
+						},
+						tax: packageTax,
+						value: packageValue
+					}]
+				},
+				selectedConfiguration: {
+					jobReference: clientRefNumber,
+					createdAt: moment().toISOString(),
+					delivery: packageDeliveryMode,
+					winnerQuote: bestQuote.id,
+					providerId,
+					trackingURL,
+					quotes: QUOTES
+				},
+				status: STATUS.NEW,
+				paymentIntentId: paymentIntent.id,
+			}
+			// Append the selected provider job to the jobs database
+			const createdJob = await db.Job.create({...job})
+			// Add the delivery to the users list of jobs
+			await db.User.updateOne({apiKey}, {$push: {jobs: createdJob._id}}, {new: true})
+			return res.status(200).json({
+				jobId: createdJob._id,
+				...job,
+			})
+		} else {
+			console.error("No valid payment method found!")
+			return res.status(402).json({
+				code: 402,
+				message: "Please add a payment method before creating an order"
+			})
 		}
-		// Append the selected provider job to the jobs database
-		const createdJob = await db.Job.create({...job})
-		// Add the delivery to the database
-		await db.User.updateOne({apiKey}, {$push: {jobs: createdJob._id}}, {new: true})
-		return res.status(200).json({
-			jobId: createdJob._id,
-			...job,
-		})
 	} catch (e) {
 		console.error("ERROR:", e)
 		if (e.message) {
@@ -215,7 +246,7 @@ exports.getQuotes = async (req, res) => {
 }
 
 exports.updateStatus = async (req, res) => {
-	const {status} = req.body;
+	const {stripeCustomerId, status} = req.body;
 	const {job_id} = req.params;
 	try {
 		console.log(req.body)
@@ -226,9 +257,18 @@ exports.updateStatus = async (req, res) => {
 				message: "Missing Payload!"
 			})
 		}
-		await db.Job.findByIdAndUpdate(job_id, {"status": status}, {new: true})
+		let {_doc: updatedJob} = await db.Job.findByIdAndUpdate(job_id, {"status": status}, {new: true})
+		/**
+		 * ONLY FOR TESTING - REMOVE WHEN DONE
+		 */
+		if (status === STATUS.COMPLETED) {
+			await confirmCharge(
+				Number(updatedJob.jobSpecification.packages[0].value),
+				stripeCustomerId,
+				updatedJob.paymentIntentId
+			)
+		}
 		let jobs = await db.Job.find({}, {}, {new: true})
-		console.log(jobs)
 		return res.status(200).json({
 			updatedJobs: jobs,
 			message: "Job status updated!"

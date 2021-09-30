@@ -7,6 +7,8 @@ const moment = require("moment-timezone");
 const {nanoid} = require("nanoid");
 const {quoteSchema} = require("../schemas/quote");
 const {SELECTION_STRATEGIES, ERROR_CODES, PROVIDERS} = require("../constants");
+const {v4: uuidv4} = require("uuid");
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 function genAssignmentCode() {
 	const rand = crypto.randomBytes(7);
@@ -35,18 +37,6 @@ function genJobReference() {
 	console.log("Generated Reference:", str);
 	return str;
 }
-
-/*function calculateFare(distance) {
-	let fare = 0.0
-	if (distance > 1) {
-		fare = fare + 3.5
-	}
-	if (distance > 10) {
-		fare = fare + 1
-	}
-	fare = fare + (distance * 1.50) + 0.25
-	return fare.toFixed(2)
-}*/
 
 function chooseBestProvider(strategy, quotes) {
 	let bestPriceIndex;
@@ -417,11 +407,48 @@ async function stuartJobRequest(refNumber, params) {
 	}
 }
 
+async function getStripeDetails(apiKey){
+	try {
+		const foundClient = await db.User.findOne({"apiKey": apiKey}, {});
+		//look up payment MethodId and stripe customer Id
+		const { stripeCustomerId, paymentMethodId } = foundClient;
+		return { stripeCustomerId, paymentMethodId };
+	} catch (err) {
+		console.error(err)
+		throw err
+	}
+}
+
+const confirmCharge = async (amount, customerId, paymentIntentId) => {
+	let key = uuidv4()
+	console.log("*********************************")
+	console.log(amount)
+	console.log(amount * 100)
+	console.log("*********************************")
+	try {
+		if (customerId) {
+			const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId, {
+				setup_future_usage: "off_session"
+			})
+			console.log(paymentIntent)
+			console.log("----------------------------------------------")
+			console.log("PAYMENT CONFIRMED!!!!")
+			console.log("----------------------------------------------")
+			return "Payment Confirmed!"
+		}
+	} catch (e) {
+		console.error(e)
+		throw e
+	}
+}
+
 module.exports = {
 	genJobReference,
 	getClientSelectionStrategy,
 	chooseBestProvider,
 	genOrderNumber,
 	getResultantQuotes,
-	providerCreatesJob
+	providerCreatesJob,
+	getStripeDetails,
+	confirmCharge
 }
