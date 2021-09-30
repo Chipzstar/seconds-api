@@ -1,4 +1,4 @@
-const { STATUS } = require("../constants");
+const {STATUS} = require("../constants");
 const db = require("../models");
 const {JOB_STATUS, DELIVERY_STATUS} = require("../constants/stuart");
 const moment = require("moment");
@@ -48,37 +48,7 @@ async function update(data, type) {
 		console.log(data)
 		const STATUS = data.status;
 		const REFERENCE = type === "job" ? data.jobReference : data.clientReference;
-		const { etaToOrigin, etaToDestination } = type === "job" ? data.currentDelivery : data;
-		console.log({STATUS, REFERENCE})
-		// update the status for the current job
-		await db.Job.findOneAndUpdate(
-			{"selectedConfiguration.jobReference": REFERENCE},
-			{"status": translateStuartStatus(STATUS)},
-			{new: true}
-		)
-		let {_doc: {_id, ...updatedJob}} = await db.Job.findOneAndUpdate(
-			{"selectedConfiguration.jobReference": REFERENCE},
-			{
-			'$set': {
-				"jobSpecification.packages.$[].pickupStartTime": moment(etaToOrigin).toISOString(),
-				"jobSpecification.packages.$[].dropoffStartTime": moment(etaToDestination).toISOString()
-			},
-		}, {
-			new: true,
-			sanitizeProjection: true,
-		})
-		console.log(updatedJob)
-		return updatedJob
-	} catch (err) {
-		console.error(err)
-		throw err
-	}
-}
-
-/*async function updateDelivery(data, type) {
-	try {
-		console.log(data)
-		const {status: STATUS, clientReference: REFERENCE, } = data;
+		const {etaToOrigin, etaToDestination} = type === "job" ? data.currentDelivery : data;
 		console.log({STATUS, REFERENCE})
 		// update the status for the current job
 		await db.Job.findOneAndUpdate(
@@ -90,7 +60,6 @@ async function update(data, type) {
 			{"selectedConfiguration.jobReference": REFERENCE},
 			{
 				'$set': {
-					"jobSpecification.packages.$[].description": description,
 					"jobSpecification.packages.$[].pickupStartTime": moment(etaToOrigin).toISOString(),
 					"jobSpecification.packages.$[].dropoffStartTime": moment(etaToDestination).toISOString()
 				},
@@ -99,11 +68,11 @@ async function update(data, type) {
 				sanitizeProjection: true,
 			})
 		console.log(updatedJob)
-		return updatedJob
+		return updatedJob.status
 	} catch (err) {
 		console.error(err)
 		throw err
 	}
-}*/
+}
 
 module.exports = { update }

@@ -44,8 +44,13 @@ const userSchema = new mongoose.Schema({
 	},
 	apiKey: {
 		type: String,
+		default: ""
 	},
 	stripeCustomerId: {
+		type: String,
+		default: "",
+	},
+	paymentMethodId: {
 		type: String,
 		default: "",
 	},

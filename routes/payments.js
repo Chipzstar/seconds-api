@@ -1,40 +1,13 @@
 const express = require("express");
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const {	v4: uuidv4 } = require('uuid')
+const db = require("../models");
 const router = express.Router();
 
-router.post("/new-customer", async (req, res) => {
-	try {
-		const {email, payment_method} = req.body;
-		const customer = await stripe.customers.create({
-			email,
-			payment_method,
-			invoice_settings: {
-				default_payment_method: payment_method,
-			},
-		});
-		console.log(customer)
-		return res.status(201).json({...customer})
-	} catch (err) {
-		console.error(err)
-		return res.status(400).json({
-			error: {...err}
-		})
-	}
-	/*const customer = await stripe.customers.create({
-		email: 'jenny.rosen@example.com',
-		payment_method: 'pm_1FWS6ZClCIKljWvsVCvkdyWg',
-		invoice_settings: {
-			default_payment_method: 'pm_1FWS6ZClCIKljWvsVCvkdyWg',
-		},
-	});*/
-})
-
 router.post("/setup-intent", async (req, res) => {
-	//const { key } = req.body;
-	const key = uuidv4()
+	const { email } = req.body;
+	//const key = uuidv4()
 	console.log('-----+++++')
-	console.log(key, req.body)
 	try {
 		const setupIntent = await stripe.setupIntents.create({
 			payment_method_types: ['card'],
@@ -42,6 +15,8 @@ router.post("/setup-intent", async (req, res) => {
 		});
 		console.log(setupIntent)
 		res.status(200).json(setupIntent);
+		let { _doc: updatedUser} = await db.User.findOneAndUpdate({ "email": email }, { "paymentMethodId": setupIntent.payment_method }, { new: true})
+		console.log(updatedUser)
 	} catch (e) {
 		console.error(e)
 		res.status(400).json({
@@ -50,7 +25,7 @@ router.post("/setup-intent", async (req, res) => {
 	}
 })
 
-router.post("/create-intent", async (req, res) => {
+/*router.post("/create-intent", async (req, res) => {
 	const key = uuidv4()
 	console.log(key)
 	try {
@@ -70,6 +45,6 @@ router.post("/create-intent", async (req, res) => {
 			error: {...e}
 		})
 	}
-})
+})*/
 
 module.exports = router;

@@ -28,6 +28,10 @@ const jobSchema = new mongoose.Schema({
 		type: String,
 		required: true,
 	},
+	paymentIntentId: {
+		type: String,
+		required: true
+	}
 });
 
 const Job = mongoose.model("Job", jobSchema);

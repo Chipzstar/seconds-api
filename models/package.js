@@ -39,6 +39,12 @@ const packageSchema = new mongoose.Schema({
 	},
 	dropoffEndTime: {
 		type: Date
+	},
+	itemsCount: {
+		type: mongoose.Schema.Types.Number,
+	},
+	value: {
+		type: mongoose.Schema.Types.Decimal128,
 	}
 })
 

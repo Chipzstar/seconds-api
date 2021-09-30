@@ -1,5 +1,5 @@
 const express = require("express");
-const { update } = require("../helpers/stuart");
+const { update, initiatePayment } = require("../helpers/stuart");
 const router = express.Router();
 
 router.post("/delivery-update", async (req, res) => {
@@ -9,15 +9,16 @@ router.post("/delivery-update", async (req, res) => {
 		let response = {
 			message: "event unrecognised"
 		}
+		let jobStatus = null
 		if (event && event === "job") {
 			if (type && type === "create") {
 				console.log("JOB CREATE")
-				await update(data, event.toLowerCase())
+				jobStatus = await update(data, event.toLowerCase())
 				response = {...data}
 			}
 			if (type && type === "update") {
 				console.log("JOB UPDATE")
-				await update(data, event.toLowerCase())
+				jobStatus = await update(data, event.toLowerCase())
 				response = {...data}
 			}
 		}
@@ -25,13 +26,13 @@ router.post("/delivery-update", async (req, res) => {
 			if (type && type === "create") {
 				console.log("DELIVERY CREATE")
 				console.log(data)
-				await update(data, event.toLowerCase())
+				jobStatus = await update(data, event.toLowerCase())
 				response = {...data }
 			}
 			if (type && type === "update") {
 				console.log("DELIVERY UPDATE")
 				console.log(data)
-				await update(data, event.toLowerCase())
+				jobStatus = await update(data, event.toLowerCase())
 				response = {...data }
 				// const foundJob = await db.Job.findOne({"clientReferenceNumber": clientReferenceNumber}, {})
 				// console.log(foundJob)
