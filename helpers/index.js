@@ -83,7 +83,7 @@ exports.createJob = async (req, res) => {
 			deliveryFee = chosenQuote ? chosenQuote.price : null
 		}
 		// check if user had a payment method before creating the order
-		let { stripeCustomerId, paymentMethodId } = await getStripeDetails(apiKey);
+		let {stripeCustomerId, paymentMethodId} = await getStripeDetails(apiKey);
 
 		if (paymentMethodId) {
 			let idempotencyKey = uuidv4()
@@ -177,8 +177,10 @@ exports.createJob = async (req, res) => {
 		} else {
 			console.error("No valid payment method found!")
 			return res.status(402).json({
-				code: 402,
-				message: "Please add a payment method before creating an order"
+				error: {
+					code: 402,
+					message: "Please add a payment method before creating an order"
+				}
 			})
 		}
 	} catch (e) {
