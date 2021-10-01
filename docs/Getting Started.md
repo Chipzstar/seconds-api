@@ -19,7 +19,6 @@ Seconds's optimisation engine aggregates and guarantees the best provider for yo
 ### API use cases
 
 | Make an instant (on-demand) delivery |  We support on-demand delivery|
-|--|--|
 | Scheduled delivery | Supports scheduled delivery |
 | Multi-drop off delivery | You can batch orders using the Seconds API |
 | Start delivering to your customers without an existing fleet | Seconds is integrated with many fleets, ensuring nationwide and international coverage |
