@@ -1,6 +1,7 @@
 const express = require("express");
 const { update, initiatePayment } = require("../helpers/stuart");
 const {JOB_STATUS} = require("../constants/stuart");
+const {confirmCharge} = require("../helpers/helpers");
 const router = express.Router();
 
 router.post("/delivery-update", async (req, res) => {
@@ -37,11 +38,6 @@ router.post("/delivery-update", async (req, res) => {
 				// const foundJob = await db.Job.findOne({"clientReferenceNumber": clientReferenceNumber}, {})
 				// console.log(foundJob)
 			}
-		}
-		if (jobStatus === JOB_STATUS.COMPLETED) {
-			console.log("****************************************************************")
-			console.log("STUART JOB COMPLETEEEEEEE!")
-			console.log("****************************************************************")
 		}
 		return res.status(200).json({
 			...response

@@ -1,7 +1,8 @@
-const {STATUS} = require("../constants");
 const db = require("../models");
-const {JOB_STATUS, DELIVERY_STATUS} = require("../constants/stuart");
 const moment = require("moment");
+const { STATUS } = require("../constants");
+const {JOB_STATUS, DELIVERY_STATUS} = require("../constants/stuart");
+const { confirmCharge } = require("../helpers/helpers");
 
 /**
  * Maps the current job status of a STUART delivery with the SECONDS delivery status
@@ -56,7 +57,7 @@ async function update(data, type) {
 			{"status": translateStuartStatus(STATUS)},
 			{new: true}
 		)
-		let {_doc: {_id, ...updatedJob}} = await db.Job.findOneAndUpdate(
+		let {_id, ...job} = await db.Job.findOneAndUpdate(
 			{"selectedConfiguration.jobReference": REFERENCE},
 			{
 				'$set': {
@@ -67,7 +68,14 @@ async function update(data, type) {
 				new: true,
 				sanitizeProjection: true,
 			})
-		console.log(updatedJob)
+		console.log(job)
+		if (STATUS === JOB_STATUS.COMPLETED) {
+			console.log("****************************************************************")
+			console.log("STUART JOB COMPLETEEEEEEE!")
+			console.log("****************************************************************")
+			let { stripeCustomerId, paymentMethodId } = await db.User.findOne({_id: job.clientId}, {});
+			await confirmCharge(job.deliveryFee, stripeCustomerId, paymentMethodId)
+		}
 		return STATUS
 	} catch (err) {
 		console.error(err)

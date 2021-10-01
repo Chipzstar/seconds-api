@@ -2,6 +2,10 @@ const mongoose = require("mongoose");
 const packageSchema = require("./package");
 
 const jobSchema = new mongoose.Schema({
+	clientId: {
+		type: mongoose.Schema.Types.ObjectId,
+		required: true
+	},
 	jobSpecification: {
 		id: String,
 		orderNumber: {
@@ -15,7 +19,7 @@ const jobSchema = new mongoose.Schema({
 		createdAt: Date,
 		jobReference: "",
 		trackingURL: "",
-		delivery: "",
+		deliveryFee: mongoose.Schema.Types.Decimal128,
 		winnerQuote: "",
 		providerId: "",
 		quotes: []
