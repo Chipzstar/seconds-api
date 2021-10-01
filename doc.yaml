@@ -2,6 +2,12 @@ openapi: 3.0.0
 info:
   title: Seconds API
   version: 1.0.0
+  license:
+    name: Licensed Under MIT
+    url: 'https://spdx.org/licenses/MIT.html'
+  contact:
+    name: JSONPlaceholder
+    url: 'https://jsonplaceholder.typicode.com'
   description: |-
     # Introduction
 
@@ -51,12 +57,6 @@ info:
     |--|--|
     | Sandbox | sandbox-api.useseconds.com |
     | Production | app.useseconds.com |
-  license:
-    name: Licensed Under MIT
-    url: 'https://spdx.org/licenses/MIT.html'
-  contact:
-    name: JSONPlaceholder
-    url: 'https://jsonplaceholder.typicode.com'
 servers:
   - url: 'https://seconds-api-dev.herokuapp.com/api/v1'
     description: Production server
