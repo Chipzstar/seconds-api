@@ -82,11 +82,9 @@ async function providerCreatesJob(job, ref, body) {
 	}
 }
 
-async function getClientSelectionStrategy(apiKey) {
+async function getClientDetails(apiKey) {
 	try {
-		const foundClient = await db.User.findOne({"apiKey": apiKey}, {});
-		//look up selection strategy
-		return foundClient["selectionStrategy"];
+		return await db.User.findOne({"apiKey": apiKey}, {});
 	} catch (err) {
 		console.error(err)
 		throw err
@@ -116,8 +114,7 @@ async function getGophrQuote(refNumber, params) {
 		packagePickupStartTime,
 		packageDropoffStartTime
 	} = params;
-	console.log(packagePickupStartTime)
-	console.log(packageDropoffStartTime)
+
 	const payload = qs.stringify({
 		'api_key': `${process.env.GOPHR_API_KEY}`,
 		'pickup_address1': pickupFormattedAddress.street,
@@ -152,7 +149,10 @@ async function getGophrQuote(refNumber, params) {
 				createdAt: moment().toISOString(),
 				expireTime: moment().add(5, "minutes").toISOString(),
 			}
+			console.log("GOPHR QUOTE")
+			console.log("----------------------------")
 			console.log(quote)
+			console.log("----------------------------")
 			return quote
 		} else {
 			console.log(response.error)
@@ -229,7 +229,6 @@ async function getStuartQuote(reference, params) {
 		const etaURL = "https://api.sandbox.stuart.com/v2/jobs/eta"
 		let {amount: price, currency} = (await axios.post(priceURL, payload, config)).data
 		let data = (await axios.post(etaURL, payload, config)).data
-		console.log(data)
 		const quote = {
 			...quoteSchema,
 			id: `quote_${nanoid(15)}`,
@@ -240,7 +239,10 @@ async function getStuartQuote(reference, params) {
 			createdAt: moment().toISOString(),
 			expireTime: moment().add(5, "minutes").toISOString(),
 		}
+		console.log("STUART QUOTE")
+		console.log("----------------------------")
 		console.log(quote)
+		console.log("----------------------------")
 		return quote
 	} catch (err) {
 		console.error(err)
@@ -407,38 +409,20 @@ async function stuartJobRequest(refNumber, params) {
 	}
 }
 
-async function getStripeDetails(apiKey){
-	try {
-		const foundClient = await db.User.findOne({"apiKey": apiKey}, {});
-		//look up payment MethodId and stripe customer Id
-		const { stripeCustomerId, paymentMethodId } = foundClient;
-		return { stripeCustomerId, paymentMethodId };
-	} catch (err) {
-		console.error(err)
-		throw err
-	}
-}
-
 const confirmCharge = async (amount, customerId, paymentIntentId) => {
-	let key = uuidv4()
-	console.log("*********************************")
-	console.log(amount)
-	console.log(amount * 100)
-	console.log("*********************************")
 	try {
 		console.log("*********************************")
-		console.log(amount)
-		console.log(customerId)
-		console.log(paymentIntentId)
+		console.log("AMOUNT:", amount)
+		console.log("CUSTOMER_ID:", customerId)
+		console.log("PAYMENT_INTENT_ID:", paymentIntentId)
 		console.log("*********************************")
 		if (customerId) {
-			
 			const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId, {
 				setup_future_usage: "off_session"
 			})
-			console.log(paymentIntent)
 			console.log("----------------------------------------------")
 			console.log("PAYMENT CONFIRMED!!!!")
+			console.log(paymentIntent)
 			console.log("----------------------------------------------")
 			return "Payment Confirmed!"
 		}
@@ -450,11 +434,10 @@ const confirmCharge = async (amount, customerId, paymentIntentId) => {
 
 module.exports = {
 	genJobReference,
-	getClientSelectionStrategy,
+	getClientDetails,
 	chooseBestProvider,
 	genOrderNumber,
 	getResultantQuotes,
 	providerCreatesJob,
-	getStripeDetails,
 	confirmCharge
 }

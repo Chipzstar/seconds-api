@@ -9,16 +9,15 @@ const orderid = require('order-id')('seconds')
 const {customAlphabet} = require("nanoid");
 const {
 	genJobReference,
-	getClientSelectionStrategy,
+	getClientDetails,
 	providerCreatesJob,
 	chooseBestProvider,
 	genOrderNumber,
 	getResultantQuotes,
-	getStripeDetails,
 	confirmCharge
 } = require("./helpers");
 const db = require('../models');
-const {alphabet, STATUS, AUTHORIZATION_KEY, PROVIDER_ID, PROVIDERS} = require("../constants");
+const { alphabet, STATUS, AUTHORIZATION_KEY, PROVIDER_ID } = require("../constants");
 
 /**
  * The first entry point to Seconds API service,
@@ -61,20 +60,18 @@ exports.createJob = async (req, res) => {
 		const apiKey = req.headers[AUTHORIZATION_KEY];
 		const selectedProvider = req.headers[PROVIDER_ID]
 		console.log("---------------------------------------------")
-		console.log("KEY:", apiKey);
+		console.log("API KEY:", apiKey);
 		console.log("---------------------------------------------")
+		console.log("Provider selected manually: ", Boolean(selectedProvider))
 		console.log("SELECTED PROVIDER:", selectedProvider)
 		console.log("---------------------------------------------")
-		const selectionStrategy = await getClientSelectionStrategy(apiKey);
+		const { _id: clientId, selectionStrategy, stripeCustomerId, paymentMethodId } = await getClientDetails(apiKey);
 		const QUOTES = await getResultantQuotes(req.body);
 		// Use selection strategy to select the winner quote
 		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
-		// based on selected quote call selected provider api or use client's requested provider id is specified
-
 		// checks if the fleet provider for the delivery was manually selected or not
 		let providerId, deliveryFee;
-		console.log(selectedProvider === PROVIDERS.UNKNOWN)
-		if (selectedProvider === PROVIDERS.UNKNOWN) {
+		if (selectedProvider === undefined) {
 			providerId = bestQuote.providerId
 			deliveryFee = bestQuote.price
 		} else {
@@ -82,9 +79,6 @@ exports.createJob = async (req, res) => {
 			let chosenQuote = QUOTES.find(quote => quote.providerId === selectedProvider.toLowerCase())
 			deliveryFee = chosenQuote ? chosenQuote.price : null
 		}
-		// check if user had a payment method before creating the order
-		let {stripeCustomerId, paymentMethodId} = await getStripeDetails(apiKey);
-
 		if (paymentMethodId) {
 			let idempotencyKey = uuidv4()
 			//create the payment intent for the new order
@@ -157,17 +151,16 @@ exports.createJob = async (req, res) => {
 				selectedConfiguration: {
 					jobReference: clientRefNumber,
 					createdAt: moment().toISOString(),
-					delivery: packageDeliveryMode,
+					deliveryFee: bestQuote.price,
 					winnerQuote: bestQuote.id,
 					providerId,
 					trackingURL,
 					quotes: QUOTES
 				},
-				status: STATUS.NEW,
-				paymentIntentId: paymentIntent.id,
+				status: STATUS.NEW
 			}
 			// Append the selected provider job to the jobs database
-			const createdJob = await db.Job.create({...job})
+			const createdJob = await db.Job.create({...job, clientId, paymentIntentId: paymentIntent.id})
 			// Add the delivery to the users list of jobs
 			await db.User.updateOne({apiKey}, {$push: {jobs: createdJob._id}}, {new: true})
 			return res.status(200).json({
@@ -236,7 +229,7 @@ exports.getJob = async (req, res) => {
  */
 exports.getQuotes = async (req, res) => {
 	try {
-		const selectionStrategy = await getClientSelectionStrategy(req.headers[AUTHORIZATION_KEY]);
+		const { selectionStrategy } = await getClientDetails(req.headers[AUTHORIZATION_KEY]);
 		console.log("Strategy: ", selectionStrategy)
 		const quotes = await getResultantQuotes(req.body);
 		const bestQuote = chooseBestProvider(selectionStrategy, quotes);
