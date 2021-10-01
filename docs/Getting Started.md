@@ -18,7 +18,17 @@ Seconds's optimisation engine aggregates and guarantees the best provider for yo
 
 ### API use cases
 
-[Untitled](https://www.notion.so/85eb4d95f4964892878f12a425a9cfd2)
+| Make an instant (on-demand) delivery |  We support on-demand delivery|
+|--|--|
+| Scheduled delivery | Supports scheduled delivery |
+| Multi-drop off delivery | You can batch orders using the Seconds API |
+| Start delivering to your customers without an existing fleet | Seconds is integrated with many fleets, ensuring nationwide and international coverage |
+|Optimise your cost per delivery | Automatically dispatch feature to select fleets based on price (or any other selection criteria)- Large selection of integrated fleets- Leveraging high volumes to negotiate best prices with integrated fleets |
+| Expand your delivery coverage | Access to a wide-selection of fleets nationwide and internationally |
+| Optimise your delivery speed | Ability to base selection on ETA- Visibility on ETA from couriers and fleets |
+| Build multiple fleet integrations | Seconds is integrated with many fleet providers nationwide and internationally |
+| Maintain multiple fleet integrations | Seconds can add you internal fleet, or other custom fleet integrations to have all delivery orchestrated from the Seconds platform |
+| Expand your business to new countries | With the wide selection and coverage of Seconds fleet partners, you can instantly start using Seconds to take care of deliveries anywhere |
 
 # Get Started
 
