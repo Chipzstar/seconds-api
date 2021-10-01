@@ -57,7 +57,7 @@ async function update(data, type) {
 			{"status": translateStuartStatus(STATUS)},
 			{new: true}
 		)
-		let {_id, ...job} = await db.Job.findOneAndUpdate(
+		let {_doc: { _id, ...job} } = await db.Job.findOneAndUpdate(
 			{"selectedConfiguration.jobReference": REFERENCE},
 			{
 				'$set': {
