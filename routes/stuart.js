@@ -22,8 +22,7 @@ router.post("/delivery-update", async (req, res) => {
 				jobStatus = await update(data, event.toLowerCase())
 				response = {...data}
 			}
-		}
-		if (event && event === "delivery") {
+		} else if (event && event === "delivery") {
 			if (type && type === "create") {
 				console.log("DELIVERY CREATE")
 				console.log(data)
