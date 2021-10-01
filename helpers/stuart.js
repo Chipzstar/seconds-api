@@ -68,7 +68,7 @@ async function update(data, type) {
 				sanitizeProjection: true,
 			})
 		console.log(updatedJob)
-		return updatedJob.status
+		return STATUS
 	} catch (err) {
 		console.error(err)
 		throw err
