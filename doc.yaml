@@ -9,9 +9,9 @@ info:
     name: JSONPlaceholder
     url: 'https://jsonplaceholder.typicode.com'
   description: |-
-    # Documentation of access **APIs** to **Seconds Technologies** services
+    Documentation of access **APIs** to **Seconds Technologies** services
 servers:
-  - url: 'https://seconds-api-dev.herokuapp.com/api/v1'
+  - url: 'https://seconds-api-dev.herokuapp.com'
     description: Production server
 components:
   securitySchemes:
