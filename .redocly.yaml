@@ -1,0 +1,11 @@
+apiDefinitions:
+  main: "doc.yaml"
+lint:
+  rules:
+referenceDocs:
+  htmlTemplate: ./index.html
+  pagination: section
+  theme:
+    colors:
+      primary:
+        main: "purple"
