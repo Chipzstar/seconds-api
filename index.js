@@ -83,16 +83,16 @@ index.use(cors());
 index.use(morgan('combined'));
 
 // add middleware
-index.use(validateApiKey)
+// index.use(validateApiKey)
 
 // defining an endpoint to return a welcome message
 index.get('/', (req, res) => {
 	res.send("WELCOME TO SECONDS API");
 });
 
-index.use('/api/v1/jobs', jobRoutes);
+index.use('/api/v1/jobs', validateApiKey, jobRoutes);
 index.use('/api/v1/payments', paymentRoutes)
-index.use('/api/v1/stuart', stuartRoutes);
+index.use('/api/v1/stuart', validateApiKey, stuartRoutes);
 index.use('/api/v1/gophr', gophrRoutes);
 
 // starting the server
