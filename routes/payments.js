@@ -33,6 +33,26 @@ router.post("/add-payment-method", async (req, res) => {
 	try {
 		let updatedUser = await db.User.findOneAndUpdate({ "email": email }, { "paymentMethodId": paymentMethodId }, { new: true})
 		console.log(updatedUser)
+		res.status(200).json(true)
+	} catch (e) {
+		console.error(e)
+		res.status(400).json({
+			error: {...e}
+		})
+	}
+})
+
+router.post("/fetch-stripe-card", async (req, res) => {
+	const { paymentMethodId } = req.body;
+	console.log(paymentMethodId)
+	console.log('[][][][]]')
+	//const key = uuidv4()
+	try {
+		const paymentMethod = await stripe.paymentMethods.retrieve(
+			paymentMethodId
+		);
+		console.log(paymentMethod)
+		res.status(200).json(paymentMethod)
 	} catch (e) {
 		console.error(e)
 		res.status(400).json({
