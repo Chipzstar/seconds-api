@@ -3,7 +3,6 @@ apiDefinitions:
 lint:
   rules:
 referenceDocs:
-  htmlTemplate: ./index.html
   pagination: section
   theme:
     colors:
