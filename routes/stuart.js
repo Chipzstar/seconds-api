@@ -35,8 +35,6 @@ router.post("/delivery-update", async (req, res) => {
 				console.log(data)
 				jobStatus = await update(data, event.toLowerCase())
 				response = {...data }
-				// const foundJob = await db.Job.findOne({"clientReferenceNumber": clientReferenceNumber}, {})
-				// console.log(foundJob)
 			}
 		}
 		return res.status(200).json({

@@ -69,9 +69,9 @@ async function update(data, type) {
 				sanitizeProjection: true,
 			})
 		console.log(job)
-		if (STATUS === JOB_STATUS.COMPLETED) {
+		if (STATUS === DELIVERY_STATUS.DELIVERED) {
 			console.log("****************************************************************")
-			console.log("STUART JOB COMPLETEEEEEEE!")
+			console.log("STUART DELIVERY COMPLETEEEEEEE!")
 			console.log("****************************************************************")
 			let { stripeCustomerId } = await db.User.findOne({_id: job.clientId}, {});
 			await confirmCharge(job.deliveryFee, stripeCustomerId, job.paymentIntentId )
