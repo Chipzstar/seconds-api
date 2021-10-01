@@ -73,8 +73,8 @@ async function update(data, type) {
 			console.log("****************************************************************")
 			console.log("STUART JOB COMPLETEEEEEEE!")
 			console.log("****************************************************************")
-			let { stripeCustomerId, paymentMethodId } = await db.User.findOne({_id: job.clientId}, {});
-			await confirmCharge(job.deliveryFee, stripeCustomerId, paymentMethodId)
+			let { stripeCustomerId } = await db.User.findOne({_id: job.clientId}, {});
+			await confirmCharge(job.deliveryFee, stripeCustomerId, job.paymentIntentId )
 		}
 		return STATUS
 	} catch (err) {
