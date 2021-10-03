@@ -24,6 +24,10 @@ components:
       $ref: ./schemas/JobRequirements.json
     Job:
       $ref: ./schemas/Job.json
+    JobArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/Job'
     UpdateRequirements:
       $ref: ./schemas/JobUpdateRequirements.json
     DeletedJob:
@@ -35,6 +39,8 @@ components:
           type: string
         cancelled:
           type: boolean
+    Quote:
+      $ref: ./schemas/Quote.json
     Error:
       type: object
       properties:
@@ -50,7 +56,7 @@ components:
       description: The id of the requested delivery job
       schema:
         type: string
-        example: 'job_SKDo1qRpUveLU8@NWZ3:ofsC'
+        example: '61570d979250d1aaa8daca82'
   requestBodies:
     createJobRequest:
       description: Request body of delivery properties
@@ -61,34 +67,37 @@ components:
           example:
             pickupAddress: '250 Reede Rd, Dagenham RM10 8EH'
             pickupFormattedAddress:
-              street: 250 Reede Road
-              city: Dagenham
-              postcode: RM10 8EH
-              countryCode: GB
+              street: '250 Reede Road'
+              city: 'Dagenham'
+              postcode: 'RM10 8EH'
+              countryCode: 'GB'
             pickupPhoneNumber: '+447507210809'
-            pickupEmailAddress: chisom.oguibe@googlemail.com
-            pickupBusinessName: Humandroid
-            pickupFirstName: Chisom
-            pickupLastName: Oguibe
-            pickupInstructions: N/A
+            pickupEmailAddress: 'chisom.oguibe@googlemail.com'
+            pickupBusinessName: 'Humandroid'
+            pickupFirstName: 'Chisom'
+            pickupLastName: 'Oguibe'
+            pickupInstructions: 'N/A'
             dropoffAddress: '35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS'
             dropoffFormattedAddress:
-              street: 42 Linton Road
-              city: Barking
-              postcode: IG11 8FS
-              countryCode: GB
+              street: '42 Linton Road'
+              city: 'Barking'
+              postcode: 'IG11 8FS'
+              countryCode: 'GB'
             dropoffPhoneNumber: '+447523958055'
-            dropoffEmailAddress: olaoladapo7@gmail.com
-            dropoffBusinessName: Seconds
-            dropoffFirstName: Ola
-            dropoffLastName: Oladapo
+            dropoffEmailAddress: 'olaoladapo7@gmail.com'
+            dropoffBusinessName: 'Seconds'
+            dropoffFirstName: 'Ola'
+            dropoffLastName: 'Oladapo'
             dropoffInstructions: 'Leave in the front porch, if not available'
-            packageDeliveryMode: Any
             packageDropoffStartTime: '2021-09-30T15:45:14+0000'
             packageDropoffEndTime: '2021-09-30T16:00:14+0000'
             packagePickupStartTime: '2021-09-30T15:15:14+0000'
             packagePickupEndTime: '2021-09-30T15:21:14+0000'
-            packageDescription: Xbox One S Console
+            packageDescription: 'Xbox One S Console'
+            packageSizeX: 10
+            packageSizeY: 10
+            packageSizeZ: 30
+            packageWeight: 20
             packageValue: 250
             packageTax: 0.2
             itemsCount: 1
@@ -112,18 +121,18 @@ components:
               id: 100172991
               orderNumber: 30
               packages:
-                - description: Xbox One S Console
+                - description: 'Xbox One S Console'
                   dropoffLocation:
                     fullAddress: '35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS'
-                    street_address: 42 Linton Road
-                    city: Barking
-                    postcode: IG11 8FS
-                    country: UK
+                    street_address: '42 Linton Road'
+                    city: 'Barking'
+                    postcode: 'IG11 8FS'
+                    country: 'UK'
                     phoneNumber: '+447523958055'
-                    email: olaoladapo7@gmail.com
-                    firstName: Ola
-                    lastName: Oladapo
-                    businessName: Weezy
+                    email: 'olaoladapo7@gmail.com'
+                    firstName: 'Ola'
+                    lastName: 'Oladapo'
+                    businessName: 'Weezy'
                     instructions: 'Leave in the front porch, if not available'
                   dropoffStartTime: '2021-09-10T15:45:14+0000'
                   dropoffEndTime: '2021-09-10T16:00:14+0000'
@@ -132,15 +141,15 @@ components:
                   pickupEndTime: '2021-09-10T15:21:14+0000'
                   pickupLocation:
                     fullAddress: '250 Reede Rd, Dagenham RM10 8EH'
-                    city: Dagenham
-                    postcode: RM10 8EH
-                    country: UK
+                    city: 'Dagenham'
+                    postcode: 'RM10 8EH'
+                    country: 'UK'
                     phoneNumber: '+447507210809'
-                    email: chisom.oguibe@googlemail.com
-                    firstName: Chisom
-                    lastName: Oguibe
-                    businessName: Seconds Technologies
-                    instructions: N/A
+                    email: 'chisom.oguibe@googlemail.com'
+                    firstName: 'Chisom'
+                    lastName: 'Oguibe'
+                    businessName: 'Seconds Technologies'
+                    instructions: 'N/A'
                   tax: 0.2
                   value: 250
             selectedConfiguration:
@@ -148,7 +157,7 @@ components:
               id: 'A2G0W*Qu;6D;[*2iEg-ot]6N'
               trackingURL: 'https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b'
               winnerQuote: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
-              providerId: stuart
+              providerId: 'stuart'
               quotes:
                 - createdTime: '2021-06-22T18:16:56'
                   currency: GBP
@@ -157,15 +166,15 @@ components:
                   id: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
                   pickupWindow: '2021-06-22T18:16:56.361353'
                   price: 13.04
-                  providerId: stuart
+                  providerId: 'stuart'
                 - createdTime: '2021-06-22T18:16:56'
                   currency: GBP
                   dropoffEta: '2021-09-22T19:52:56'
                   expireTime: '2021-09-22T18:21:56'
-                  id: quote_4scqrEA@bItf21cewaxc
+                  id: 'quote_4scqrEA@bItf21cewaxc'
                   pickupWindow: '2021-06-22T18:16:56.361353'
                   price: 13.04
-                  providerId: gophr
+                  providerId: 'gophr'
             status: CREATED
     requestedJobResponse:
       description: The requested job
@@ -180,18 +189,18 @@ components:
               id: 100172991
               orderNumber: 30
               packages:
-                - description: Xbox One S Console
+                - description: 'Xbox One S Console'
                   dropoffLocation:
                     fullAddress: '35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS'
-                    street_address: 42 Linton Road
-                    city: Barking
-                    postcode: IG11 8FS
-                    country: UK
+                    street_address: '42 Linton Road'
+                    city: 'Barking'
+                    postcode: 'IG11 8FS'
+                    country: 'UK'
                     phoneNumber: '+447523958055'
-                    email: olaoladapo7@gmail.com
-                    firstName: Ola
-                    lastName: Oladapo
-                    businessName: Weezy
+                    email: 'olaoladapo7@gmail.com'
+                    firstName: 'Ola'
+                    lastName: 'Oladapo'
+                    businessName: 'Weezy'
                     instructions: 'Leave in the front porch, if not available'
                   dropoffStartTime: '2021-09-30T15:45:14+0000'
                   dropoffEndTime: '2021-09-30T16:00:14+0000'
@@ -200,15 +209,15 @@ components:
                   pickupEndTime: '2021-09-30T15:21:14+0000'
                   pickupLocation:
                     fullAddress: '250 Reede Rd, Dagenham RM10 8EH'
-                    city: Dagenham
-                    postcode: RM10 8EH
-                    country: UK
+                    city: 'Dagenham'
+                    postcode: 'RM10 8EH'
+                    country: 'UK'
                     phoneNumber: '+447507210809'
-                    email: chisom.oguibe@googlemail.com
-                    firstName: Chisom
-                    lastName: Oguibe
-                    businessName: Seconds Technologies
-                    instructions: N/A
+                    email: 'chisom.oguibe@googlemail.com'
+                    firstName: 'Chisom'
+                    lastName: 'Oguibe'
+                    businessName: 'Seconds Technologies'
+                    instructions: 'N/A'
                   tax: 0.2
                   value: 250
             selectedConfiguration:
@@ -216,7 +225,7 @@ components:
               id: 'A2G0W*Qu;6D;[*2iEg-ot]6N'
               trackingURL: 'https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b'
               winnerQuote: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
-              providerId: stuart
+              providerId: 'stuart'
               quotes:
                 - createdTime: '2021-06-22T18:16:56'
                   currency: GBP
@@ -225,15 +234,15 @@ components:
                   id: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
                   pickupWindow: '2021-06-22T18:16:56.361353'
                   price: 13.04
-                  providerId: stuart
+                  providerId: 'stuart'
                 - createdTime: '2021-06-22T18:16:56'
                   currency: GBP
                   dropoffEta: '2021-09-22T19:52:56'
                   expireTime: '2021-09-22T18:21:56'
-                  id: quote_4scqrEA@bItf21cewaxc
+                  id: 'quote_4scqrEA@bItf21cewaxc'
                   pickupWindow: '2021-06-22T18:16:56.361353'
                   price: 13.04
-                  providerId: gophr
+                  providerId: 'gophr'
             status: CREATED
     updatedJobResponse:
       description: The updated job
@@ -248,19 +257,19 @@ components:
               id: 100172991
               orderNumber: 30
               packages:
-                - description: Xbox One S Console
+                - description: 'Xbox One S Console'
                   dropoffLocation:
                     fullAddress: '35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS'
-                    street_address: 42 Linton Road
-                    city: Barking
-                    postcode: IG11 8FS
-                    country: UK
+                    street_address: '42 Linton Road'
+                    city: 'Barking'
+                    postcode: 'IG11 8FS'
+                    country: 'UK'
                     phoneNumber: '+447523958055'
                     email: olaoladapo7@gmail.com
-                    firstName: Ola
-                    lastName: Oladapo
-                    businessName: Weezy
-                    instructions: Enter reception area
+                    firstName: 'Ola'
+                    lastName: 'Oladapo'
+                    businessName: 'Weezy'
+                    instructions: 'Enter reception area'
                   dropoffStartTime: '2021-09-10T15:45:14+0000'
                   dropoffEndTime: '2021-09-10T16:00:14+0000'
                   itemsCount: 1
@@ -268,15 +277,15 @@ components:
                   pickupEndTime: '2021-09-10T15:21:14+0000'
                   pickupLocation:
                     fullAddress: '250 Reede Rd, Dagenham RM10 8EH'
-                    city: Dagenham
-                    postcode: RM10 8EH
-                    country: UK
+                    city: 'Dagenham'
+                    postcode: 'RM10 8EH'
+                    country: 'UK'
                     phoneNumber: '+447507210809'
-                    email: chisom.oguibe@googlemail.com
-                    firstName: Chisom
-                    lastName: Oguibe
-                    businessName: Seconds Technologies
-                    instructions: N/A
+                    email: 'chisom.oguibe@googlemail.com'
+                    firstName: 'Chisom'
+                    lastName: 'Oguibe'
+                    businessName: 'Seconds Technologies'
+                    instructions: 'N/A'
                   tax: 0.2
                   value: 250
             selectedConfiguration:
@@ -284,7 +293,7 @@ components:
               id: 'A2G0W*Qu;6D;[*2iEg-ot]6N'
               trackingURL: 'https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b'
               winnerQuote: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
-              providerId: stuart
+              providerId: 'stuart'
               quotes:
                 - createdTime: '2021-06-22T18:16:56'
                   currency: GBP
@@ -293,15 +302,15 @@ components:
                   id: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
                   pickupWindow: '2021-06-22T18:16:56.361353'
                   price: 13.04
-                  providerId: stuart
+                  providerId: 'stuart'
                 - createdTime: '2021-06-22T18:16:56'
                   currency: GBP
                   dropoffEta: '2021-09-22T19:52:56'
                   expireTime: '2021-09-22T18:21:56'
-                  id: quote_4scqrEA@bItf21cewaxc
+                  id: 'quote_4scqrEA@bItf21cewaxc'
                   pickupWindow: '2021-06-22T18:16:56.361353'
                   price: 13.04
-                  providerId: gophr
+                  providerId: 'gophr'
             status: DISPATCHING
     deletedJobResponse:
       description: Confirmation of cancelled job
@@ -311,8 +320,48 @@ components:
             $ref: '#/components/schemas/DeletedJob'
           example:
             code: 200
-            jobId: 'job_L*m{ko5zw$zG*gF.5)XacE0}'
+            jobId: '61570d979250d1aaa8daca82'
             cancelled: true
+    quotesResponse:
+      description: List of quotes and the best quote based on the user's delivery strategy
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              quotes:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Quote'
+              bestQuote:
+                $ref: '#/components/schemas/Quote'
+          example:
+            quotes:
+              - id: quote_9zzEuIPvkXMSHP5
+                createdAt: '2021-10-03T15:34:33.339Z'
+                currency: GBP
+                dropoffEta: '2021-10-03T16:14:33.335Z'
+                expireTime: '2021-10-03T15:39:33.339Z'
+                pickupWindow: ''
+                price: 11.9
+                providerId: stuart
+              - id: quote_UyOup8TQQ5FB0r7
+                createdAt: '2021-10-03T15:34:33.719Z'
+                currency: GBP
+                dropoffEta: '2021-10-04T16:14:13.000Z'
+                expireTime: '2021-10-03T15:39:33.719Z'
+                pickupWindow: ''
+                price: 11.03
+                providerId: gophr
+            bestQuote:
+              id: quote_9zzEuIPvkXMSHP5
+              createdAt: '2021-10-03T15:34:33.339Z'
+              currency: GBP
+              dropoffEta: '2021-10-03T16:14:33.335Z'
+              expireTime: '2021-10-03T15:39:33.339Z'
+              pickupWindow: ''
+              price: 11.9
+              providerId: stuart
     401Unauthorized:
       description: The API key is missing in the request
       content:
@@ -346,6 +395,32 @@ tags:
   - name: Jobs
     description: API endpoints for delivery jobs
 paths:
+  /api/v1/jobs:
+    post:
+      tags:
+        - Jobs
+      description: Lists all delivery jobs under a given client
+      summary: API endpoint to retrieve all delivery jobs.
+      requestBody:
+        description: Request body for identifying the client
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+            examples:
+              email:
+                summary: User email of the client
+                value: chisom.oguibe@googlemail.com
+      responses:
+        200:
+          description: Array of delivery jobs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobArray'
   /api/v1/jobs/create:
     post:
       tags:
@@ -365,7 +440,7 @@ paths:
         - Jobs
       parameters:
         - $ref: '#/components/parameters/JobId'
-      summary: API endpoint for retrieving a delivery job
+      summary: API endpoint for retrieving a specific delivery job
       description: ''
       responses:
         '200':
@@ -408,3 +483,14 @@ paths:
           $ref: '#/components/responses/403Forbidden'
         '404':
           $ref: '#/components/responses/404NotFound'
+  /api/v1/quotes:
+    post:
+      tags:
+        - Quotes
+      description: Returns a list of delivery quotes for a specified delivery. Each quote includes the delivery price, the dropoff ETA, and the fleet provider
+      summary: API endpoint for requesting quotes from all fleet providers for a delivery
+      requestBody:
+        $ref: '#/components/requestBodies/createJobRequest'
+      responses:
+
+

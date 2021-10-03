@@ -1,0 +1,31 @@
+{
+  "type": "object",
+  "properties": {
+	"id": {
+	  "type": "string"
+	},
+	"createdAt": {
+	  "type": "string",
+	  "format": "date-time"
+	},
+	"currency": {
+	  "type": "number",
+	  "format": "double"
+	},
+	"dropoffEta": {
+	  "type": "string",
+	  "format": "date-time"
+	},
+	"expireTime": {
+	  "type": "string",
+	  "format": "date-time"
+	},
+	"price": {
+	  "type": "number",
+	  "format": "double"
+	},
+	"providerId": {
+	  "type": "string"
+	}
+  }
+}

@@ -77,8 +77,17 @@
 	"dropoffInstructions": {
 	  "type": "string"
 	},
-	"packageDeliveryMode": {
-	  "type": "string"
+	"packageSizeX": {
+	  "type": "number"
+	},
+	"packageSizeY": {
+	  "type": "number"
+	},
+	"packageSizeZ": {
+	  "type": "number"
+	},
+	"packageSizeWeight": {
+	  "type": "number"
 	},
 	"packageDropoffStartTime": {
 	  "type": "string"
