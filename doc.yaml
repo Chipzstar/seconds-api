@@ -488,9 +488,11 @@ paths:
       tags:
         - Quotes
       description: Returns a list of delivery quotes for a specified delivery. Each quote includes the delivery price, the dropoff ETA, and the fleet provider
-      summary: API endpoint for requesting quotes from all fleet providers for a delivery
+      summary: API endpoint for getting delivery quotes
       requestBody:
         $ref: '#/components/requestBodies/createJobRequest'
       responses:
-
-
+        200:
+          $ref: '#/components/responses/quotesResponse'
+        401:
+          $ref: '#/components/responses/401Unauthorized'
