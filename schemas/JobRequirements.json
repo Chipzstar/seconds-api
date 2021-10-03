@@ -86,29 +86,31 @@
 	"packageSizeZ": {
 	  "type": "number"
 	},
-	"packageSizeWeight": {
+	"packageWeight": {
 	  "type": "number"
 	},
 	"packageDropoffStartTime": {
-	  "type": "string"
+	  "type": "string",
+	  "format": "date-time"
 	},
 	"packageDropoffEndTime": {
-	  "type": "string"
+	  "type": "string",
+	  "format": "date-time"
 	},
 	"packagePickupStartTime": {
-	  "type": "string"
+	  "type": "string",
+	  "format": "date-time"
 	},
 	"packagePickupEndTime": {
-	  "type": "string"
+	  "type": "string",
+	  "format": "date-time"
 	},
 	"packageDescription": {
 	  "type": "string"
 	},
 	"packageValue": {
-	  "type": "number"
-	},
-	"packageTax": {
-	  "type": "number"
+	  "type": "number",
+	  "format": "double"
 	},
 	"itemsCount": {
 	  "type": "integer",

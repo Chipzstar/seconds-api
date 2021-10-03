@@ -6,8 +6,9 @@ info:
     name: Licensed Under MIT
     url: 'https://spdx.org/licenses/MIT.html'
   contact:
-    name: JSONPlaceholder
-    url: 'https://jsonplaceholder.typicode.com'
+    name: Seconds Support
+    url: 'https://useseconds.com'
+    email: secondsdelivery@gmail.com
   description: |-
     Documentation of access **APIs** to **Seconds Technologies** services
 servers:
@@ -136,7 +137,6 @@ components:
                     instructions: 'Leave in the front porch, if not available'
                   dropoffStartTime: '2021-09-10T15:45:14+0000'
                   dropoffEndTime: '2021-09-10T16:00:14+0000'
-                  itemsCount: 1
                   pickupStartTime: '2021-09-10T15:15:14+0000'
                   pickupEndTime: '2021-09-10T15:21:14+0000'
                   pickupLocation:
@@ -150,8 +150,8 @@ components:
                     lastName: 'Oguibe'
                     businessName: 'Seconds Technologies'
                     instructions: 'N/A'
-                  tax: 0.2
                   value: 250
+                  itemsCount: 1
             selectedConfiguration:
               createdAt: '2021-06-22T18:16:54.025917'
               id: 'A2G0W*Qu;6D;[*2iEg-ot]6N'
@@ -204,7 +204,6 @@ components:
                     instructions: 'Leave in the front porch, if not available'
                   dropoffStartTime: '2021-09-30T15:45:14+0000'
                   dropoffEndTime: '2021-09-30T16:00:14+0000'
-                  itemsCount: 1
                   pickupStartTime: '2021-09-30T15:15:14+0000'
                   pickupEndTime: '2021-09-30T15:21:14+0000'
                   pickupLocation:
@@ -218,8 +217,8 @@ components:
                     lastName: 'Oguibe'
                     businessName: 'Seconds Technologies'
                     instructions: 'N/A'
-                  tax: 0.2
-                  value: 250
+                  value: 250.00
+                  itemsCount: 1
             selectedConfiguration:
               createdAt: '2021-06-22T18:16:54.025917'
               id: 'A2G0W*Qu;6D;[*2iEg-ot]6N'
@@ -272,7 +271,6 @@ components:
                     instructions: 'Enter reception area'
                   dropoffStartTime: '2021-09-10T15:45:14+0000'
                   dropoffEndTime: '2021-09-10T16:00:14+0000'
-                  itemsCount: 1
                   pickupStartTime: '2021-09-10T15:15:14+0000'
                   pickupEndTime: '2021-09-10T15:21:14+0000'
                   pickupLocation:
@@ -286,8 +284,8 @@ components:
                     lastName: 'Oguibe'
                     businessName: 'Seconds Technologies'
                     instructions: 'N/A'
-                  tax: 0.2
-                  value: 250
+                  itemsCount: 1
+                  value: 250.00
             selectedConfiguration:
               createdAt: '2021-06-22T18:16:54.025917'
               id: 'A2G0W*Qu;6D;[*2iEg-ot]6N'

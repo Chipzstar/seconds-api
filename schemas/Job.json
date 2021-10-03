@@ -2,8 +2,8 @@
   "type": "object",
   "properties": {
 	"createdAt": {
-	  "type": "integer",
-	  "format": "int64"
+	  "type": "string",
+	  "format": "date-time"
 	},
 	"id": {
 	  "type": "string"
@@ -28,7 +28,10 @@
 			  "dropoffLocation": {
 				"type": "object",
 				"properties": {
-				  "address": {
+				  "fullAddress": {
+					"type": "string"
+				  },
+				  "streetAddress": {
 					"type": "string"
 				  },
 				  "city": {
@@ -62,25 +65,28 @@
 				}
 			  },
 			  "dropoffStartTime": {
-				"type": "string"
+				"type": "string",
+				"format": "date-time"
 			  },
 			  "dropoffEndTime": {
-				"type": "string"
-			  },
-			  "itemsCount": {
-				"type": "integer",
-				"format": "int32"
+				"type": "string",
+				"format": "date-time"
 			  },
 			  "pickupStartTime": {
-				"type": "string"
+				"type": "string",
+				"format": "date-time"
 			  },
 			  "pickupEndTime": {
-				"type": "string"
+				"type": "string",
+				"format": "date-time"
 			  },
 			  "pickupLocation": {
 				"type": "object",
 				"properties": {
-				  "address": {
+				  "fullAddress": {
+					"type": "string"
+				  },
+				  "streetAddress": {
 					"type": "string"
 				  },
 				  "city": {
@@ -113,10 +119,11 @@
 				  }
 				}
 			  },
-			  "tax": {
-				"type": "number"
-			  },
 			  "value": {
+				"type": "number",
+				"format": "double"
+			  },
+			  "itemsCount": {
 				"type": "integer",
 				"format": "int32"
 			  }
@@ -134,7 +141,14 @@
 		"createdAt": {
 		  "type": "string"
 		},
-		"delivery": {
+		"winnerQuote": {
+		  "type": "string"
+		},
+		"deliveryFee": {
+		  "type": "number",
+		  "format": "double"
+		},
+		"trackingURL": {
 		  "type": "string"
 		},
 		"providerId": {
@@ -161,9 +175,6 @@
 			  "id": {
 				"type": "string"
 			  },
-			  "pickupWindow": {
-				"type": "string"
-			  },
 			  "price": {
 				"type": "number"
 			  },
@@ -172,9 +183,6 @@
 			  }
 			}
 		  }
-		},
-		"winnerQuote": {
-		  "type": "string"
 		}
 	  }
 	},
