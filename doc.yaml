@@ -25,10 +25,6 @@ components:
       $ref: ./schemas/JobRequirements.json
     Job:
       $ref: ./schemas/Job.json
-    JobArray:
-      type: array
-      items:
-        $ref: '#/components/schemas/Job'
     UpdateRequirements:
       $ref: ./schemas/JobUpdateRequirements.json
     DeletedJob:
@@ -155,6 +151,7 @@ components:
             selectedConfiguration:
               createdAt: '2021-06-22T18:16:54.025917'
               id: 'A2G0W*Qu;6D;[*2iEg-ot]6N'
+              deliveryFee: 14.9
               trackingURL: 'https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b'
               winnerQuote: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
               providerId: 'stuart'
@@ -222,6 +219,7 @@ components:
             selectedConfiguration:
               createdAt: '2021-06-22T18:16:54.025917'
               id: 'A2G0W*Qu;6D;[*2iEg-ot]6N'
+              deliveryFee: 14.9
               trackingURL: 'https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b'
               winnerQuote: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
               providerId: 'stuart'
@@ -264,7 +262,7 @@ components:
                     postcode: 'IG11 8FS'
                     country: 'UK'
                     phoneNumber: '+447523958055'
-                    email: olaoladapo7@gmail.com
+                    email: 'olaoladapo7@gmail.com'
                     firstName: 'Ola'
                     lastName: 'Oladapo'
                     businessName: 'Weezy'
@@ -289,6 +287,7 @@ components:
             selectedConfiguration:
               createdAt: '2021-06-22T18:16:54.025917'
               id: 'A2G0W*Qu;6D;[*2iEg-ot]6N'
+              deliveryFee: 14.9
               trackingURL: 'https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b'
               winnerQuote: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
               providerId: 'stuart'
@@ -340,7 +339,6 @@ components:
                 currency: GBP
                 dropoffEta: '2021-10-03T16:14:33.335Z'
                 expireTime: '2021-10-03T15:39:33.339Z'
-                pickupWindow: ''
                 price: 11.9
                 providerId: stuart
               - id: quote_UyOup8TQQ5FB0r7
@@ -348,7 +346,6 @@ components:
                 currency: GBP
                 dropoffEta: '2021-10-04T16:14:13.000Z'
                 expireTime: '2021-10-03T15:39:33.719Z'
-                pickupWindow: ''
                 price: 11.03
                 providerId: gophr
             bestQuote:
@@ -357,7 +354,6 @@ components:
               currency: GBP
               dropoffEta: '2021-10-03T16:14:33.335Z'
               expireTime: '2021-10-03T15:39:33.339Z'
-              pickupWindow: ''
               price: 11.9
               providerId: stuart
     401Unauthorized:
@@ -388,7 +384,7 @@ components:
             code: 404
             message: 'No job found with ID: job_SKDo1qRpUveLU8@NWZ3:ofsC'
 security:
-  - ApiKeyAuth: []
+  - ApiKeyAuth: [ ]
 tags:
   - name: Jobs
     description: API endpoints for delivery jobs
@@ -400,25 +396,89 @@ paths:
       description: Lists all delivery jobs under a given client
       summary: API endpoint to retrieve all delivery jobs.
       requestBody:
-        description: Request body for identifying the client
+        description: Email required to verify the client
         content:
           application/json:
             schema:
+              required:
+                - email
               type: object
               properties:
                 email:
                   type: string
-            examples:
-              email:
-                summary: User email of the client
-                value: chisom.oguibe@googlemail.com
+            example:
+              email: chisom.oguibe@googlemail.com
       responses:
         200:
           description: Array of delivery jobs
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JobArray'
+                type: array
+                items:
+                  $ref: '#/components/schemas/Job'
+              example:
+                - createdAt: '2021-09-27T13:06:59.560Z'
+                    jobId: 6151c1f38a9660a0241d2e06
+                    jobSpecification:
+                      id: 100172991
+                      orderNumber: 30
+                      packages:
+                        - description: 'Xbox One S Console'
+                          dropoffLocation:
+                            fullAddress: '35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS'
+                            street_address: '42 Linton Road'
+                            city: 'Barking'
+                            postcode: 'IG11 8FS'
+                            country: 'UK'
+                            phoneNumber: '+447523958055'
+                            email: 'olaoladapo7@gmail.com'
+                            firstName: 'Ola'
+                            lastName: 'Oladapo'
+                            businessName: 'Weezy'
+                            instructions: 'Leave in the front porch, if not available'
+                          dropoffStartTime: '2021-09-30T15:45:14+0000'
+                          dropoffEndTime: '2021-09-30T16:00:14+0000'
+                          pickupStartTime: '2021-09-30T15:15:14+0000'
+                          pickupEndTime: '2021-09-30T15:21:14+0000'
+                          pickupLocation:
+                            fullAddress: '250 Reede Rd, Dagenham RM10 8EH'
+                            city: 'Dagenham'
+                            postcode: 'RM10 8EH'
+                            country: 'UK'
+                            phoneNumber: '+447507210809'
+                            email: 'chisom.oguibe@googlemail.com'
+                            firstName: 'Chisom'
+                            lastName: 'Oguibe'
+                            businessName: 'Seconds Technologies'
+                            instructions: 'N/A'
+                          value: 250.00
+                          itemsCount: 1
+                    selectedConfiguration:
+                      createdAt: '2021-06-22T18:16:54.025917'
+                      id: 'A2G0W*Qu;6D;[*2iEg-ot]6N'
+                      deliveryFee: 14.9
+                      trackingURL: 'https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b'
+                      winnerQuote: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
+                      providerId: 'stuart'
+                      quotes:
+                        - createdTime: '2021-06-22T18:16:56'
+                          currency: GBP
+                          dropoffEta: '2021-09-22T19:52:56'
+                          expireTime: '2021-09-22T18:21:56'
+                          id: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
+                          pickupWindow: '2021-06-22T18:16:56.361353'
+                          price: 13.04
+                          providerId: 'stuart'
+                        - createdTime: '2021-06-22T18:16:56'
+                          currency: GBP
+                          dropoffEta: '2021-09-22T19:52:56'
+                          expireTime: '2021-09-22T18:21:56'
+                          id: 'quote_4scqrEA@bItf21cewaxc'
+                          pickupWindow: '2021-06-22T18:16:56.361353'
+                          price: 13.04
+                          providerId: 'gophr'
+                    status: CREATED
   /api/v1/jobs/create:
     post:
       tags:
@@ -485,7 +545,8 @@ paths:
     post:
       tags:
         - Quotes
-      description: Returns a list of delivery quotes for a specified delivery. Each quote includes the delivery price, the dropoff ETA, and the fleet provider
+      description: Returns a list of delivery quotes for a specified delivery. Each quote includes the delivery price, the dropoff ETA, and the fleet provider.
+      Response also includes the best quote according to the client's delivery strategy
       summary: API endpoint for getting delivery quotes
       requestBody:
         $ref: '#/components/requestBodies/createJobRequest'
