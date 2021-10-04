@@ -1,5 +1,5 @@
 require("dotenv").config();
-
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const express = require("express");
 const bodyParser = require('body-parser');
 const moment = require('moment-timezone');
@@ -7,67 +7,20 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const jobRoutes = require('./routes/jobs');
+const quoteRoutes = require('./routes/quotes');
 const paymentRoutes = require('./routes/payments')
 const stuartRoutes = require('./routes/stuart')
 const gophrRoutes = require('./routes/gophr')
 const port = process.env.PORT || 3001;
 moment.tz.setDefault("Europe/London");
 
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-
-const swaggerJSDoc = require('swagger-jsdoc');
-const swaggerUi = require('swagger-ui-express');
 const {validateApiKey} = require("./middleware/auth");
-
-const swaggerDefinition = {
-	openapi: '3.0.0',
-	info: {
-		title: 'Seconds API',
-		version: '1.0.0',
-		description: 'Welcome to the Seconds API documentation',
-		license: {
-			name: 'Licensed Under MIT',
-			url: 'https://spdx.org/licenses/MIT.html',
-		},
-		contact: {
-			name: 'JSONPlaceholder',
-			url: 'https://jsonplaceholder.typicode.com',
-		},
-	},
-	servers: [
-		{
-			url: 'http://localhost:3001',
-			description: 'Development server',
-		},
-	],
-	components: {
-		securitySchemes: {
-			ApiKeyAuth: {
-				type: "apiKey",
-				in: "header",
-				name: "X-Seconds-Api-Key"
-			}
-		}
-	},
-	security: {
-		ApiKeyAuth: []
-	}
-};
-
-const options = {
-	swaggerDefinition,
-	// Paths to files containing OpenAPI definitions
-	apis: ['./routes/index.js'],
-};
-
-const swaggerSpec = swaggerJSDoc(options);
 
 // defining the Express index
 const index = express();
 const db = require('./models/index');
-const {genJobReference} = require("./helpers/helpers");
+const {genJobReference} = require("./helpers");
 
-index.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 index.set('port', process.env.PORT || port);
 
 // adding Helmet to enhance your API's security
@@ -90,10 +43,16 @@ index.get('/', (req, res) => {
 	res.send("WELCOME TO SECONDS API");
 });
 
+// CORE ROUTES
 index.use('/api/v1/jobs', validateApiKey, jobRoutes);
-index.use('/api/v1/payments', paymentRoutes)
+index.use('/api/v1/quotes', validateApiKey, quoteRoutes);
+
+// FLEET PROVIDERS ROUTES + WEBHOOKS
 index.use('/api/v1/stuart', validateApiKey, stuartRoutes);
 index.use('/api/v1/gophr', gophrRoutes);
+
+// PAYMENTS ROUTES
+index.use('/api/v1/payments', paymentRoutes)
 
 // starting the server
 index.listen(port, () => {

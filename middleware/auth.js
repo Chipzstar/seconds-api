@@ -6,6 +6,7 @@ const db = require('../models');
 
 const validateApiKey = async (req, res, next) => {
 	let isValid = false
+	console.log("############################################")
 	console.log("validating apikey")
 	try {
 		const apiKey = req.headers[AUTHORIZATION_KEY]
@@ -28,6 +29,7 @@ const validateApiKey = async (req, res, next) => {
 			console.log("API Key is valid!")
 			isValid = true
 		}
+		console.log("############################################")
 		return isValid ? next() : res.status(401).json({
 			code: 401,
 			message: "UNAUTHORIZED",
