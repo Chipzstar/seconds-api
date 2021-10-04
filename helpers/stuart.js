@@ -2,7 +2,7 @@ const db = require("../models");
 const moment = require("moment");
 const { STATUS } = require("../constants");
 const {JOB_STATUS, DELIVERY_STATUS} = require("../constants/stuart");
-const { confirmCharge } = require("../helpers/helpers");
+const { confirmCharge } = require("./index");
 
 /**
  * Maps the current job status of a STUART delivery with the SECONDS delivery status

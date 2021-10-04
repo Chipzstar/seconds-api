@@ -19,7 +19,7 @@ const jobSchema = new mongoose.Schema({
 		createdAt: Date,
 		jobReference: "",
 		trackingURL: "",
-		deliveryFee: mongoose.Schema.Types.Decimal128,
+		deliveryFee: mongoose.Schema.Types.Number,
 		winnerQuote: "",
 		providerId: "",
 		quotes: []

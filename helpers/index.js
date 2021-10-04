@@ -1,404 +1,443 @@
-require("dotenv").config();
+const axios = require("axios");
+const { pickupSchema, dropoffSchema } = require("../schemas/stuart/CreateJob");
+const qs = require("qs");
+const db = require("../models");
+const crypto = require("crypto");
+const moment = require("moment-timezone");
+const {nanoid} = require("nanoid");
+const {quoteSchema} = require("../schemas/quote");
+const {SELECTION_STRATEGIES, ERROR_CODES, PROVIDERS} = require("../constants");
+const {v4: uuidv4} = require("uuid");
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const express = require("express");
-const moment = require("moment");
-const mongoose = require("mongoose");
-const axios = require('axios');
-const {v4: uuidv4} = require('uuid')
-const orderid = require('order-id')('seconds')
-const {customAlphabet} = require("nanoid");
-const {
+
+function genAssignmentCode() {
+	const rand = crypto.randomBytes(7);
+	let chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".repeat(2)
+
+	let str = 'A';
+
+	for (let i = 0; i < rand.length; i++) {
+		let index = rand[i] % chars.length;
+		str += chars[index];
+	}
+	console.log("Generated Assignment Code", str);
+	return str;
+}
+
+function genJobReference() {
+	const rand = crypto.randomBytes(16);
+	let chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".repeat(2)
+
+	let str = '';
+
+	for (let i = 0; i < rand.length; i++) {
+		let index = rand[i] % chars.length;
+		str += chars[index];
+	}
+	console.log("Generated Reference:", str);
+	return str;
+}
+
+function chooseBestProvider(strategy, quotes) {
+	let bestPriceIndex;
+	let bestEtaIndex;
+	let bestPrice = Infinity
+	let bestEta = Infinity
+	quotes.forEach(({price, dropoffEta, providerId}, index) => {
+		if (price < bestPrice) {
+			bestPrice = price
+			bestPriceIndex = index
+		}
+		let duration = moment.duration(moment(dropoffEta).diff(moment())).asSeconds()
+		if (duration < bestEta) {
+			bestEta = duration
+			bestEtaIndex = index
+		}
+	})
+	if (strategy === SELECTION_STRATEGIES.PRICE) {
+		console.log("BEST:", quotes[bestPriceIndex])
+		return quotes[bestPriceIndex]
+	} else {
+		console.log("BEST:", quotes[bestEtaIndex])
+		return quotes[bestEtaIndex]
+	}
+}
+
+function genOrderNumber(number) {
+	return number.toString().padStart(4, "0")
+}
+
+async function providerCreatesJob(job, ref, body) {
+	switch (job) {
+		case PROVIDERS.STUART:
+			console.log("STUAAART")
+			return await stuartJobRequest(ref, body);
+		case PROVIDERS.GOPHR:
+			console.log('Creating GOPHR Job')
+			return await gophrJobRequest(ref, body);
+		// default case if no valid providerId was chosen
+		default:
+			console.log('Creating STUART Job')
+			return await stuartJobRequest(ref, body);
+	}
+}
+
+async function getClientDetails(apiKey) {
+	try {
+		return await db.User.findOne({"apiKey": apiKey}, {});
+	} catch (err) {
+		console.error(err)
+		throw err
+	}
+}
+
+async function getResultantQuotes(requestBody, referenceNumber) {
+	try {
+		const QUOTES = []
+		// QUOTE AGGREGATION
+		// send delivery request to integrated providers
+		let stuartQuote = await getStuartQuote(referenceNumber, requestBody)
+		QUOTES.push(stuartQuote)
+		let gophrQuote = await getGophrQuote(referenceNumber, requestBody)
+		QUOTES.push(gophrQuote)
+		return QUOTES
+	} catch (err) {
+		console.error(err)
+		throw err
+	}
+}
+
+async function getGophrQuote(refNumber, params) {
+	const {
+		pickupFormattedAddress,
+		dropoffFormattedAddress,
+		packagePickupStartTime,
+		packageDropoffStartTime
+	} = params;
+
+	const payload = qs.stringify({
+		'api_key': `${process.env.GOPHR_API_KEY}`,
+		'pickup_address1': pickupFormattedAddress.street,
+		'pickup_postcode': pickupFormattedAddress.postcode,
+		'pickup_city': pickupFormattedAddress.city,
+		'pickup_country_code': pickupFormattedAddress.countryCode,
+		'size_x': '10',
+		'size_y': '10',
+		'size_z': '30',
+		'weight': '12',
+		...(packagePickupStartTime) && {'earliest_pickup_time': moment(packagePickupStartTime).toISOString()},
+		...(packageDropoffStartTime) && {'earliest_delivery_time': moment(packageDropoffStartTime).toISOString()},
+		'delivery_address1': dropoffFormattedAddress.street,
+		'delivery_city': dropoffFormattedAddress.city,
+		'delivery_postcode': dropoffFormattedAddress.postcode,
+		'delivery_country_code': dropoffFormattedAddress.countryCode,
+	});
+	try {
+		const config = {headers: {'Content-Type': 'application/x-www-form-urlencoded'}};
+		const quoteURL = 'https://api-sandbox.gophr.com/v1/commercial-api/get-a-quote'
+		let response = (await axios.post(quoteURL, payload, config)).data
+		//error checking
+		if (response.success) {
+			let {price_net: price, delivery_eta: dropoffEta} = response.data;
+			const quote = {
+				...quoteSchema,
+				id: `quote_${nanoid(15)}`,
+				price,
+				currency: 'GBP',
+				dropoffEta: moment(dropoffEta).toISOString(),
+				providerId: PROVIDERS.GOPHR,
+				createdAt: moment().toISOString(),
+				expireTime: moment().add(5, "minutes").toISOString(),
+			}
+			console.log("GOPHR QUOTE")
+			console.log("----------------------------")
+			console.log(quote)
+			console.log("----------------------------")
+			return quote
+		} else {
+			console.log(response.error)
+			throw response.error
+		}
+	} catch (err) {
+		console.error(err)
+		throw err
+	}
+}
+
+async function getStuartQuote(reference, params) {
+	const {
+		pickupAddress,
+		pickupPhoneNumber,
+		pickupEmailAddress,
+		pickupBusinessName,
+		pickupFirstName,
+		pickupLastName,
+		pickupInstructions,
+		dropoffAddress,
+		dropoffPhoneNumber,
+		dropoffEmailAddress,
+		dropoffBusinessName,
+		dropoffFirstName,
+		dropoffLastName,
+		dropoffInstructions,
+		packageDropoffStartTime,
+		packageDropoffEndTime,
+		packagePickupStartTime
+	} = params;
+
+	const payload = {
+		job: {
+			...(packagePickupStartTime) && { pickup_at: packagePickupStartTime },
+			assignment_code: genAssignmentCode(),
+			pickups: [
+				{
+					...pickupSchema,
+					address: pickupAddress,
+					comment: pickupInstructions,
+					contact: {
+						firstname: pickupFirstName,
+						lastname: pickupLastName,
+						phone: pickupPhoneNumber,
+						email: pickupEmailAddress,
+						company: pickupBusinessName
+					}
+				}
+			],
+			dropoffs: [
+				{
+					...dropoffSchema,
+					package_type: "medium",
+					client_reference: reference,
+					address: dropoffAddress,
+					comment: dropoffInstructions,
+					contact: {
+						firstname: dropoffFirstName,
+						lastname: dropoffLastName,
+						phone: dropoffPhoneNumber,
+						email: dropoffEmailAddress,
+						company: dropoffBusinessName
+					},
+					...(packageDropoffStartTime) && { end_customer_time_window_start: packageDropoffStartTime },
+					...(packageDropoffEndTime) && { end_customer_time_window_end: packageDropoffEndTime }
+				}
+			]
+		}
+	}
+	try {
+		const config = {headers: {Authorization: `Bearer ${process.env.STUART_ACCESS_TOKEN}`}};
+		const priceURL = "https://api.sandbox.stuart.com/v2/jobs/pricing"
+		const etaURL = "https://api.sandbox.stuart.com/v2/jobs/eta"
+		let {amount: price, currency} = (await axios.post(priceURL, payload, config)).data
+		let data = (await axios.post(etaURL, payload, config)).data
+		const quote = {
+			...quoteSchema,
+			id: `quote_${nanoid(15)}`,
+			price,
+			currency,
+			dropoffEta: moment().add(data.eta, "seconds").toISOString(),
+			providerId: PROVIDERS.STUART,
+			createdAt: moment().toISOString(),
+			expireTime: moment().add(5, "minutes").toISOString(),
+		}
+		console.log("STUART QUOTE")
+		console.log("----------------------------")
+		console.log(quote)
+		console.log("----------------------------")
+		return quote
+	} catch (err) {
+		console.error(err)
+		if (err.response.status === ERROR_CODES.UNPROCESSABLE_ENTITY) {
+			throw {code: err.response.status, ...err.response.data}
+		} else if (err.response.status === ERROR_CODES.INVALID_GRANT) {
+			throw {code: err.response.status, ...err.response.data}
+		} else {
+			throw err
+		}
+	}
+}
+
+async function gophrJobRequest(refNumber, params) {
+	const {
+		pickupFormattedAddress,
+		pickupPhoneNumber,
+		pickupEmailAddress,
+		pickupBusinessName,
+		pickupFirstName,
+		pickupLastName,
+		pickupInstructions,
+		dropoffFormattedAddress,
+		dropoffPhoneNumber,
+		dropoffEmailAddress,
+		dropoffBusinessName,
+		dropoffFirstName,
+		dropoffLastName,
+		dropoffInstructions,
+		packageDropoffStartTime,
+		packageDropoffEndTime,
+		packagePickupStartTime,
+		packagePickupEndTime,
+		packageValue
+	} = params;
+
+	const payload = qs.stringify({
+		'api_key': `${process.env.GOPHR_API_KEY}`,
+		'external_id': `${refNumber}`,
+		'pickup_person_name': `${pickupFirstName} + ' ' + ${pickupLastName}`,
+		'pickup_mobile_number': `${pickupPhoneNumber}`,
+		'pickup_company_name': `${pickupBusinessName}`,
+		'pickup_email': pickupEmailAddress,
+		'delivery_person_name': `${dropoffFirstName} + ' ' + ${dropoffLastName}`,
+		'delivery_mobile_number': `${dropoffPhoneNumber}`,
+		'delivery_company_name': `${dropoffBusinessName}`,
+		'delivery_email': dropoffEmailAddress,
+		'pickup_address1': pickupFormattedAddress.street,
+		'pickup_city': pickupFormattedAddress.city,
+		'pickup_postcode': pickupFormattedAddress.postcode,
+		'pickup_country_code': pickupFormattedAddress.countryCode,
+		'pickup_tips_how_to_find': pickupInstructions,
+		'size_x': '10',
+		'size_y': '10',
+		'size_z': '30',
+		'weight': '12',
+		'earliest_pickup_time': packagePickupStartTime,
+		'pickup_deadline': packagePickupEndTime,
+		'earliest_delivery_time': packageDropoffStartTime,
+		'dropoff_deadline': packageDropoffEndTime,
+		'delivery_address1': dropoffFormattedAddress.street,
+		'delivery_city': dropoffFormattedAddress.city,
+		'delivery_postcode': dropoffFormattedAddress.postcode,
+		'delivery_country_code': dropoffFormattedAddress.countryCode,
+		'delivery_tips_how_to_find': dropoffInstructions,
+		'order_value': packageValue
+	});
+	try {
+		const config = {headers: {'Content-Type': 'application/x-www-form-urlencoded'}};
+		const createJobURL = 'https://api-sandbox.gophr.com/v1/commercial-api/create-confirm-job'
+		const { data } = (await axios.post(createJobURL, payload, config)).data
+		console.log(data)
+		const { job_id, public_tracker_url, pickup_eta, delivery_eta } = data
+		return {
+			id: job_id,
+			trackingURL: public_tracker_url,
+			pickupAt: pickup_eta,
+			dropoffAt: delivery_eta
+		}
+	} catch (err) {
+		console.error(err)
+		throw err
+	}
+}
+
+async function stuartJobRequest(refNumber, params) {
+	const {
+		pickupAddress,
+		pickupPhoneNumber,
+		pickupEmailAddress,
+		pickupBusinessName,
+		pickupFirstName,
+		pickupLastName,
+		pickupInstructions,
+		dropoffAddress,
+		dropoffPhoneNumber,
+		dropoffEmailAddress,
+		dropoffBusinessName,
+		dropoffFirstName,
+		dropoffLastName,
+		dropoffInstructions,
+		packageDropoffStartTime,
+		packageDropoffEndTime,
+		packagePickupStartTime,
+		packageDescription
+	} = params;
+	console.log(pickupAddress)
+	console.log(dropoffAddress)
+	const payload = {
+		job: {
+			pickup_at: moment(packagePickupStartTime, "DD/MM/YYYY HH:mm:ss"),
+			assignment_code: genAssignmentCode(),
+			pickups: [
+				{
+					...pickupSchema,
+					address: pickupAddress,
+					comment: pickupInstructions,
+					contact: {
+						firstname: pickupFirstName,
+						lastname: pickupLastName,
+						phone: pickupPhoneNumber,
+						email: pickupEmailAddress,
+						company: pickupBusinessName
+					}
+				}
+			],
+			dropoffs: [
+				{
+					...dropoffSchema,
+					package_type: "small",
+					package_description: packageDescription,
+					client_reference: refNumber,
+					address: dropoffAddress,
+					comment: dropoffInstructions,
+					contact: {
+						firstname: dropoffFirstName,
+						lastname: dropoffLastName,
+						phone: dropoffPhoneNumber,
+						email: dropoffEmailAddress,
+						company: dropoffBusinessName
+					},
+					end_customer_time_window_start: packageDropoffStartTime,
+					end_customer_time_window_end: packageDropoffEndTime
+				}
+			]
+		}
+	}
+	try {
+		const baseURL = "https://api.sandbox.stuart.com"
+		const path = "/v2/jobs";
+		let URL = baseURL + path
+		const config = {headers: {Authorization: `Bearer ${process.env.STUART_ACCESS_TOKEN}`}};
+		let data = (await axios.post(URL, payload, config)).data
+		console.log(data)
+		return {
+			id: String(data.id),
+			trackingURL: data.deliveries[0].tracking_url,
+			pickupAt: data["pickup_at"],
+			dropoffAt: data["dropoff_at"]
+		}
+	} catch (err) {
+		console.error(err)
+		throw err
+	}
+}
+
+const confirmCharge = async (amount, customerId, paymentIntentId) => {
+	try {
+		console.log("*********************************")
+		console.log("AMOUNT:", amount)
+		console.log("CUSTOMER_ID:", customerId)
+		console.log("PAYMENT_INTENT_ID:", paymentIntentId)
+		console.log("*********************************")
+		if (customerId) {
+			const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId, {
+				setup_future_usage: "off_session"
+			})
+			console.log("----------------------------------------------")
+			console.log("PAYMENT CONFIRMED!!!!")
+			console.log(paymentIntent)
+			console.log("----------------------------------------------")
+			return "Payment Confirmed!"
+		}
+	} catch (e) {
+		console.error(e)
+		throw e
+	}
+}
+
+module.exports = {
 	genJobReference,
 	getClientDetails,
-	providerCreatesJob,
 	chooseBestProvider,
 	genOrderNumber,
 	getResultantQuotes,
+	providerCreatesJob,
 	confirmCharge
-} = require("./helpers");
-const db = require('../models');
-const { alphabet, STATUS, AUTHORIZATION_KEY, PROVIDER_ID } = require("../constants");
-
-/**
- * The first entry point to Seconds API service,
- * it creates a new job with delivery requirements
- */
-const nanoid = customAlphabet(alphabet, 24)
-
-exports.createJob = async (req, res) => {
-	try {
-		const {
-			pickupAddress,
-			pickupFormattedAddress,
-			pickupPhoneNumber,
-			pickupEmailAddress,
-			pickupBusinessName,
-			pickupFirstName,
-			pickupLastName,
-			pickupInstructions,
-			dropoffAddress,
-			dropoffFormattedAddress,
-			dropoffPhoneNumber,
-			dropoffEmailAddress,
-			dropoffBusinessName,
-			dropoffFirstName,
-			dropoffLastName,
-			dropoffInstructions,
-			packageDeliveryMode,
-			packageDropoffStartTime,
-			packageDropoffEndTime,
-			packagePickupStartTime,
-			packagePickupEndTime,
-			packageDescription,
-			packageValue,
-			packageTax,
-			itemsCount,
-		} = req.body;
-		//fetch api key
-		//generate client reference number
-		const clientRefNumber = genJobReference();
-		const apiKey = req.headers[AUTHORIZATION_KEY];
-		const selectedProvider = req.headers[PROVIDER_ID]
-		console.log("---------------------------------------------")
-		console.log("API KEY:", apiKey);
-		console.log("---------------------------------------------")
-		console.log("Provider selected manually: ", Boolean(selectedProvider))
-		console.log("SELECTED PROVIDER:", selectedProvider)
-		console.log("---------------------------------------------")
-		const { _id: clientId, selectionStrategy, stripeCustomerId, paymentMethodId } = await getClientDetails(apiKey);
-		const QUOTES = await getResultantQuotes(req.body);
-		// Use selection strategy to select the winner quote
-		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
-		// checks if the fleet provider for the delivery was manually selected or not
-		let providerId, deliveryFee;
-		if (selectedProvider === undefined) {
-			providerId = bestQuote.providerId
-			deliveryFee = bestQuote.price
-		} else {
-			providerId = selectedProvider
-			let chosenQuote = QUOTES.find(quote => quote.providerId === selectedProvider.toLowerCase())
-			deliveryFee = chosenQuote ? chosenQuote.price : null
-		}
-		if (paymentMethodId) {
-			let idempotencyKey = uuidv4()
-			//create the payment intent for the new order
-			const paymentIntent = await stripe.paymentIntents.create({
-				// * 100 to convert from pounds to pennies
-				// * 0.1 to take 10%
-				amount: Math.floor((deliveryFee * 100) * 1.1),
-				customer: stripeCustomerId,
-				currency: 'GBP',
-				setup_future_usage: 'off_session',
-				payment_method: paymentMethodId,
-				payment_method_types: ['card'],
-			}, {
-				idempotencyKey,
-			});
-			console.log("-------------------------------------------")
-			console.log("Payment Intent Created!", paymentIntent)
-			console.log("-------------------------------------------")
-			const {
-				id: spec_id,
-				trackingURL,
-				pickupAt,
-				dropoffAt
-			} = await providerCreatesJob(providerId.toLowerCase(), clientRefNumber, req.body)
-
-			const jobs = await db.Job.find({})
-
-			let job = {
-				createdAt: moment().toISOString(),
-				jobSpecification: {
-					id: spec_id,
-					orderNumber: genOrderNumber(jobs.length),
-					packages: [{
-						description: packageDescription,
-						dropoffLocation: {
-							fullAddress: dropoffAddress,
-							street_address: dropoffFormattedAddress.street,
-							city: dropoffFormattedAddress.city,
-							postcode: dropoffFormattedAddress.postcode,
-							country: "UK",
-							phoneNumber: dropoffPhoneNumber,
-							email: dropoffEmailAddress,
-							firstName: dropoffFirstName,
-							lastName: dropoffLastName,
-							businessName: dropoffBusinessName,
-							instructions: dropoffInstructions
-						},
-						dropoffStartTime: dropoffAt ? moment(dropoffAt).toISOString() : packageDropoffStartTime,
-						dropoffEndTime: packageDropoffEndTime,
-						itemsCount,
-						pickupStartTime: pickupAt ? moment(pickupAt).toISOString() : packagePickupStartTime,
-						pickupEndTime: packagePickupEndTime,
-						pickupLocation: {
-							fullAddress: pickupAddress,
-							street_address: pickupFormattedAddress.street,
-							city: pickupFormattedAddress.city,
-							postcode: pickupFormattedAddress.postcode,
-							country: "UK",
-							phoneNumber: pickupPhoneNumber,
-							email: pickupEmailAddress,
-							firstName: pickupFirstName,
-							lastName: pickupLastName,
-							businessName: pickupBusinessName,
-							instructions: pickupInstructions
-						},
-						tax: packageTax,
-						value: packageValue
-					}]
-				},
-				selectedConfiguration: {
-					jobReference: clientRefNumber,
-					createdAt: moment().toISOString(),
-					deliveryFee: bestQuote.price,
-					winnerQuote: bestQuote.id,
-					providerId,
-					trackingURL,
-					quotes: QUOTES
-				},
-				status: STATUS.NEW
-			}
-			// Append the selected provider job to the jobs database
-			const createdJob = await db.Job.create({...job, clientId, paymentIntentId: paymentIntent.id})
-			// Add the delivery to the users list of jobs
-			await db.User.updateOne({apiKey}, {$push: {jobs: createdJob._id}}, {new: true})
-			return res.status(200).json({
-				jobId: createdJob._id,
-				...job,
-			})
-		} else {
-			console.error("No valid payment method found!")
-			return res.status(402).json({
-				error: {
-					code: 402,
-					message: "Please add a payment method before creating an order"
-				}
-			})
-		}
-	} catch (e) {
-		console.error("ERROR:", e)
-		if (e.message) {
-			return res.status(e.code).json({
-				error: e
-			})
-		}
-		return res.status(500).json({
-			code: 500,
-			message: "Unknown error occurred!"
-		});
-	}
-}
-
-/**
- * Get Job - The API endpoint for retrieving created delivery jobs
- * @constructor
- * @param req - request object
- * @param res - response object
- * @returns {Promise<*>}
- */
-exports.getJob = async (req, res) => {
-	try {
-		const {job_id} = req.params;
-		let {_doc: {_id, ...foundJob}} = await db.Job.findById(job_id, {})
-		if (foundJob) {
-			return res.status(200).json({
-				jobId: job_id,
-				...foundJob
-			})
-		} else {
-			return res.status(404).json({
-				code: 404,
-				description: `No job found with ID: ${req.params["job_id"]}`,
-				message: "Not Found"
-			})
-		}
-	} catch (err) {
-		return res.status(500).json({
-			...err
-		})
-	}
-}
-
-/**
- * Get Quotes - The API endpoint for retrieving the bestQuote and the list of quotes from relative providers
- * @constructor
- * @param req - request object
- * @param res - response object
- * @returns {Promise<*>}
- */
-exports.getQuotes = async (req, res) => {
-	try {
-		const { selectionStrategy } = await getClientDetails(req.headers[AUTHORIZATION_KEY]);
-		console.log("Strategy: ", selectionStrategy)
-		const quotes = await getResultantQuotes(req.body);
-		const bestQuote = chooseBestProvider(selectionStrategy, quotes);
-		return res.status(200).json({
-			quotes,
-			bestQuote
-		})
-	} catch (err) {
-		return res.status(500).json({
-			...err
-		})
-	}
-}
-
-exports.updateStatus = async (req, res) => {
-	const {stripeCustomerId, status} = req.body;
-	const {job_id} = req.params;
-	try {
-		console.log(req.body)
-		if (!Object.keys(req.body).length) {
-			return res.status(400).json({
-				code: 400,
-				description: "Your payload has no properties to update the job",
-				message: "Missing Payload!"
-			})
-		}
-		let {_doc: updatedJob} = await db.Job.findByIdAndUpdate(job_id, {"status": status}, {new: true})
-		/**
-		 * ONLY FOR TESTING - REMOVE WHEN DONE
-		 */
-		if (status === STATUS.COMPLETED) {
-			await confirmCharge(
-				Number(updatedJob.jobSpecification.packages[0].value),
-				stripeCustomerId,
-				updatedJob.paymentIntentId
-			)
-		}
-		let jobs = await db.Job.find({}, {}, {new: true})
-		return res.status(200).json({
-			updatedJobs: jobs,
-			message: "Job status updated!"
-		})
-	} catch (e) {
-		return res.status(404).json({
-			code: 404,
-			description: `No job found with ID: ${job_id}`,
-			message: "Not Found"
-		})
-	}
-}
-
-/**
- * Update Job - The API endpoint for updating details of a delivery job
- * @param req - request object
- * @param res - response object
- * @returns {Promise<*>}
- */
-exports.updateJob = async (req, res) => {
-	if (!Object.keys(req.body).length) {
-		return res.status(400).json({
-			code: 400,
-			description: "Your payload has no properties to update the job",
-			message: "Missing Payload!"
-		})
-	}
-	const {
-		packageDescription: description,
-		pickupInstructions,
-		dropoffInstructions
-	} = req.body
-	console.log(req.body)
-	try {
-		let jobId = req.params["job_id"]
-		if (mongoose.Types.ObjectId.isValid(jobId)) {
-			let {_doc: {_id, ...updatedJob}} = await db.Job.findOneAndUpdate({_id: jobId}, {
-				'$set': {
-					"jobSpecification.packages.$[].description": description,
-					"jobSpecification.packages.$[].pickupLocation.instructions": pickupInstructions,
-					"jobSpecification.packages.$[].dropoffLocation.instructions": dropoffInstructions
-				},
-			}, {
-				new: true,
-				sanitizeProjection: true,
-			})
-			return updatedJob ?
-				res.status(200).json({
-					jobId: _id,
-					...updatedJob
-				}) : res.status(404).json({
-					code: 404,
-					description: `No job found with ID: ${jobId}`,
-					message: "Not Found"
-				})
-		} else {
-			res.status(404).json({
-				code: 404,
-				description: `No job found with ID: ${jobId}`,
-				message: "Not Found"
-			})
-		}
-	} catch
-		(e) {
-		console.error(e)
-		return res.status(500).json({
-			...e
-		})
-	}
-}
-
-/**
- * Delete Job - The API endpoint for cancelling a delivery job
- * @param req - request object
- * @param res - response object
- * @returns {Promise<*>}
- */
-exports.cancelJob = async (req, res) => {
-	try {
-		const jobId = req.params["job_id"]
-		let foundJob = await db.Job.findByIdAndUpdate(jobId, {"status": STATUS.CANCELLED}, {new: true})
-		console.log(foundJob)
-		if (foundJob) {
-			return res.status(200).json({
-				jobId,
-				cancelled: true
-			})
-		} else {
-			return res.status(404).json({
-				code: 404,
-				description: `No job found with ID: ${jobId}`,
-				message: "Not Found"
-			})
-		}
-	} catch (err) {
-		console.error(err)
-		return res.status(500).json({
-			...err
-		})
-	}
-}
-
-/**
- * List Jobs - The API endpoint for listing all jobs currently in progress
- * @constructor
- * @param req - request object
- * @param res - response object
- * @param next - moves to the next helper function
- * @returns {Promise<*>}
- */
-exports.listJobs = async (req, res, next) => {
-	try {
-		const {email} = req.body;
-		const user = await db.User.findOne({"email": email}, {})
-		const jobs = []
-		for (let jobId of user.jobs) {
-			const job = await db.Job.findById(jobId, {}, {new: true})
-			if (job) {
-				console.log(job["_doc"])
-				jobs.push({...job["_doc"]})
-			}
-		}
-		return res.status(200).json({
-			jobs,
-			message: "All jobs returned!"
-		})
-	} catch (err) {
-		console.error(err)
-		return next({
-			status: 400,
-			message: err.message
-		})
-	}
 }
