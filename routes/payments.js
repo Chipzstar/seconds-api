@@ -8,13 +8,15 @@ const router = express.Router();
 
 router.post("/setup-intent", async (req, res) => {
 	//const key = uuidv4()
-	console.log('-----+++++')
 	try {
 		const setupIntent = await stripe.setupIntents.create({
 			payment_method_types: ['card'],
 			customer: req.body.stripeCustomerId,
 		});
+		console.log("==================================================")
+		console.log("SETUP INTENT")
 		console.log(setupIntent)
+		console.log("==================================================")
 		res.status(200).json(setupIntent);
 	} catch (e) {
 		console.error(e)
@@ -25,12 +27,12 @@ router.post("/setup-intent", async (req, res) => {
 })
 
 router.post("/add-payment-method", async (req, res) => {
-	const { paymentMethodId, email } = req.body;
+	const {paymentMethodId, email} = req.body;
 	console.log(paymentMethodId)
 	console.log(email)
 	//const key = uuidv4()
 	try {
-		let updatedUser = await db.User.findOneAndUpdate({ "email": email }, { "paymentMethodId": paymentMethodId }, { new: true})
+		let updatedUser = await db.User.findOneAndUpdate({"email": email}, {"paymentMethodId": paymentMethodId}, {new: true})
 		console.log(updatedUser)
 		res.status(200).json(true)
 	} catch (e) {
@@ -41,8 +43,62 @@ router.post("/add-payment-method", async (req, res) => {
 	}
 })
 
+router.post("/update-payment-method", async (req, res) => {
+	try {
+		const { email, paymentMethodId, paymentDetails} = req.body;
+		// check if client paymentMethodId matches that stored in the database
+		const {paymentMethodId: dbPaymentMethodId} = await db.User.findOne({"email": email}, {});
+		if (dbPaymentMethodId === paymentMethodId) {
+			// update the card information in stripe
+			const paymentMethod = await stripe.paymentMethods.update(
+				paymentMethodId,
+				{
+					billing_details: {
+						name: paymentDetails.name
+					},
+					card: {
+						exp_month: paymentDetails.month,
+						exp_year: paymentDetails.year
+					}
+				}
+			)
+			console.log(paymentMethod)
+			return res.status(200).json(paymentMethod)
+		} else {
+			throw new Error("The payment method you want to change does not exist! Please remove your card and add a new one")
+		}
+	} catch (e) {
+		console.error(e)
+		res.status(400).json({
+			error: {...e}
+		})
+	}
+})
+
+router.post("/remove-payment-method", async (req, res) => {
+	try {
+		const {email, paymentMethodId} = req.body;
+		// detach payment method from stripe customer
+		const paymentMethod = await stripe.paymentMethods.detach(
+			paymentMethodId
+		)
+		console.log("-----------------------------------------")
+		console.log(paymentMethod)
+		console.log("-----------------------------------------")
+		// remove paymentMethodId from user in database
+		const user = await db.User.findOneAndUpdate({"email": email}, {"paymentMethodId": ""}, {new: true})
+		return res.status(200).json({
+			stripeCustomerId: user.stripeCustomerId,
+			paymentMethodId: user.paymentMethodId,
+			message: "Payment Method Removed!"
+		})
+	} catch (e) {
+		console.error(e)
+	}
+})
+
 router.post("/fetch-stripe-card", async (req, res) => {
-	const { paymentMethodId } = req.body;
+	const {paymentMethodId} = req.body;
 	console.log(paymentMethodId)
 	//const key = uuidv4()
 	try {
@@ -60,7 +116,7 @@ router.post("/fetch-stripe-card", async (req, res) => {
 })
 
 router.post("/setup-subscription", async (req, res) => {
-	const { email, stripeCustomerId } = req.body;
+	const {email, stripeCustomerId} = req.body;
 	//const key = uuidv4()
 	try {
 		const subscription = await stripe.subscriptions.create({
@@ -71,7 +127,7 @@ router.post("/setup-subscription", async (req, res) => {
 		});
 		console.log("SUBSCRIPTION:", subscription)
 		//attach the subscription id to the user
-		const updatedUser = db.User.findOneAndUpdate({ "email": email}, {"stripeSubscriptionId": subscription.id}, {new: true})
+		const updatedUser = db.User.findOneAndUpdate({"email": email}, {"stripeSubscriptionId": subscription.id}, {new: true})
 		console.log(updatedUser)
 		res.status(200).json(subscription)
 	} catch (e) {
@@ -83,7 +139,7 @@ router.post("/setup-subscription", async (req, res) => {
 })
 
 router.post("/fetch-stripe-subscription", async (req, res) => {
-	const { stripeSubscriptionId } = req.body;
+	const {stripeSubscriptionId} = req.body;
 	console.log(stripeSubscriptionId)
 	try {
 		const subscription = await stripe.subscriptions.retrieve(
@@ -100,9 +156,9 @@ router.post("/fetch-stripe-subscription", async (req, res) => {
 })
 
 router.post("/cancel-subscription", async (req, res) => {
-	const { email } = req.body;
+	const {email} = req.body;
 	// get the subscription id from the customer
-	const { stripeSubscriptionId } = db.User.findOne({"email": email}, {})
+	const {stripeSubscriptionId} = db.User.findOne({"email": email}, {})
 	const deleted = await stripe.subscriptions.del(
 		stripeSubscriptionId
 	);
@@ -114,7 +170,7 @@ router.post("/cancel-subscription", async (req, res) => {
 })
 
 router.post('/create-checkout-session', async (req, res) => {
-	const { lookup_key } = req.body;
+	const {lookup_key} = req.body;
 	const prices = await stripe.prices.list({
 		lookup_keys: [lookup_key],
 		expand: ['data.product'],
@@ -137,7 +193,7 @@ router.post('/create-checkout-session', async (req, res) => {
 });
 
 router.post('/create-portal-session', async (req, res) => {
-	const { stripeCustomerId } = req.body;
+	const {stripeCustomerId} = req.body;
 	// managing their billing with the portal.
 	const portalSession = await stripe.billingPortal.sessions.create({
 		customer: stripeCustomerId,
