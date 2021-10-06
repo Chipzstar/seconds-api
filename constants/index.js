@@ -1,6 +1,6 @@
 exports.AUTHORIZATION_KEY = "X-Seconds-Api-Key".toLowerCase();
 exports.PROVIDER_ID = "X-Seconds-Provider-Id".toLowerCase();
-exports.DOMAIN = "https://seconds-app-client-dev.herokuapp.com";
+exports.DOMAIN = "http://localhost:3000/subscription" || "https://seconds-app-client-dev.herokuapp.com/subscription";
 
 exports.STATUS = {
 	NEW: "new".toUpperCase(),
