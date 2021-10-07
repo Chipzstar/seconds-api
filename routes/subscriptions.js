@@ -3,7 +3,7 @@ const express = require("express");
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const db = require("../models");
 const moment = require("moment");
-const {DOMAIN} = require('../constants/index');
+const {SUBSCRIPTION_DOMAIN} = require('../constants/index');
 const router = express.Router();
 
 router.post("/setup-subscription", async (req, res) => {
@@ -82,8 +82,8 @@ router.post('/create-checkout-session', async (req, res) => {
 			},
 		],
 		mode: 'subscription',
-		success_url: `${DOMAIN}/payment?success=true&session_id={CHECKOUT_SESSION_ID}`,
-		cancel_url: `${DOMAIN}/payment?canceled=true`,
+		success_url: `${String(process.env.SUBSCRIPTION_DOMAIN) || SUBSCRIPTION_DOMAIN}/payment?success=true&session_id={CHECKOUT_SESSION_ID}`,
+		cancel_url: `${String(process.env.SUBSCRIPTION_DOMAIN) || SUBSCRIPTION_DOMAIN}/payment?canceled=true`,
 	});
 	res.redirect(303, session.url)
 });
@@ -97,7 +97,7 @@ router.post('/create-portal-session', async (req, res) => {
 	const portalSession = await stripe.billingPortal.sessions.create({
 		customer: stripe_customer_id,
 		// This is the url to which the customer will be redirected when they are done
-		return_url: DOMAIN,
+		return_url: String(process.env.SUBSCRIPTION_DOMAIN) || SUBSCRIPTION_DOMAIN,
 	});
 	res.redirect(303, portalSession.url);
 });

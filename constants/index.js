@@ -1,6 +1,6 @@
 exports.AUTHORIZATION_KEY = "X-Seconds-Api-Key".toLowerCase();
 exports.PROVIDER_ID = "X-Seconds-Provider-Id".toLowerCase();
-exports.DOMAIN = process.env.SUBSCRIPTION_DOMAIN || "http://localhost:3000/subscription";
+exports.SUBSCRIPTION_DOMAIN = "http://localhost:3000/subscription";
 
 exports.STATUS = {
 	NEW: "new".toUpperCase(),
