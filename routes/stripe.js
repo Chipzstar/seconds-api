@@ -9,7 +9,7 @@ router.post('/webhook', express.raw({type: 'application/json'}), (request, respo
 	// If you are testing with the CLI, find the secret by running 'stripe listen'
 	// If you are using an endpoint defined with the API or dashboard, look in your webhook settings
 	// at https://dashboard.stripe.com/webhooks
-	const endpointSecret = 'whsec_XwyhyYVeQUp3PP0jjbanP9hKNpbZ878r'
+	const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET || 'whsec_XwyhyYVeQUp3PP0jjbanP9hKNpbZ878r'
 	// Only verify the event if you have an endpoint secret defined.
 	// Otherwise use the basic event deserialized with JSON.parse
 	if (endpointSecret) {
