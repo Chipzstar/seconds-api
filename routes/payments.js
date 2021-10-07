@@ -28,7 +28,6 @@ router.post("/add-payment-method", async (req, res) => {
 	const {paymentMethodId, email} = req.body;
 	console.log(paymentMethodId)
 	console.log(email)
-	//const key = uuidv4()
 	try {
 		let updatedUser = await db.User.findOneAndUpdate({"email": email}, {"paymentMethodId": paymentMethodId}, {new: true})
 		console.log(updatedUser)
