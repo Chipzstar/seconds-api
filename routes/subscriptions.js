@@ -82,13 +82,14 @@ router.post('/create-checkout-session', async (req, res) => {
 			},
 		],
 		mode: 'subscription',
-		success_url: `${String(process.env.SUBSCRIPTION_DOMAIN) || SUBSCRIPTION_DOMAIN}/payment?success=true&session_id={CHECKOUT_SESSION_ID}`,
-		cancel_url: `${String(process.env.SUBSCRIPTION_DOMAIN) || SUBSCRIPTION_DOMAIN}/payment?canceled=true`,
+		success_url: process.env.SUBSCRIPTION_DOMAIN ? String(process.env.SUBSCRIPTION_DOMAIN) : `${SUBSCRIPTION_DOMAIN}/payment?success=true&session_id={CHECKOUT_SESSION_ID}`,
+		cancel_url: process.env.SUBSCRIPTION_DOMAIN ? String(process.env.SUBSCRIPTION_DOMAIN) : `${SUBSCRIPTION_DOMAIN}/payment?canceled=true`,
 	});
 	res.redirect(303, session.url)
 });
 
 router.post('/create-portal-session', async (req, res) => {
+	console.log(req.body)
 	const { stripe_customer_id } = req.body;
 	console.log("--------------------------------------")
 	console.log("CUSTOMER ID:", stripe_customer_id)
