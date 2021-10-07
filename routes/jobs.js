@@ -96,7 +96,7 @@ router.post("/create", async (req, res) => {
 		console.log("Provider selected manually: ", Boolean(selectedProvider))
 		console.log("SELECTED PROVIDER:", selectedProvider)
 		console.log("---------------------------------------------")
-		const {_id: clientId, selectionStrategy, stripeCustomerId, paymentMethodId} = await getClientDetails(apiKey);
+		const {_id: clientId, selectionStrategy, stripeCustomerId, subscriptionId } = await getClientDetails(apiKey);
 		const QUOTES = await getResultantQuotes(req.body);
 		// Use selection strategy to select the winner quote
 		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
@@ -115,8 +115,8 @@ router.post("/create", async (req, res) => {
 			deliveryFee = chosenQuote ? chosenQuote.price : null
 			winnerQuote = chosenQuote ? chosenQuote.id : null
 		}
-		if (paymentMethodId) {
-			let idempotencyKey = uuidv4()
+		if (subscriptionId) {
+			/*let idempotencyKey = uuidv4()
 			//create the payment intent for the new order
 			const paymentIntent = await stripe.paymentIntents.create({
 				// * 100 to convert from pounds to pennies
@@ -132,7 +132,7 @@ router.post("/create", async (req, res) => {
 			});
 			console.log("-------------------------------------------")
 			console.log("Payment Intent Created!", paymentIntent)
-			console.log("-------------------------------------------")
+			console.log("-------------------------------------------")*/
 			const {
 				id: spec_id,
 				trackingURL,
@@ -204,11 +204,11 @@ router.post("/create", async (req, res) => {
 				...job,
 			})
 		} else {
-			console.error("No valid payment method found!")
+			console.error("No subscription detected!")
 			return res.status(402).json({
 				error: {
 					code: 402,
-					message: "Please add a payment method before creating an order"
+					message: "Please purchase a subscription plan before making an order. Thank you! 😊"
 				}
 			})
 		}

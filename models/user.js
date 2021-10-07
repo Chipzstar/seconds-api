@@ -54,6 +54,10 @@ const userSchema = new mongoose.Schema({
 		type: String,
 		default: "",
 	},
+	subscriptionId: {
+		type: String,
+		default: "",
+	},
 	selectionStrategy: {
 		type: String,
 		default: "eta"

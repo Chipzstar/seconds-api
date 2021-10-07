@@ -30,14 +30,17 @@ router.post("/setup-subscription", async (req, res) => {
 })
 
 router.post("/fetch-stripe-subscription", async (req, res) => {
-	const {stripeSubscriptionId} = req.body;
-	console.log(stripeSubscriptionId)
+	const { email } = req.body;
+	console.log(email)
 	try {
-		const subscription = await stripe.subscriptions.retrieve(
-			stripeSubscriptionId
-		);
-		console.log(subscription)
-		res.status(200).json(subscription)
+		const { subscriptionId } = await db.User.findOne({"email": email}, {})
+ 		if (subscriptionId){
+			 const subscription = await stripe.subscriptions.retrieve(
+			    subscriptionId
+		    );
+		    console.log(subscription)
+	    }
+		res.status(200).json({id: subscriptionId, status: null})
 	} catch (e) {
 		console.error(e)
 		res.status(400).json({
@@ -61,7 +64,6 @@ router.post("/cancel-subscription", async (req, res) => {
 })
 
 router.post('/create-checkout-session', async (req, res) => {
-	console.log("REQUEST:", req.body)
 	const { lookup_key, stripe_customer_id } = req.body;
 	console.log("--------------------------------------")
 	console.log("LOOKUP KEY:", lookup_key)
@@ -100,6 +102,9 @@ router.post('/create-portal-session', async (req, res) => {
 		// This is the url to which the customer will be redirected when they are done
 		return_url: String(process.env.SUBSCRIPTION_DOMAIN) || SUBSCRIPTION_DOMAIN,
 	});
+	console.log("------------------------------")
+	console.log(portalSession)
+	console.log("------------------------------")
 	res.redirect(303, portalSession.url);
 });
 

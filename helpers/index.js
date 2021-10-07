@@ -1,5 +1,5 @@
 const axios = require("axios");
-const { pickupSchema, dropoffSchema } = require("../schemas/stuart/CreateJob");
+const {pickupSchema, dropoffSchema} = require("../schemas/stuart/CreateJob");
 const qs = require("qs");
 const db = require("../models");
 const crypto = require("crypto");
@@ -127,10 +127,10 @@ async function getGophrQuote(refNumber, params) {
 		'weight': '12',
 		...(packagePickupStartTime) && {'earliest_pickup_time': moment(packagePickupStartTime).toISOString()},
 		...(packageDropoffStartTime) && {'earliest_delivery_time': moment(packageDropoffStartTime).toISOString()},
-		'delivery_address1': dropoffFormattedAddress.street,
+		'delivery_address1': dropoffFormattedAddress["street"],
 		'delivery_city': dropoffFormattedAddress.city,
 		'delivery_postcode': dropoffFormattedAddress.postcode,
-		'delivery_country_code': dropoffFormattedAddress.countryCode,
+		'delivery_country_code': dropoffFormattedAddress["countryCode"],
 	});
 	try {
 		const config = {headers: {'Content-Type': 'application/x-www-form-urlencoded'}};
@@ -187,7 +187,7 @@ async function getStuartQuote(reference, params) {
 
 	const payload = {
 		job: {
-			...(packagePickupStartTime) && { pickup_at: packagePickupStartTime },
+			...(packagePickupStartTime) && {pickup_at: packagePickupStartTime},
 			assignment_code: genAssignmentCode(),
 			pickups: [
 				{
@@ -217,8 +217,8 @@ async function getStuartQuote(reference, params) {
 						email: dropoffEmailAddress,
 						company: dropoffBusinessName
 					},
-					...(packageDropoffStartTime) && { end_customer_time_window_start: packageDropoffStartTime },
-					...(packageDropoffEndTime) && { end_customer_time_window_end: packageDropoffEndTime }
+					...(packageDropoffStartTime) && {end_customer_time_window_start: packageDropoffStartTime},
+					...(packageDropoffEndTime) && {end_customer_time_window_end: packageDropoffEndTime}
 				}
 			]
 		}
@@ -313,9 +313,9 @@ async function gophrJobRequest(refNumber, params) {
 	try {
 		const config = {headers: {'Content-Type': 'application/x-www-form-urlencoded'}};
 		const createJobURL = 'https://api-sandbox.gophr.com/v1/commercial-api/create-confirm-job'
-		const { data } = (await axios.post(createJobURL, payload, config)).data
+		const {data} = (await axios.post(createJobURL, payload, config)).data
 		console.log(data)
-		const { job_id, public_tracker_url, pickup_eta, delivery_eta } = data
+		const {job_id, public_tracker_url, pickup_eta, delivery_eta} = data
 		return {
 			id: job_id,
 			trackingURL: public_tracker_url,
@@ -432,6 +432,44 @@ const confirmCharge = async (amount, customerId, paymentIntentId) => {
 	}
 }
 
+async function handleActiveSubscription(subscription) {
+	try {
+		console.log(subscription)
+		const { id, customer, status} = subscription;
+		if (status === "active") {
+			const user = await db.User.findOneAndUpdate({"stripeCustomerId": customer}, {"subscriptionId": id}, {new: true})
+			console.log("------------------------------------")
+			console.log("updated user:", user)
+			console.log("------------------------------------")
+			return "Subscription is active"
+		} else {
+			throw new Error("Subscription status is not active")
+		}
+	} catch (err) {
+		console.error(err)
+		throw new Error("No user found with a matching stripe customer ID!")
+	}
+}
+
+async function handleCanceledSubscription(subscription){
+	try {
+		console.log(subscription)
+		const { customer, status} = subscription;
+		if (status === "canceled") {
+			const user = await db.User.findOneAndUpdate({"stripeCustomerId": customer}, {"subscriptionId": ""}, {new: true})
+			console.log("------------------------------------")
+			console.log("updated user:", user)
+			console.log("------------------------------------")
+			return "Subscription is canceled"
+		} else {
+			throw new Error("Subscription status is not canceled")
+		}
+	} catch (err) {
+		console.error(err)
+		throw new Error("No user found with a matching stripe customer ID!")
+	}
+}
+
 module.exports = {
 	genJobReference,
 	getClientDetails,
@@ -439,5 +477,7 @@ module.exports = {
 	genOrderNumber,
 	getResultantQuotes,
 	providerCreatesJob,
-	confirmCharge
+	confirmCharge,
+	handleActiveSubscription,
+	handleCanceledSubscription
 }
