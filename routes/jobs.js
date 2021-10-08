@@ -115,6 +115,7 @@ router.post("/create", async (req, res) => {
 			deliveryFee = chosenQuote ? chosenQuote.price : null
 			winnerQuote = chosenQuote ? chosenQuote.id : null
 		}
+		console.log("SUBSCRIPTION ID", subscriptionId)
 		if (subscriptionId) {
 			/*let idempotencyKey = uuidv4()
 			//create the payment intent for the new order
@@ -196,7 +197,7 @@ router.post("/create", async (req, res) => {
 				status: STATUS.NEW
 			}
 			// Append the selected provider job to the jobs database
-			const createdJob = await db.Job.create({...job, clientId, paymentIntentId: paymentIntent.id})
+			const createdJob = await db.Job.create({...job, clientId })
 			// Add the delivery to the users list of jobs
 			await db.User.updateOne({apiKey}, {$push: {jobs: createdJob._id}}, {new: true})
 			return res.status(200).json({
