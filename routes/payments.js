@@ -25,12 +25,18 @@ router.post("/setup-intent", async (req, res) => {
 })
 
 router.post("/add-payment-method", async (req, res) => {
-	const {paymentMethodId, email} = req.body;
-	console.log(paymentMethodId)
-	console.log(email)
+	const {customerId, paymentMethodId, email} = req.body;
 	try {
-		let updatedUser = await db.User.findOneAndUpdate({"email": email}, {"paymentMethodId": paymentMethodId}, {new: true})
-		console.log(updatedUser)
+		const customer = await stripe.customers.update(customerId, {
+			invoice_settings: {
+				default_payment_method: paymentMethodId
+			}
+		})
+		console.log("*************************************")
+		console.log("updated customer")
+		console.log(customer)
+		console.log("*************************************")
+		await db.User.findOneAndUpdate({"email": email}, {"paymentMethodId": paymentMethodId}, {new: true})
 		res.status(200).json(true)
 	} catch (e) {
 		console.error(e)
