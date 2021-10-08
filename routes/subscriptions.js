@@ -100,7 +100,7 @@ router.post('/create-portal-session', async (req, res) => {
 	const portalSession = await stripe.billingPortal.sessions.create({
 		customer: stripe_customer_id,
 		// This is the url to which the customer will be redirected when they are done
-		return_url: String(process.env.SUBSCRIPTION_DOMAIN) || SUBSCRIPTION_DOMAIN,
+		return_url: !!process.env.SUBSCRIPTION_DOMAIN ? String(process.env.SUBSCRIPTION_DOMAIN) : SUBSCRIPTION_DOMAIN,
 	});
 	console.log("------------------------------")
 	console.log(portalSession)
