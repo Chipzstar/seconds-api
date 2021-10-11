@@ -13,6 +13,7 @@ const subscriptionRoutes = require('./routes/subscriptions');
 const stripeRoutes = require('./routes/stripe');
 const stuartRoutes = require('./routes/stuart');
 const gophrRoutes = require('./routes/gophr');
+const ecoFleetRoutes = require('./routes/ecofleet')
 const port = process.env.PORT || 3001;
 moment.tz.setDefault("Europe/London");
 
@@ -55,6 +56,8 @@ app.use('/api/v1/quotes', validateApiKey, quoteRoutes);
 // FLEET PROVIDERS ROUTES + WEBHOOKS
 app.use('/api/v1/stuart', validateApiKey, stuartRoutes);
 app.use('/api/v1/gophr', gophrRoutes);
+app.use('/api/v1/ecofleet', ecoFleetRoutes);
+//app.use('/api/v1/streetStream', gophrRoutes);
 
 // PAYMENTS ROUTES
 app.use('/api/v1/payments', paymentRoutes);
