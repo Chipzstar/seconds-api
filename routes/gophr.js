@@ -1,13 +1,71 @@
 const express = require("express");
+const {JOB_STATUS } = require("../constants/gophr");
+const {STATUS} = require("../constants");
+const db = require("../models");
+const moment = require("moment");
 const router = express.Router();
+
+function translateGophrStatus(value) {
+	switch (value) {
+		case JOB_STATUS.NEW:
+			return STATUS.NEW
+		case JOB_STATUS.PENDING:
+			return STATUS.PENDING
+		case JOB_STATUS.ACCEPTED:
+			return STATUS.DISPATCHING
+		case JOB_STATUS.AT_PICKUP:
+			return STATUS.DISPATCHING
+		case JOB_STATUS.EN_ROUTE:
+			return STATUS.EN_ROUTE
+		case JOB_STATUS.AT_DELIVERY:
+			return STATUS.EN_ROUTE
+		case JOB_STATUS.COMPLETED:
+			return STATUS.COMPLETED
+		case JOB_STATUS.CANCELLED:
+			return STATUS.CANCELLED
+		default:
+			return value
+	}
+}
+
+async function update(data){
+	try {
+		console.log(data)
+		const {status: STATUS, external_id: REFERENCE, pickup_eta, delivery_eta }  = data
+		console.log({STATUS, REFERENCE})
+		// update the status for the current job
+		await db.Job.findOneAndUpdate(
+			{"selectedConfiguration.jobReference": REFERENCE},
+			{"status": translateGophrStatus(STATUS)},
+			{new: true}
+		)
+		let {_doc: { _id, ...job} } = await db.Job.findOneAndUpdate(
+			{"selectedConfiguration.jobReference": REFERENCE},
+			{
+				'$set': {
+					"jobSpecification.packages.$[].pickupStartTime": moment(pickup_eta).toISOString(),
+					"jobSpecification.packages.$[].dropoffStartTime": moment(delivery_eta).toISOString()
+				},
+			}, {
+				new: true,
+				sanitizeProjection: true,
+			})
+		console.log(job)
+		return STATUS
+	} catch (err) {
+		console.error(err)
+		throw err
+	}
+}
 
 router.post("/", async (req, res) => {
 	try {
-		console.log("HEADERS:", req.headers)
-		console.log("BODY:", req.body)
+		let jobStatus = await update(req.body)
+		console.log("--------------------------------")
+		console.log("NEW STATUS:", jobStatus)
+		console.log("--------------------------------")
 		res.status(200).json({
-			headers: { ...req.headers},
-			body: {...req.body}
+			...req.body
 		})
 	} catch (err) {
 		console.error(err)
