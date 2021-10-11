@@ -18,11 +18,16 @@ const validateApiKey = async (req, res, next) => {
 				description: "API key is MISSING"
 			})
 		}
-		// check if the incoming request is from a fleet provider
+		/**
+		 * check if the incoming request is from a fleet provider
+		 */
+
+		//STUART
 		if (apiKey === AUTH_KEYS.STUART) {
 			console.log("API Key is valid!")
 			isValid = true
 		}
+		// GOPHR
 		// check if incoming request is from a client
 		const client = await db.User.findOne({ "apiKey": apiKey }, {})
 		if (client) {

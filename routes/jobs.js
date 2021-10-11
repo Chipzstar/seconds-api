@@ -117,23 +117,6 @@ router.post("/create", async (req, res) => {
 		}
 		console.log("SUBSCRIPTION ID", subscriptionId)
 		if (subscriptionId) {
-			/*let idempotencyKey = uuidv4()
-			//create the payment intent for the new order
-			const paymentIntent = await stripe.paymentIntents.create({
-				// * 100 to convert from pounds to pennies
-				// * 0.1 to take 10%
-				amount: Math.floor((deliveryFee * 100) * 1.1),
-				customer: stripeCustomerId,
-				currency: 'GBP',
-				setup_future_usage: 'off_session',
-				payment_method: paymentMethodId,
-				payment_method_types: ['card'],
-			}, {
-				idempotencyKey,
-			});
-			console.log("-------------------------------------------")
-			console.log("Payment Intent Created!", paymentIntent)
-			console.log("-------------------------------------------")*/
 			const {
 				id: spec_id,
 				trackingURL,
