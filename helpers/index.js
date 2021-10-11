@@ -70,15 +70,15 @@ function genOrderNumber(number) {
 async function providerCreatesJob(job, ref, body) {
 	switch (job) {
 		case PROVIDERS.STUART:
-			console.log("STUAAART")
+			console.log("Creating STUART JOB")
 			return await stuartJobRequest(ref, body);
 		case PROVIDERS.GOPHR:
 			console.log('Creating GOPHR Job')
 			return await gophrJobRequest(ref, body);
 		// default case if no valid providerId was chosen
 		default:
-			console.log('Creating STUART Job')
-			return await stuartJobRequest(ref, body);
+			console.log('Creating STREET-STREAM Job')
+			return await streetStreamJobRequest(ref, body);
 	}
 }
 
@@ -253,6 +253,70 @@ async function getStuartQuote(reference, params) {
 		} else {
 			throw err
 		}
+	}
+}
+
+async function streetStreamJobRequest(refNumber, params) {
+	const {
+		pickupFormattedAddress,
+		pickupPhoneNumber,
+		pickupEmailAddress,
+		pickupBusinessName,
+		pickupFirstName,
+		pickupLastName,
+		pickupInstructions,
+		dropoffFormattedAddress,
+		dropoffPhoneNumber,
+		dropoffEmailAddress,
+		dropoffBusinessName,
+		dropoffFirstName,
+		dropoffLastName,
+		dropoffInstructions,
+		packageDropoffStartTime,
+		packageDropoffEndTime,
+		packagePickupStartTime,
+		packagePickupEndTime,
+		packageValue
+	} = params;
+
+	const payload = {
+		offerAcceptanceStrategy: "AUTO_CLOSEST COURIER_TO_ME",
+		packageTypeId: "PT1003",
+		jobLabel: "test job",
+		insuranceCover: "PERSONAL",
+		submitForQuotesImmediately: true,
+		pickUp: {
+			contactNumber: pickupPhoneNumber,
+			contactName: `${pickupFirstName} ${pickupLastName}`,
+			addressOne: pickupFormattedAddress.street,
+			city: pickupFormattedAddress.city,
+			postcode: pickupFormattedAddress.postcode,
+			pickUpNotes: pickupInstructions,
+			pickUpFrom: packagePickupStartTime,
+			pickUpTo: packagePickupEndTime
+		},
+		dropOff: {
+			contactNumber: dropoffPhoneNumber,
+			contactName: `${dropoffFirstName} ${dropoffLastName}`,
+			addressOne: dropoffFormattedAddress.street,
+			city: dropoffFormattedAddress.city,
+			postcode: dropoffFormattedAddress.postcode,
+			dropOffFrom: packageDropoffStartTime,
+			dropOffTo: packageDropoffEndTime,
+			clientTag: refNumber,
+			deliveryNotes: dropoffInstructions
+		}
+	}
+
+	try {
+		const config = {headers: {'Authorization': `Bearer ${process.env.STREET_STREAM_API_KEY}`}};
+		const createJobURL = 'https://stage-api.streetstreamdev.co.uk/api/job/pointtopoint'
+		const data = (await axios.post(createJobURL, payload, config)).data
+		console.log(data)
+		return data
+	} catch (err) {
+		console.error(err)
+		throw err
 	}
 }
 
@@ -438,7 +502,7 @@ const confirmCharge = async (amount, customerId, paymentIntentId) => {
 async function handleActiveSubscription(subscription) {
 	try {
 		console.log(subscription)
-		const { id, customer, status} = subscription;
+		const {id, customer, status} = subscription;
 		if (status === "active") {
 			const user = await db.User.findOneAndUpdate({"stripeCustomerId": customer}, {"subscriptionId": id}, {new: true})
 			console.log("------------------------------------")
@@ -454,10 +518,10 @@ async function handleActiveSubscription(subscription) {
 	}
 }
 
-async function handleCanceledSubscription(subscription){
+async function handleCanceledSubscription(subscription) {
 	try {
 		console.log(subscription)
-		const { customer, status} = subscription;
+		const {customer, status} = subscription;
 		if (status === "canceled") {
 			const user = await db.User.findOneAndUpdate({"stripeCustomerId": customer}, {"subscriptionId": ""}, {new: true})
 			console.log("------------------------------------")
