@@ -27,11 +27,6 @@ const validateApiKey = async (req, res, next) => {
 			console.log("API Key is valid!")
 			isValid = true
 		}
-		// GOPHR
-		if (req.body['api_key'] === AUTH_KEYS.GOPHR) {
-			console.log("API Key is valid!")
-			isValid = true
-		}
 		// check if incoming request is from a client
 		const client = await db.User.findOne({ "apiKey": apiKey }, {})
 		if (client) {
