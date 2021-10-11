@@ -308,8 +308,10 @@ async function gophrJobRequest(refNumber, params) {
 		'delivery_postcode': dropoffFormattedAddress.postcode,
 		'delivery_country_code': dropoffFormattedAddress.countryCode,
 		'delivery_tips_how_to_find': dropoffInstructions,
-		'order_value': packageValue
+		'order_value': packageValue,
+		'callback_url': process.env.GOPHR_CALLBACK_URL
 	});
+
 	try {
 		const config = {headers: {'Content-Type': 'application/x-www-form-urlencoded'}};
 		const createJobURL = 'https://api-sandbox.gophr.com/v1/commercial-api/create-confirm-job'
