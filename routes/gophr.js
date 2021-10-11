@@ -31,7 +31,7 @@ function translateGophrStatus(value) {
 async function update(data){
 	try {
 		console.log(data)
-		const {status: STATUS, external_id: REFERENCE, pickup_eta, delivery_eta }  = data
+		const {status: STATUS, external_id: REFERENCE, pickup_eta, delivery_eta, courier_name } = data
 		console.log({STATUS, REFERENCE})
 		// update the status for the current job
 		await db.Job.findOneAndUpdate(
@@ -44,7 +44,8 @@ async function update(data){
 			{
 				'$set': {
 					"jobSpecification.packages.$[].pickupStartTime": moment(pickup_eta).toISOString(),
-					"jobSpecification.packages.$[].dropoffStartTime": moment(delivery_eta).toISOString()
+					"jobSpecification.packages.$[].dropoffStartTime": moment(delivery_eta).toISOString(),
+					"driverInformation.name": courier_name
 				},
 			}, {
 				new: true,

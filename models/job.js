@@ -24,6 +24,20 @@ const jobSchema = new mongoose.Schema({
 		providerId: "",
 		quotes: []
 	},
+	driverInformation: {
+		name: {
+			type: String,
+			default: "Searching"
+		},
+		phone: {
+			type: String,
+			default: "Searching"
+		},
+		transport: {
+			type: String,
+			default: "Searching"
+		}
+	},
 	createdAt: {
 		type: Date,
 		required: true
