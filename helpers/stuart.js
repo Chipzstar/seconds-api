@@ -57,6 +57,17 @@ async function update(data, type) {
 			{"status": translateStuartStatus(STATUS)},
 			{new: true}
 		)
+		if (type === "delivery"){
+			const { firstname, lastname, phone, transportType: {code} } = data.driver;
+			await db.Job.findOneAndUpdate(
+				{"selectedConfiguration.jobReference": REFERENCE},
+				{
+					"driverInformation.name": `${firstname} ${lastname}`,
+					"driverInformation.phone": phone,
+					"driverInformation.transport": code
+				}
+			)
+		}
 		let {_doc: { _id, ...job} } = await db.Job.findOneAndUpdate(
 			{"selectedConfiguration.jobReference": REFERENCE},
 			{
