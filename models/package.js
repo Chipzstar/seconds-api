@@ -45,6 +45,7 @@ const packageSchema = new mongoose.Schema({
 	},
 	value: {
 		type: mongoose.Schema.Types.Decimal128,
+		default: null
 	}
 })
 

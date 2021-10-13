@@ -276,7 +276,6 @@ async function streetStreamJobRequest(refNumber, params) {
 		packageDropoffEndTime,
 		packagePickupStartTime,
 		packagePickupEndTime,
-		packageValue
 	} = params;
 
 	const payload = {
@@ -339,8 +338,7 @@ async function gophrJobRequest(refNumber, params) {
 		packageDropoffStartTime,
 		packageDropoffEndTime,
 		packagePickupStartTime,
-		packagePickupEndTime,
-		packageValue
+		packagePickupEndTime
 	} = params;
 
 	const payload = qs.stringify({
@@ -373,7 +371,6 @@ async function gophrJobRequest(refNumber, params) {
 		'delivery_postcode': dropoffFormattedAddress.postcode,
 		'delivery_country_code': dropoffFormattedAddress.countryCode,
 		'delivery_tips_how_to_find': dropoffInstructions,
-		'order_value': packageValue,
 		'callback_url': process.env.GOPHR_CALLBACK_URL
 	});
 
