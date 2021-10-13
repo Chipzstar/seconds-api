@@ -84,8 +84,7 @@ router.post("/create", async (req, res) => {
 			packagePickupEndTime,
 			packageDescription,
 			packageValue,
-			packageTax,
-			itemsCount,
+			itemsCount
 		} = req.body;
 		//fetch api key
 		//generate client reference number
@@ -163,9 +162,7 @@ router.post("/create", async (req, res) => {
 							lastName: pickupLastName,
 							businessName: pickupBusinessName,
 							instructions: pickupInstructions
-						},
-						tax: packageTax,
-						value: packageValue
+						}
 					}]
 				},
 				selectedConfiguration: {
