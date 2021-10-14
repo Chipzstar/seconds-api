@@ -1,3 +1,4 @@
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const axios = require("axios");
 const {pickupSchema, dropoffSchema} = require("../schemas/stuart/CreateJob");
 const qs = require("qs");
@@ -6,9 +7,7 @@ const crypto = require("crypto");
 const moment = require("moment-timezone");
 const {nanoid} = require("nanoid");
 const {quoteSchema} = require("../schemas/quote");
-const {SELECTION_STRATEGIES, ERROR_CODES, PROVIDERS} = require("../constants");
-const {v4: uuidv4} = require("uuid");
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const {SELECTION_STRATEGIES, STUART_ERROR_CODES, PROVIDERS, GOPHR_ERROR_CODES} = require("../constants");
 
 function genAssignmentCode() {
 	const rand = crypto.randomBytes(7);
@@ -156,7 +155,25 @@ async function getGophrQuote(refNumber, params) {
 			return quote
 		} else {
 			console.log(response.error)
-			throw response.error
+			if (response.error.code === GOPHR_ERROR_CODES.ERROR_MAX_DISTANCE_EXCEEDED) {
+				throw {...response.error, code: 400}
+			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_SAME_LAT_LNG) {
+				throw {...response.error, code: 400}
+			} else if (response.error.code === GOPHR_ERROR_CODES.INVALID_GRANT) {
+				throw {...response.error, code: 400}
+			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_DISTANCE) {
+				throw {...response.error, code: 400}
+			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_PHONE_NUMBER) {
+				throw {...response.error, code: 400}
+			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_DATETIME_INCORRECT) {
+				throw {...response.error, code: 400}
+			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_PICKUP_ADDRESS_MISSING) {
+				throw {...response.error, code: 400}
+			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_DELIVERY_ADDRESS_MISSING) {
+				throw {...response.error, code: 400}
+			} else {
+				throw {...response.error, code: 400}
+			}
 		}
 	} catch (err) {
 		console.error(err)
@@ -246,9 +263,19 @@ async function getStuartQuote(reference, params) {
 		return quote
 	} catch (err) {
 		console.error(err)
-		if (err.response.status === ERROR_CODES.UNPROCESSABLE_ENTITY) {
-			throw {code: err.response.status, ...err.response.data}
-		} else if (err.response.status === ERROR_CODES.INVALID_GRANT) {
+		if (err.response.status === STUART_ERROR_CODES.UNPROCESSABLE_ENTITY) {
+			if (err.response.data.error === STUART_ERROR_CODES.RECORD_INVALID){
+				if (err.response.data.data === "deliveries") {
+					throw { code: err.response.status, message: err.response.data.data["deliveries"][1] }
+				} else if (err.response.data.data === "job.pickup_at") {
+					throw { code: err.response.status, message: err.response.data.data["job.pickup_at"][0] }
+				} else if (err.response.data.data === "pickup_at") {
+					throw { code: err.response.status, message: err.response.data.data["pickup_at"][0] }
+				}
+			} else {
+				throw {code: err.response.status, ...err.response.data}
+			}
+		} else if (err.response.status === STUART_ERROR_CODES.INVALID_GRANT) {
 			throw {code: err.response.status, ...err.response.data}
 		} else {
 			throw err
@@ -279,7 +306,7 @@ async function streetStreamJobRequest(refNumber, params) {
 	} = params;
 
 	const payload = {
-		offerAcceptanceStrategy: "AUTO_CLOSEST COURIER_TO_ME",
+		offerAcceptanceStrategy: "AUTO_CLOSEST_COURIER_TO_ME",
 		packageTypeId: "PT1003",
 		jobLabel: "test job",
 		insuranceCover: "PERSONAL",

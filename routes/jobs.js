@@ -1,6 +1,5 @@
 require("dotenv").config();
 const express = require("express");
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const db = require("../models");
 const {
 	genJobReference,
@@ -8,10 +7,9 @@ const {
 	getResultantQuotes,
 	chooseBestProvider,
 	providerCreatesJob,
-	genOrderNumber, confirmCharge
+	genOrderNumber
 } = require("../helpers");
 const {AUTHORIZATION_KEY, PROVIDER_ID, STATUS, alphabet} = require("../constants");
-const {v4: uuidv4} = require("uuid");
 const moment = require("moment");
 const {customAlphabet} = require("nanoid");
 const mongoose = require("mongoose");
@@ -83,7 +81,6 @@ router.post("/create", async (req, res) => {
 			packagePickupStartTime,
 			packagePickupEndTime,
 			packageDescription,
-			packageValue,
 			itemsCount
 		} = req.body;
 		//fetch api key
@@ -95,7 +92,7 @@ router.post("/create", async (req, res) => {
 		console.log("Provider selected manually: ", Boolean(selectedProvider))
 		console.log("SELECTED PROVIDER:", selectedProvider)
 		console.log("---------------------------------------------")
-		const {_id: clientId, selectionStrategy, stripeCustomerId, subscriptionId } = await getClientDetails(apiKey);
+		const {_id: clientId, selectionStrategy, subscriptionId } = await getClientDetails(apiKey);
 		const QUOTES = await getResultantQuotes(req.body);
 		// Use selection strategy to select the winner quote
 		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
@@ -238,7 +235,7 @@ router.get("/:job_id", async (req, res) => {
 })
 
 router.post("/:job_id", async (req, res) => {
-	const {stripeCustomerId, status} = req.body;
+	const {status} = req.body;
 	const {job_id} = req.params;
 	try {
 		console.log(req.body)
@@ -249,17 +246,7 @@ router.post("/:job_id", async (req, res) => {
 				message: "Missing Payload!"
 			})
 		}
-		let {_doc: updatedJob} = await db.Job.findByIdAndUpdate(job_id, {"status": status}, {new: true})
-		/**
-		 * ONLY FOR TESTING - REMOVE WHEN DONE
-		 */
-		if (status === STATUS.COMPLETED) {
-			await confirmCharge(
-				Number(updatedJob.jobSpecification.packages[0].value),
-				stripeCustomerId,
-				updatedJob.paymentIntentId
-			)
-		}
+		await db.Job.findByIdAndUpdate(job_id, {"status": status}, {new: true})
 		let jobs = await db.Job.find({}, {}, {new: true})
 		return res.status(200).json({
 			updatedJobs: jobs,
