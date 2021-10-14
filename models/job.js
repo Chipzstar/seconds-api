@@ -7,7 +7,11 @@ const jobSchema = new mongoose.Schema({
 		required: true
 	},
 	jobSpecification: {
-		id: String,
+		id: {
+			type: String,
+			required: true,
+		},
+		deliveryType: String,
 		orderNumber: {
 			type: String,
 			unique: true,

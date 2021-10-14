@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const packageSchema = new mongoose.Schema({
 	description: {
-		type: "string",
+		type: String,
 	},
 	dropoffLocation: {
 		fullAddress: "",
@@ -46,6 +46,9 @@ const packageSchema = new mongoose.Schema({
 	value: {
 		type: mongoose.Schema.Types.Decimal128,
 		default: null
+	},
+	transport: {
+		type: String,
 	}
 })
 

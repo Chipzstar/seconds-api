@@ -9,7 +9,7 @@ const {
 	providerCreatesJob,
 	genOrderNumber
 } = require("../helpers");
-const {AUTHORIZATION_KEY, PROVIDER_ID, STATUS, alphabet} = require("../constants");
+const {AUTHORIZATION_KEY, PROVIDER_ID, STATUS, alphabet, VEHICLE_CODES} = require("../constants");
 const moment = require("moment");
 const {customAlphabet} = require("nanoid");
 const mongoose = require("mongoose");
@@ -76,12 +76,14 @@ router.post("/create", async (req, res) => {
 			dropoffFirstName,
 			dropoffLastName,
 			dropoffInstructions,
+			packageDeliveryType,
 			packageDropoffStartTime,
 			packageDropoffEndTime,
 			packagePickupStartTime,
 			packagePickupEndTime,
 			packageDescription,
-			itemsCount
+			itemsCount,
+			vehicleType
 		} = req.body;
 		//fetch api key
 		//generate client reference number
@@ -118,7 +120,7 @@ router.post("/create", async (req, res) => {
 				trackingURL,
 				pickupAt,
 				dropoffAt
-			} = await providerCreatesJob(providerId.toLowerCase(), clientRefNumber, req.body)
+			} = await providerCreatesJob(providerId.toLowerCase(), clientRefNumber, selectionStrategy, req.body)
 
 			const jobs = await db.Job.find({})
 
@@ -127,6 +129,7 @@ router.post("/create", async (req, res) => {
 				jobSpecification: {
 					id: spec_id,
 					orderNumber: genOrderNumber(jobs.length),
+					deliveryType: packageDeliveryType,
 					packages: [{
 						description: packageDescription,
 						dropoffLocation: {
@@ -159,7 +162,8 @@ router.post("/create", async (req, res) => {
 							lastName: pickupLastName,
 							businessName: pickupBusinessName,
 							instructions: pickupInstructions
-						}
+						},
+						transport: VEHICLE_CODES[vehicleType].name
 					}]
 				},
 				selectedConfiguration: {

@@ -4,9 +4,9 @@ const router = express.Router();
 
 router.post("/", async (req, res) => {
 	try {
-		const baseURL = "https://stage-api.streetstreamdev.co.uk";
+		console.log(req.body)
 	    res.status(200).send({
-		    baseURL
+		    ...req.body
 	    })
 	} catch (err) {
 	    console.error(err)

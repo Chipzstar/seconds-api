@@ -1,3 +1,9 @@
+exports.ERROR_CODES = {
+	UNPROCESSABLE_ENTITY: 422,
+	INVALID_GRANT: 401,
+	RECORD_INVALID: "RECORD_INVALID"
+}
+
 exports.JOB_STATUS = {
 	NEW: "new",
 	PENDING: "searching",

@@ -19,29 +19,51 @@ exports.SELECTION_STRATEGIES = {
 
 exports.PROVIDERS = {
 	STUART: "stuart",
-	GOPHR: "gophr"
-}
-
-exports.STUART_ERROR_CODES = {
-	UNPROCESSABLE_ENTITY: 422,
-	INVALID_GRANT: 401,
-		RECORD_INVALID: "RECORD_INVALID"
-}
-
-exports.GOPHR_ERROR_CODES = {
-	ERROR_MAX_DISTANCE_EXCEEDED: "ERROR_MAX_DISTANCE_EXCEEDED",
-	ERROR_SAME_LAT_LNG: "ERROR_SAME_LAT_LNG",
-	ERROR_DISTANCE: "ERROR_DISTANCE",
-	ERROR_WORKING_HOURS: "ERROR_WORKING_HOURS",
-	ERROR_DATETIME_INCORRECT: "ERROR_DATETIME_INCORRECT",
-	ERROR_PHONE_NUMBER: "ERROR_PHONE_NUMBER",
-	ERROR_PICKUP_ADDRESS_MISSING: "ERROR_PICKUP_ADDRESS_MISSING",
-	ERROR_DELIVERY_ADDRESS_MISSING: "ERROR_DELIVERY_ADDRESS_MISSING"
+	GOPHR: "gophr",
+	STREET_STREAM: "street_stream"
 }
 
 exports.AUTH_KEYS = {
 	STUART: "d59328cec7b021d59f15208616d14c8d4653477c3db9d7eaa08629fa0bc3e395",
 	GOPHR: "sand-1c8d46f1-0ddf-11ec-9428-42010a840077"
+}
+
+exports.VEHICLE_CODES = {
+	BIC: {
+		name: "Bicycle",
+		x: 40,
+		y: 20,
+		z: 15,
+		weight: 8
+	},
+	MTB: {
+		name: "Motorbike",
+		x: 40,
+		y: 30,
+		z: 30,
+		weight: 12
+	},
+	CAR: {
+		name: "Car",
+		x: 60,
+		y: 40,
+		z: 40,
+		weight: 25
+	},
+	CGB: {
+		name: "CargoBike",
+		x: 60,
+		y: 50,
+		z: 50,
+		weight: 65
+	},
+	VAN: {
+		name: "Van",
+		x: 150,
+		y: 120,
+		z: 90,
+		weight: 70
+	}
 }
 
 const numbers = '1234567890'
