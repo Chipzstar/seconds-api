@@ -21,9 +21,16 @@ router.post("/", async (req, res) => {
 			bestQuote
 		})
 	} catch (err) {
+		console.error("ERROR:", err)
+		if (err.message) {
+			return res.status(err.code).json({
+				error: err
+			})
+		}
 		return res.status(500).json({
-			...err
-		})
+			code: 500,
+			message: "Unknown error occurred!"
+		});
 	}
 })
 
