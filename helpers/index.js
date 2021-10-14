@@ -460,8 +460,10 @@ async function gophrJobRequest(refNumber, params) {
 		packageDropoffEndTime,
 		packagePickupStartTime,
 		packagePickupEndTime,
+		vehicleType
 	} = params;
 
+	const { x: size_x, y: size_y, z: size_z, weight } = VEHICLE_CODES[vehicleType];
 	const payload = qs.stringify({
 		api_key: `${process.env.GOPHR_API_KEY}`,
 		external_id: `${refNumber}`,
@@ -478,10 +480,10 @@ async function gophrJobRequest(refNumber, params) {
 		pickup_postcode: pickupFormattedAddress.postcode,
 		pickup_country_code: pickupFormattedAddress.countryCode,
 		pickup_tips_how_to_find: pickupInstructions,
-		size_x: 10,
-		size_y: 10,
-		size_z: 30,
-		weight: 12,
+		size_x,
+		size_y,
+		size_z,
+		weight,
 		job_priority: 3,
 		earliest_pickup_time: packagePickupStartTime,
 		pickup_deadline: packagePickupEndTime,
