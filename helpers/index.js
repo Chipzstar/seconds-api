@@ -11,6 +11,7 @@ const { SELECTION_STRATEGIES, PROVIDERS, VEHICLE_CODES } = require('../constants
 const { STRATEGIES } = require('../constants/streetStream');
 const { ERROR_CODES: STUART_ERROR_CODES } = require('../constants/stuart');
 const { ERROR_CODES: GOPHR_ERROR_CODES } = require('../constants/gophr');
+moment.tz.setDefault();
 
 function genAssignmentCode() {
 	const rand = crypto.randomBytes(7);
@@ -45,12 +46,18 @@ function chooseBestProvider(strategy, quotes) {
 	let bestEtaIndex;
 	let bestPrice = Infinity;
 	let bestEta = Infinity;
-	quotes.forEach(({ price, dropoffEta, providerId }, index) => {
-		if (price < bestPrice) {
-			bestPrice = price;
+	quotes.forEach(({ priceExVAT, dropoffEta, providerId }, index) => {
+		console.log('------------------------');
+		console.log(providerId);
+		console.log('------------------------');
+		if (priceExVAT < bestPrice) {
+			bestPrice = priceExVAT;
 			bestPriceIndex = index;
 		}
+		console.log(moment());
+		console.log(moment(dropoffEta));
 		let duration = moment.duration(moment(dropoffEta).diff(moment())).asSeconds();
+		console.log('DURATION:', duration);
 		if (duration < bestEta) {
 			bestEta = duration;
 			bestEtaIndex = index;
@@ -69,23 +76,13 @@ function genOrderNumber(number) {
 	return number.toString().padStart(4, '0');
 }
 
-function choosePackageType(vehicleCode) {
+function getPackageType(vehicleCode) {
 	if (vehicleCode in VEHICLE_CODES) {
-		console.log(vehicleCode);
-		switch (vehicleCode){
-			case "BIC":
-				return 'PT1006'
-			case "MTB":
-				return 'PT1008'
-			case "CAR":
-				return 'PT1009'
-			case "VAN":
-				return 'PT1010'
-			case "CGB":
-				return 'PT1012'
-		}
+		return VEHICLE_CODES[vehicleCode].packageType;
 	} else {
-		throw new Error(`Vehicle code ${vehicleCode} is not recognized. Please visit our list of allowed vehicle codes`);
+		throw new Error(
+			`Vehicle code ${vehicleCode} is not recognized. Please visit our list of allowed vehicle codes`
+		);
 	}
 }
 
@@ -116,86 +113,18 @@ async function getClientDetails(apiKey) {
 	}
 }
 
-async function getResultantQuotes(requestBody, referenceNumber) {
+async function getResultantQuotes(requestBody) {
 	try {
 		const QUOTES = [];
 		// QUOTE AGGREGATION
 		// send delivery request to integrated providers
-		let stuartQuote = await getStuartQuote(referenceNumber, requestBody);
+		let stuartQuote = await getStuartQuote(genJobReference(), requestBody);
 		QUOTES.push(stuartQuote);
-		let gophrQuote = await getGophrQuote(referenceNumber, requestBody);
+		let gophrQuote = await getGophrQuote(requestBody);
 		QUOTES.push(gophrQuote);
+		let streetStreamQuote = await getStreetStreamQuote(requestBody);
+		QUOTES.push(streetStreamQuote);
 		return QUOTES;
-	} catch (err) {
-		console.error(err);
-		throw err;
-	}
-}
-
-async function getGophrQuote(refNumber, params) {
-	const { pickupFormattedAddress, dropoffFormattedAddress, packagePickupStartTime, packageDropoffStartTime, vehicleType } = params;
-	const { x: size_x, y:size_y, z:size_z, weight } = VEHICLE_CODES[vehicleType]
-	const payload = qs.stringify({
-		api_key: `${process.env.GOPHR_API_KEY}`,
-		pickup_address1: pickupFormattedAddress.street,
-		pickup_postcode: pickupFormattedAddress.postcode,
-		pickup_city: pickupFormattedAddress.city,
-		pickup_country_code: pickupFormattedAddress.countryCode,
-		size_x,
-		size_y,
-		size_z,
-		weight,
-		...(packagePickupStartTime && { earliest_pickup_time: moment(packagePickupStartTime).toISOString() }),
-		...(packageDropoffStartTime && { earliest_delivery_time: moment(packageDropoffStartTime).toISOString() }),
-		delivery_address1: dropoffFormattedAddress['street'],
-		delivery_city: dropoffFormattedAddress.city,
-		delivery_postcode: dropoffFormattedAddress.postcode,
-		delivery_country_code: dropoffFormattedAddress['countryCode'],
-	});
-	try {
-		const config = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
-		const quoteURL = 'https://api-sandbox.gophr.com/v1/commercial-api/get-a-quote';
-		let response = (await axios.post(quoteURL, payload, config)).data;
-		//error checking
-		if (response.success) {
-			let { price_net: price, delivery_eta: dropoffEta } = response.data;
-			const quote = {
-				...quoteSchema,
-				id: `quote_${nanoid(15)}`,
-				price,
-				currency: 'GBP',
-				dropoffEta: moment(dropoffEta).toISOString(),
-				providerId: PROVIDERS.GOPHR,
-				createdAt: moment().toISOString(),
-				expireTime: moment().add(5, 'minutes').toISOString(),
-			};
-			console.log('GOPHR QUOTE');
-			console.log('----------------------------');
-			console.log(quote);
-			console.log('----------------------------');
-			return quote;
-		} else {
-			console.log(response.error);
-			if (response.error.code === GOPHR_ERROR_CODES.ERROR_MAX_DISTANCE_EXCEEDED) {
-				throw { ...response.error, code: 400 };
-			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_SAME_LAT_LNG) {
-				throw { ...response.error, code: 400 };
-			} else if (response.error.code === GOPHR_ERROR_CODES.INVALID_GRANT) {
-				throw { ...response.error, code: 400 };
-			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_DISTANCE) {
-				throw { ...response.error, code: 400 };
-			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_PHONE_NUMBER) {
-				throw { ...response.error, code: 400 };
-			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_DATETIME_INCORRECT) {
-				throw { ...response.error, code: 400 };
-			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_PICKUP_ADDRESS_MISSING) {
-				throw { ...response.error, code: 400 };
-			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_DELIVERY_ADDRESS_MISSING) {
-				throw { ...response.error, code: 400 };
-			} else {
-				throw { ...response.error, code: 400 };
-			}
-		}
 	} catch (err) {
 		console.error(err);
 		throw err;
@@ -225,7 +154,7 @@ async function getStuartQuote(reference, params) {
 
 	const payload = {
 		job: {
-			...(packagePickupStartTime && { pickup_at: packagePickupStartTime }),
+			...(packagePickupStartTime && { pickup_at: moment(packagePickupStartTime).toISOString() }),
 			assignment_code: genAssignmentCode(),
 			pickups: [
 				{
@@ -261,21 +190,27 @@ async function getStuartQuote(reference, params) {
 			],
 		},
 	};
+	console.log('PAYLOAD');
+	console.log('--------------------------');
+	console.log({ ...payload.job });
+	console.log('--------------------------');
 	try {
 		const config = { headers: { Authorization: `Bearer ${process.env.STUART_ACCESS_TOKEN}` } };
 		const priceURL = 'https://api.sandbox.stuart.com/v2/jobs/pricing';
 		const etaURL = 'https://api.sandbox.stuart.com/v2/jobs/eta';
-		let { amount: price, currency } = (await axios.post(priceURL, payload, config)).data;
+		let { amount, currency } = (await axios.post(priceURL, payload, config)).data;
 		let data = (await axios.post(etaURL, payload, config)).data;
 		const quote = {
 			...quoteSchema,
 			id: `quote_${nanoid(15)}`,
-			price,
+			createdAt: moment().utc(true).format(),
+			expireTime: moment().utc(true).add(5, 'minutes').format(),
+			priceExVAT: amount,
 			currency,
-			dropoffEta: moment().add(data.eta, 'seconds').toISOString(),
+			dropoffEta: packagePickupStartTime
+				? moment(packagePickupStartTime).utc(true).add(data.eta, 'seconds').format()
+				: moment().utc(true).add(data.eta, 'seconds').format(),
 			providerId: PROVIDERS.STUART,
-			createdAt: moment().toISOString(),
-			expireTime: moment().add(5, 'minutes').toISOString(),
 		};
 		console.log('STUART QUOTE');
 		console.log('----------------------------');
@@ -304,147 +239,122 @@ async function getStuartQuote(reference, params) {
 	}
 }
 
-async function streetStreamJobRequest(refNumber, strategy, params) {
+async function getGophrQuote(params) {
 	const {
 		pickupFormattedAddress,
-		pickupPhoneNumber,
-		pickupEmailAddress,
-		pickupBusinessName,
-		pickupFirstName,
-		pickupLastName,
-		pickupInstructions,
 		dropoffFormattedAddress,
-		dropoffPhoneNumber,
-		dropoffEmailAddress,
-		dropoffBusinessName,
-		dropoffFirstName,
-		dropoffLastName,
-		dropoffInstructions,
-		packageDeliveryType,
-		packageDropoffStartTime,
-		packageDropoffEndTime,
 		packagePickupStartTime,
-		packagePickupEndTime,
+		packageDropoffStartTime,
 		vehicleType,
 	} = params;
-
-	const payload = {
-		offerAcceptanceStrategy:
-			strategy === SELECTION_STRATEGIES.RATING
-				? STRATEGIES.AUTO_HIGHEST_RATED_COURIER
-				: STRATEGIES.AUTO_CLOSEST_COURIER_TO_ME,
-		packageTypeId: choosePackageType(vehicleType),
-		jobLabel: refNumber,
-		insuranceCover: 'PERSONAL',
-		submitForQuotesImmediately: true,
-		pickUp: {
-			contactNumber: pickupPhoneNumber,
-			contactName: `${pickupFirstName} ${pickupLastName}`,
-			addressOne: pickupFormattedAddress.street,
-			city: pickupFormattedAddress.city,
-			postcode: pickupFormattedAddress.postcode,
-			pickUpNotes: pickupInstructions,
-			pickUpFrom: moment(packagePickupStartTime).toISOString(),
-			pickUpTo: moment(packagePickupEndTime).toISOString(),
-		},
-		dropOff: {
-			contactNumber: dropoffPhoneNumber,
-			contactName: `${dropoffFirstName} ${dropoffLastName}`,
-			addressOne: dropoffFormattedAddress.street,
-			city: dropoffFormattedAddress.city,
-			postcode: dropoffFormattedAddress.postcode,
-			dropOffFrom: moment(packageDropoffStartTime).toISOString(),
-			dropOffTo: moment(packageDropoffEndTime).toISOString(),
-			clientTag: refNumber,
-			deliveryNotes: dropoffInstructions,
-		},
-	};
+	const { x: size_x, y: size_y, z: size_z, weight } = VEHICLE_CODES[vehicleType];
+	const payload = qs.stringify({
+		api_key: `${process.env.GOPHR_API_KEY}`,
+		pickup_address1: pickupFormattedAddress.street,
+		pickup_postcode: pickupFormattedAddress.postcode,
+		pickup_city: pickupFormattedAddress.city,
+		pickup_country_code: pickupFormattedAddress.countryCode,
+		size_x,
+		size_y,
+		size_z,
+		weight,
+		...(packagePickupStartTime && { earliest_pickup_time: moment(packagePickupStartTime).toISOString() }),
+		...(packageDropoffStartTime && { earliest_delivery_time: moment(packageDropoffStartTime).toISOString() }),
+		delivery_address1: dropoffFormattedAddress['street'],
+		delivery_city: dropoffFormattedAddress.city,
+		delivery_postcode: dropoffFormattedAddress.postcode,
+		delivery_country_code: dropoffFormattedAddress['countryCode'],
+	});
 	try {
-		const config = { headers: { Authorization: `Bearer ${process.env.STREET_STREAM_API_KEY}` } };
-		const createJobURL = 'https://stage-api.streetstreamdev.co.uk/api/job/pointtopoint';
-		const data = (await axios.post(createJobURL, payload, config)).data;
-		console.log(data);
-		return {
-			id: data.id,
-			trackingURL: null,
-			pickupAt: moment(packagePickupEndTime).toISOString(),
-			dropoffAt: moment().add(data["estimatedRouteTimeSeconds"], "seconds").toISOString(),
-		};
+		const config = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
+		const quoteURL = 'https://api-sandbox.gophr.com/v1/commercial-api/get-a-quote';
+		let response = (await axios.post(quoteURL, payload, config)).data;
+		//error checking
+		if (response.success) {
+			console.log('RESPONSE');
+			console.log('****************************');
+			console.log(response.data);
+			console.log('****************************');
+			let { price_net, delivery_eta } = response.data;
+			const quote = {
+				...quoteSchema,
+				id: `quote_${nanoid(15)}`,
+				createdAt: moment().utc(true).format(),
+				expireTime: moment().utc(true).add(5, 'minutes').format(),
+				priceExVAT: price_net,
+				currency: 'GBP',
+				dropoffEta: moment(delivery_eta).utc(true).format(),
+				providerId: PROVIDERS.GOPHR,
+			};
+			console.log('GOPHR QUOTE');
+			console.log('----------------------------');
+			console.log(quote);
+			console.log('----------------------------');
+			return quote;
+		} else {
+			console.log(response.error);
+			if (response.error.code === GOPHR_ERROR_CODES.ERROR_MAX_DISTANCE_EXCEEDED) {
+				throw { ...response.error, code: 400 };
+			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_SAME_LAT_LNG) {
+				throw { ...response.error, code: 400 };
+			} else if (response.error.code === GOPHR_ERROR_CODES.INVALID_GRANT) {
+				throw { ...response.error, code: 400 };
+			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_DISTANCE) {
+				throw { ...response.error, code: 400 };
+			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_PHONE_NUMBER) {
+				throw { ...response.error, code: 400 };
+			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_DATETIME_INCORRECT) {
+				throw { ...response.error, code: 400 };
+			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_PICKUP_ADDRESS_MISSING) {
+				throw { ...response.error, code: 400 };
+			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_DELIVERY_ADDRESS_MISSING) {
+				throw { ...response.error, code: 400 };
+			} else {
+				throw { ...response.error, code: 400 };
+			}
+		}
 	} catch (err) {
 		console.error(err);
 		throw err;
 	}
 }
 
-async function gophrJobRequest(refNumber, params) {
-	const {
-		pickupFormattedAddress,
-		pickupPhoneNumber,
-		pickupEmailAddress,
-		pickupBusinessName,
-		pickupFirstName,
-		pickupLastName,
-		pickupInstructions,
-		dropoffFormattedAddress,
-		dropoffPhoneNumber,
-		dropoffEmailAddress,
-		dropoffBusinessName,
-		dropoffFirstName,
-		dropoffLastName,
-		dropoffInstructions,
-		packageDropoffStartTime,
-		packageDropoffEndTime,
-		packagePickupStartTime,
-		packagePickupEndTime,
-	} = params;
-
-	const payload = qs.stringify({
-		api_key: `${process.env.GOPHR_API_KEY}`,
-		external_id: `${refNumber}`,
-		pickup_person_name: `${pickupFirstName} + ' ' + ${pickupLastName}`,
-		pickup_mobile_number: `${pickupPhoneNumber}`,
-		pickup_company_name: `${pickupBusinessName}`,
-		pickup_email: pickupEmailAddress,
-		delivery_person_name: `${dropoffFirstName} + ' ' + ${dropoffLastName}`,
-		delivery_mobile_number: `${dropoffPhoneNumber}`,
-		delivery_company_name: `${dropoffBusinessName}`,
-		delivery_email: dropoffEmailAddress,
-		pickup_address1: pickupFormattedAddress.street,
-		pickup_city: pickupFormattedAddress.city,
-		pickup_postcode: pickupFormattedAddress.postcode,
-		pickup_country_code: pickupFormattedAddress.countryCode,
-		pickup_tips_how_to_find: pickupInstructions,
-		size_x: 10,
-		size_y: 10,
-		size_z: 30,
-		weight: 12,
-		job_priority: 3,
-		earliest_pickup_time: packagePickupStartTime,
-		pickup_deadline: packagePickupEndTime,
-		earliest_delivery_time: packageDropoffStartTime,
-		dropoff_deadline: packageDropoffEndTime,
-		delivery_address1: dropoffFormattedAddress.street,
-		delivery_city: dropoffFormattedAddress.city,
-		delivery_postcode: dropoffFormattedAddress.postcode,
-		delivery_country_code: dropoffFormattedAddress.countryCode,
-		delivery_tips_how_to_find: dropoffInstructions,
-		callback_url: process.env.GOPHR_CALLBACK_URL,
-	});
-
+async function getStreetStreamQuote(params) {
+	const { packagePickupStartTime, pickupFormattedAddress, dropoffFormattedAddress, vehicleType } = params;
+	const packageType = getPackageType(vehicleType);
 	try {
-		const config = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
-		const createJobURL = 'https://api-sandbox.gophr.com/v1/commercial-api/create-confirm-job';
-		const { data } = (await axios.post(createJobURL, payload, config)).data;
-		console.log(data);
-		const { job_id, public_tracker_url, pickup_eta, delivery_eta } = data;
-		return {
-			id: job_id,
-			trackingURL: public_tracker_url,
-			pickupAt: pickup_eta,
-			dropoffAt: delivery_eta,
+		const config = {
+			headers: { Authorization: `Bearer ${process.env.STREET_STREAM_API_KEY}` },
+			params: {
+				startPostcode: pickupFormattedAddress.postcode,
+				endPostcode: dropoffFormattedAddress.postcode,
+				packageTypeId: packageType,
+			},
 		};
+		const quoteURL = 'https://stage-api.streetstreamdev.co.uk/api/estimate';
+		let data = (await axios.get(quoteURL, config)).data;
+		console.log('RESPONSE');
+		console.log('****************************');
+		console.log(data);
+		console.log('****************************');
+		const quote = {
+			...quoteSchema,
+			id: `quote_${nanoid(15)}`,
+			createdAt: moment().utc(true).format(),
+			expireTime: moment().utc(true).add(5, 'minutes').format(),
+			priceExVAT: data['estimatedCostVatExclusive'],
+			currency: 'GBP',
+			dropoffEta: packagePickupStartTime
+				? moment(packagePickupStartTime).utc(true).add(data['estimatedTravelTimeInSeconds'], 'seconds').format()
+				: moment().utc(true).add(data['estimatedTravelTimeInSeconds'], 'seconds').format(),
+			providerId: PROVIDERS.STREET_STREAM,
+		};
+		console.log('STREET STREAM QUOTE');
+		console.log('----------------------------');
+		console.log(quote);
+		console.log('----------------------------');
+		return quote;
 	} catch (err) {
-		console.error(err);
 		throw err;
 	}
 }
@@ -520,12 +430,160 @@ async function stuartJobRequest(refNumber, params) {
 		console.log(data);
 		return {
 			id: String(data.id),
+			deliveryFee: data.pricing['price_tax_included'],
 			trackingURL: data.deliveries[0].tracking_url,
 			pickupAt: data['pickup_at'],
 			dropoffAt: data['dropoff_at'],
 		};
 	} catch (err) {
-		console.error(err);
+		throw err;
+	}
+}
+
+async function gophrJobRequest(refNumber, params) {
+	const {
+		pickupFormattedAddress,
+		pickupPhoneNumber,
+		pickupEmailAddress,
+		pickupBusinessName,
+		pickupFirstName,
+		pickupLastName,
+		pickupInstructions,
+		dropoffFormattedAddress,
+		dropoffPhoneNumber,
+		dropoffEmailAddress,
+		dropoffBusinessName,
+		dropoffFirstName,
+		dropoffLastName,
+		dropoffInstructions,
+		packageDropoffStartTime,
+		packageDropoffEndTime,
+		packagePickupStartTime,
+		packagePickupEndTime,
+	} = params;
+
+	const payload = qs.stringify({
+		api_key: `${process.env.GOPHR_API_KEY}`,
+		external_id: `${refNumber}`,
+		pickup_person_name: `${pickupFirstName} + ' ' + ${pickupLastName}`,
+		pickup_mobile_number: `${pickupPhoneNumber}`,
+		pickup_company_name: `${pickupBusinessName}`,
+		pickup_email: pickupEmailAddress,
+		delivery_person_name: `${dropoffFirstName} + ' ' + ${dropoffLastName}`,
+		delivery_mobile_number: `${dropoffPhoneNumber}`,
+		delivery_company_name: `${dropoffBusinessName}`,
+		delivery_email: dropoffEmailAddress,
+		pickup_address1: pickupFormattedAddress.street,
+		pickup_city: pickupFormattedAddress.city,
+		pickup_postcode: pickupFormattedAddress.postcode,
+		pickup_country_code: pickupFormattedAddress.countryCode,
+		pickup_tips_how_to_find: pickupInstructions,
+		size_x: 10,
+		size_y: 10,
+		size_z: 30,
+		weight: 12,
+		job_priority: 3,
+		earliest_pickup_time: packagePickupStartTime,
+		pickup_deadline: packagePickupEndTime,
+		earliest_delivery_time: packageDropoffStartTime,
+		dropoff_deadline: packageDropoffEndTime,
+		delivery_address1: dropoffFormattedAddress.street,
+		delivery_city: dropoffFormattedAddress.city,
+		delivery_postcode: dropoffFormattedAddress.postcode,
+		delivery_country_code: dropoffFormattedAddress.countryCode,
+		delivery_tips_how_to_find: dropoffInstructions,
+		callback_url: process.env.GOPHR_CALLBACK_URL,
+	});
+
+	try {
+		const config = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
+		const createJobURL = 'https://api-sandbox.gophr.com/v1/commercial-api/create-confirm-job';
+		const { data } = (await axios.post(createJobURL, payload, config)).data;
+		console.log(data);
+		const { job_id, public_tracker_url, pickup_eta, delivery_eta, price_gross } = data;
+		return {
+			id: job_id,
+			trackingURL: public_tracker_url,
+			deliveryFee: price_gross,
+			pickupAt: pickup_eta,
+			dropoffAt: delivery_eta,
+		};
+	} catch (err) {
+		throw err;
+	}
+}
+
+async function streetStreamJobRequest(refNumber, strategy, params) {
+	const {
+		pickupFormattedAddress,
+		pickupPhoneNumber,
+		pickupFirstName,
+		pickupLastName,
+		pickupInstructions,
+		dropoffFormattedAddress,
+		dropoffPhoneNumber,
+		dropoffFirstName,
+		dropoffLastName,
+		dropoffInstructions,
+		packageDropoffStartTime,
+		packageDropoffEndTime,
+		packagePickupStartTime,
+		packagePickupEndTime,
+		vehicleType,
+	} = params;
+
+	const payload = {
+		offerAcceptanceStrategy:
+			strategy === SELECTION_STRATEGIES.RATING
+				? STRATEGIES.AUTO_HIGHEST_RATED_COURIER
+				: STRATEGIES.AUTO_CLOSEST_COURIER_TO_ME,
+		packageTypeId: getPackageType(vehicleType),
+		jobLabel: refNumber,
+		insuranceCover: 'PERSONAL',
+		submitForQuotesImmediately: true,
+		pickUp: {
+			contactNumber: pickupPhoneNumber,
+			contactName: `${pickupFirstName} ${pickupLastName}`,
+			addressOne: pickupFormattedAddress.street,
+			city: pickupFormattedAddress.city,
+			postcode: pickupFormattedAddress.postcode,
+			pickUpNotes: pickupInstructions,
+			pickUpFrom: packagePickupStartTime
+				? moment(packagePickupStartTime).utc(true).format()
+				: moment().utc(true).format(),
+			pickUpTo: packagePickupEndTime
+				? moment(packagePickupEndTime).utc(true).format()
+				: moment().utc(true).add(5, 'minutes').format(),
+		},
+		dropOff: {
+			contactNumber: dropoffPhoneNumber,
+			contactName: `${dropoffFirstName} ${dropoffLastName}`,
+			addressOne: dropoffFormattedAddress.street,
+			city: dropoffFormattedAddress.city,
+			postcode: dropoffFormattedAddress.postcode,
+			dropOffFrom: packageDropoffStartTime
+				? moment(packageDropoffStartTime).utc(true).format()
+				: moment().utc(true).format(),
+			dropOffTo: packageDropoffEndTime
+				? moment(packageDropoffEndTime).utc().format()
+				: moment().utc(true).add(5, 'minutes').format(),
+			clientTag: refNumber,
+			deliveryNotes: dropoffInstructions,
+		},
+	};
+	try {
+		const config = { headers: { Authorization: `Bearer ${process.env.STREET_STREAM_API_KEY}` } };
+		const createJobURL = 'https://stage-api.streetstreamdev.co.uk/api/job/pointtopoint';
+		const data = (await axios.post(createJobURL, payload, config)).data;
+		console.log(data);
+		return {
+			id: data.id,
+			trackingURL: null,
+			deliveryFee: data.jobCharge['totalPayableWithVat'],
+			pickupAt: moment(packagePickupEndTime).toISOString(),
+			dropoffAt: moment().add(data['estimatedRouteTimeSeconds'], 'seconds').toISOString(),
+		};
+	} catch (err) {
 		throw err;
 	}
 }
