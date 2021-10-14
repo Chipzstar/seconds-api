@@ -58,7 +58,7 @@ app.use('/api/v1/quotes', validateApiKey, quoteRoutes);
 app.use('/api/v1/stuart', validateApiKey, stuartRoutes);
 app.use('/api/v1/gophr', gophrRoutes);
 app.use('/api/v1/ecofleet', ecoFleetRoutes);
-app.use('/api/v1/streetStream', streetStreamRoutes);
+app.use('/api/v1/street-stream', streetStreamRoutes);
 
 // PAYMENTS ROUTES
 app.use('/api/v1/payments', paymentRoutes);
