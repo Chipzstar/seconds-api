@@ -14,7 +14,7 @@ const moment = require("moment");
 const {customAlphabet} = require("nanoid");
 const mongoose = require("mongoose");
 const router = express.Router();
-
+moment.tz.setDefault("Europe/London");
 const nanoid = customAlphabet(alphabet, 24)
 
 /**
@@ -99,10 +99,9 @@ router.post("/create", async (req, res) => {
 		// Use selection strategy to select the winner quote
 		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
 		// checks if the fleet provider for the delivery was manually selected or not
-		let providerId, deliveryFee, winnerQuote;
+		let providerId, winnerQuote;
 		if (selectedProvider === undefined) {
 			providerId = bestQuote.providerId
-			deliveryFee = bestQuote.price
 			winnerQuote = bestQuote.id
 		} else {
 			providerId = selectedProvider
@@ -110,7 +109,6 @@ router.post("/create", async (req, res) => {
 			console.log("***************************************************")
 			console.log("CHOSEN QUOTE:", chosenQuote)
 			console.log("***************************************************")
-			deliveryFee = chosenQuote ? chosenQuote.price : null
 			winnerQuote = chosenQuote ? chosenQuote.id : null
 		}
 		console.log("SUBSCRIPTION ID", subscriptionId)
@@ -118,6 +116,7 @@ router.post("/create", async (req, res) => {
 			const {
 				id: spec_id,
 				trackingURL,
+				deliveryFee,
 				pickupAt,
 				dropoffAt
 			} = await providerCreatesJob(providerId.toLowerCase(), clientRefNumber, selectionStrategy, req.body)
@@ -125,7 +124,7 @@ router.post("/create", async (req, res) => {
 			const jobs = await db.Job.find({})
 
 			let job = {
-				createdAt: moment().toISOString(),
+				createdAt: moment().utc(true).format(),
 				jobSpecification: {
 					id: spec_id,
 					orderNumber: genOrderNumber(jobs.length),
@@ -168,7 +167,7 @@ router.post("/create", async (req, res) => {
 				},
 				selectedConfiguration: {
 					jobReference: clientRefNumber,
-					createdAt: moment().toISOString(),
+					createdAt: moment().utc(true).format(),
 					deliveryFee,
 					winnerQuote,
 					providerId,

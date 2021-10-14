@@ -1,10 +1,10 @@
 exports.quoteSchema = {
 	id: "",
 	createdAt: "",
-	currency: "",
-	dropoffEta: "",
 	expireTime: "",
+	dropoffEta: "",
 	pickupWindow: "",
-	price: 16.96,
+	priceExVAT: 0.00,
+	currency: "",
 	providerId: ""
 }
