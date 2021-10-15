@@ -11,7 +11,7 @@ const { SELECTION_STRATEGIES, PROVIDERS, VEHICLE_CODES } = require('../constants
 const { STRATEGIES } = require('../constants/streetStream');
 const { ERROR_CODES: STUART_ERROR_CODES } = require('../constants/stuart');
 const { ERROR_CODES: GOPHR_ERROR_CODES } = require('../constants/gophr');
-moment.tz.setDefault();
+moment.tz.setDefault('Europe/London');
 
 function genAssignmentCode() {
 	const rand = crypto.randomBytes(7);
