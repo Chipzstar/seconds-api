@@ -346,7 +346,7 @@ async function getStreetStreamQuote(params) {
 			currency: 'GBP',
 			dropoffEta: packagePickupStartTime
 				? moment(packagePickupStartTime).utc(true).add(data['estimatedTravelTimeInSeconds'], 'seconds').format()
-				: moment().utc(true).add(data['estimatedTravelTimeInSeconds'], 'seconds').format(),
+				: null,
 			providerId: PROVIDERS.STREET_STREAM,
 		};
 		console.log('STREET STREAM QUOTE');
@@ -582,8 +582,8 @@ async function streetStreamJobRequest(refNumber, strategy, params) {
 			id: data.id,
 			trackingURL: null,
 			deliveryFee: data.jobCharge['totalPayableWithVat'],
-			pickupAt: moment(packagePickupEndTime).toISOString(),
-			dropoffAt: moment().add(data['estimatedRouteTimeSeconds'], 'seconds').toISOString(),
+			pickupAt: moment(packagePickupStartTime).toISOString(),
+			dropoffAt: moment(packagePickupStartTime).add(data['estimatedRouteTimeSeconds'], 'seconds').toISOString(),
 		};
 	} catch (err) {
 		throw err;
