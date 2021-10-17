@@ -18,7 +18,7 @@ moment.tz.setDefault("Europe/London");
 const nanoid = customAlphabet(alphabet, 24)
 
 /**
- * List Jobs - The API endpoint for listing all jobs currently in progress
+ * List Jobs - The API endpoint for listing all jobs currently belonging to a user
  * @constructor
  * @param req - request object
  * @param res - response object
@@ -29,14 +29,10 @@ router.post("/", async (req, res, next) => {
 	try {
 		const {email} = req.body;
 		const user = await db.User.findOne({"email": email}, {})
-		const jobs = []
-		for (let jobId of user.jobs) {
-			const job = await db.Job.findById(jobId, {}, {new: true})
-			if (job) {
-				console.log(job["_doc"])
-				jobs.push({...job["_doc"]})
-			}
-		}
+		const clientId = user._id
+		console.log(clientId)
+		const jobs = await db.Job.find({"clientId": clientId})
+		console.log(jobs)
 		return res.status(200).json({
 			jobs,
 			message: "All jobs returned!"
