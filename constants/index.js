@@ -35,7 +35,8 @@ exports.VEHICLE_CODES = {
 		y: 20,
 		z: 15,
 		weight: 8,
-		packageType: 'PT1006'
+		stuartPackageType: 'xsmall',
+		streetPackageType: 'PT1006'
 	},
 	MTB: {
 		name: "Motorbike",
@@ -43,7 +44,8 @@ exports.VEHICLE_CODES = {
 		y: 30,
 		z: 30,
 		weight: 12,
-		packageType: 'PT1008'
+		stuartPackageType: 'small',
+		streetPackageType: 'PT1008'
 	},
 	CAR: {
 		name: "Car",
@@ -51,7 +53,8 @@ exports.VEHICLE_CODES = {
 		y: 40,
 		z: 40,
 		weight: 25,
-		packageType: 'PT1009'
+		stuartPackageType: 'large',
+		streetPackageType: 'PT1009'
 	},
 	CGB: {
 		name: "CargoBike",
@@ -59,7 +62,8 @@ exports.VEHICLE_CODES = {
 		y: 50,
 		z: 50,
 		weight: 65,
-		packageType: 'PT1012'
+		stuartPackageType: 'medium',
+		streetPackageType: 'PT1012'
 	},
 	VAN: {
 		name: "Van",
@@ -67,7 +71,8 @@ exports.VEHICLE_CODES = {
 		y: 120,
 		z: 90,
 		weight: 70,
-		packageType: 'PT1010'
+		stuartPackageType: 'xlarge',
+		streetPackageType: 'PT1010'
 	}
 }
 

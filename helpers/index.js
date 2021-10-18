@@ -76,9 +76,16 @@ function genOrderNumber(number) {
 	return number.toString().padStart(4, '0');
 }
 
-function getPackageType(vehicleCode) {
+function getPackageType(vehicleCode, provider) {
 	if (vehicleCode in VEHICLE_CODES) {
-		return VEHICLE_CODES[vehicleCode].packageType;
+		switch (provider){
+			case PROVIDERS.STUART:
+				return VEHICLE_CODES[vehicleCode].stuartPackageType;
+			case PROVIDERS.STREET_STREAM:
+				return VEHICLE_CODES[vehicleCode].streetPackageType;
+			default:
+				return ""
+		}
 	} else {
 		throw new Error(
 			`Vehicle code ${vehicleCode} is not recognized. Please visit our list of allowed vehicle codes`
@@ -150,6 +157,7 @@ async function getStuartQuote(reference, params) {
 		packageDropoffStartTime,
 		packageDropoffEndTime,
 		packagePickupStartTime,
+		vehicleType
 	} = params;
 
 	const payload = {
@@ -173,7 +181,7 @@ async function getStuartQuote(reference, params) {
 			dropoffs: [
 				{
 					...dropoffSchema,
-					package_type: 'medium',
+					package_type: getPackageType(vehicleType, PROVIDERS.STUART),
 					client_reference: reference,
 					address: dropoffAddress,
 					comment: dropoffInstructions,
@@ -321,7 +329,7 @@ async function getGophrQuote(params) {
 
 async function getStreetStreamQuote(params) {
 	const { packagePickupStartTime, pickupFormattedAddress, dropoffFormattedAddress, vehicleType } = params;
-	const packageType = getPackageType(vehicleType);
+	const packageType = getPackageType(vehicleType, PROVIDERS.STREET_STREAM);
 	try {
 		const config = {
 			headers: { Authorization: `Bearer ${process.env.STREET_STREAM_API_KEY}` },
@@ -379,6 +387,7 @@ async function stuartJobRequest(refNumber, params) {
 		packageDropoffEndTime,
 		packagePickupStartTime,
 		packageDescription,
+		vehicleType,
 	} = params;
 	console.log(pickupAddress);
 	console.log(dropoffAddress);
@@ -403,7 +412,7 @@ async function stuartJobRequest(refNumber, params) {
 			dropoffs: [
 				{
 					...dropoffSchema,
-					package_type: 'small',
+					package_type: getPackageType(vehicleType, PROVIDERS.STUART),
 					package_description: packageDescription,
 					client_reference: refNumber,
 					address: dropoffAddress,
@@ -539,7 +548,7 @@ async function streetStreamJobRequest(refNumber, strategy, params) {
 			strategy === SELECTION_STRATEGIES.RATING
 				? STRATEGIES.AUTO_HIGHEST_RATED_COURIER
 				: STRATEGIES.AUTO_CLOSEST_COURIER_TO_ME,
-		packageTypeId: getPackageType(vehicleType),
+		packageTypeId: getPackageType(vehicleType, PROVIDERS.STREET_STREAM),
 		jobLabel: refNumber,
 		insuranceCover: 'PERSONAL',
 		submitForQuotesImmediately: true,
