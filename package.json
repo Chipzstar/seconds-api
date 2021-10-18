@@ -25,7 +25,6 @@
     "morgan": "^1.10.0",
     "nanoid": "^3.1.25",
     "order-id": "^2.1.1",
-    "prettier": "^2.4.1",
     "stripe": "^8.176.0",
     "uuid": "^8.3.2"
   },
@@ -35,5 +34,8 @@
     "useTabs": true,
     "singleQuote": true,
     "printWidth": 120
+  },
+  "devDependencies": {
+    "prettier": "^2.4.1"
   }
 }

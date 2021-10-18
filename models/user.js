@@ -32,9 +32,15 @@ const userSchema = new mongoose.Schema({
 		type: String,
 		required: true
 	},
-	profileImageURL: {
-		type: String,
-		default: ""
+	profileImage: {
+		filename: {
+			type: String,
+			default: ""
+		},
+		location: {
+			type: String,
+			default: ""
+		}
 	},
 	shopify: {
 		orders: [],
