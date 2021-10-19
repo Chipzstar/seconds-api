@@ -13,7 +13,9 @@ info:
     Documentation of access **APIs** to **Seconds Technologies** services
 servers:
   - url: 'https://seconds-api-dev.herokuapp.com'
-    description: Production server
+    description: Staging environment
+  - url: 'https://app.useseconds.com'
+    description: Production environment
 components:
   securitySchemes:
     ApiKeyAuth:
@@ -117,6 +119,7 @@ components:
             jobSpecification:
               id: 100172991
               orderNumber: 30
+              deliveryType: 'on-demand'
               packages:
                 - description: 'Xbox One S Console'
                   dropoffLocation:
@@ -146,7 +149,7 @@ components:
                     lastName: 'Oguibe'
                     businessName: 'Seconds Technologies'
                     instructions: 'N/A'
-                  value: 250
+                  transport: 'Bicycle'
                   itemsCount: 1
             selectedConfiguration:
               createdAt: '2021-06-22T18:16:54.025917'
@@ -162,7 +165,7 @@ components:
                   expireTime: '2021-09-22T18:21:56'
                   id: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
                   pickupWindow: '2021-06-22T18:16:56.361353'
-                  price: 13.04
+                  priceExVAT: 13.04
                   providerId: 'stuart'
                 - createdTime: '2021-06-22T18:16:56'
                   currency: GBP
@@ -170,7 +173,7 @@ components:
                   expireTime: '2021-09-22T18:21:56'
                   id: 'quote_4scqrEA@bItf21cewaxc'
                   pickupWindow: '2021-06-22T18:16:56.361353'
-                  price: 13.04
+                  priceExVAT: 13.04
                   providerId: 'gophr'
             status: CREATED
     requestedJobResponse:
@@ -185,6 +188,7 @@ components:
             jobSpecification:
               id: 100172991
               orderNumber: 30
+              deliveryType: 'on-demand'
               packages:
                 - description: 'Xbox One S Console'
                   dropoffLocation:
@@ -214,7 +218,7 @@ components:
                     lastName: 'Oguibe'
                     businessName: 'Seconds Technologies'
                     instructions: 'N/A'
-                  value: 250.00
+                  transport: 'Bicycle'
                   itemsCount: 1
             selectedConfiguration:
               createdAt: '2021-06-22T18:16:54.025917'
@@ -230,7 +234,7 @@ components:
                   expireTime: '2021-09-22T18:21:56'
                   id: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
                   pickupWindow: '2021-06-22T18:16:56.361353'
-                  price: 13.04
+                  priceExVAT: 13.04
                   providerId: 'stuart'
                 - createdTime: '2021-06-22T18:16:56'
                   currency: GBP
@@ -238,7 +242,7 @@ components:
                   expireTime: '2021-09-22T18:21:56'
                   id: 'quote_4scqrEA@bItf21cewaxc'
                   pickupWindow: '2021-06-22T18:16:56.361353'
-                  price: 13.04
+                  priceExVAT: 13.04
                   providerId: 'gophr'
             status: CREATED
     updatedJobResponse:
@@ -253,6 +257,7 @@ components:
             jobSpecification:
               id: 100172991
               orderNumber: 30
+              deliveryType: 'on-demand'
               packages:
                 - description: 'Xbox One S Console'
                   dropoffLocation:
@@ -283,7 +288,7 @@ components:
                     businessName: 'Seconds Technologies'
                     instructions: 'N/A'
                   itemsCount: 1
-                  value: 250.00
+                  transport: 'Bicycle'
             selectedConfiguration:
               createdAt: '2021-06-22T18:16:54.025917'
               id: 'A2G0W*Qu;6D;[*2iEg-ot]6N'
@@ -298,7 +303,7 @@ components:
                   expireTime: '2021-09-22T18:21:56'
                   id: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
                   pickupWindow: '2021-06-22T18:16:56.361353'
-                  price: 13.04
+                  priceExVAT: 13.04
                   providerId: 'stuart'
                 - createdTime: '2021-06-22T18:16:56'
                   currency: GBP
@@ -306,7 +311,7 @@ components:
                   expireTime: '2021-09-22T18:21:56'
                   id: 'quote_4scqrEA@bItf21cewaxc'
                   pickupWindow: '2021-06-22T18:16:56.361353'
-                  price: 13.04
+                  priceExVAT: 13.04
                   providerId: 'gophr'
             status: DISPATCHING
     deletedJobResponse:
@@ -330,6 +335,7 @@ components:
                 type: array
                 items:
                   $ref: '#/components/schemas/Quote'
+                maxItems: 10
               bestQuote:
                 $ref: '#/components/schemas/Quote'
           example:
@@ -339,14 +345,14 @@ components:
                 currency: GBP
                 dropoffEta: '2021-10-03T16:14:33.335Z'
                 expireTime: '2021-10-03T15:39:33.339Z'
-                price: 11.9
+                priceExVAT: 11.9
                 providerId: stuart
               - id: quote_UyOup8TQQ5FB0r7
                 createdAt: '2021-10-03T15:34:33.719Z'
                 currency: GBP
                 dropoffEta: '2021-10-04T16:14:13.000Z'
                 expireTime: '2021-10-03T15:39:33.719Z'
-                price: 11.03
+                priceExVAT: 11.03
                 providerId: gophr
             bestQuote:
               id: quote_9zzEuIPvkXMSHP5
@@ -354,7 +360,7 @@ components:
               currency: GBP
               dropoffEta: '2021-10-03T16:14:33.335Z'
               expireTime: '2021-10-03T15:39:33.339Z'
-              price: 11.9
+              priceExVAT: 11.9
               providerId: stuart
     401Unauthorized:
       description: The API key is missing in the request
@@ -423,6 +429,7 @@ paths:
                   jobSpecification:
                     id: 100172991
                     orderNumber: 30
+                    deliveryType: 'on-demand'
                     packages:
                       - description: 'Xbox One S Console'
                         dropoffLocation:
@@ -452,7 +459,7 @@ paths:
                           lastName: 'Oguibe'
                           businessName: 'Seconds Technologies'
                           instructions: 'N/A'
-                        value: 250.00
+                        transport: 'Motorbike'
                         itemsCount: 1
                   selectedConfiguration:
                     createdAt: '2021-06-22T18:16:54.025917'
@@ -468,7 +475,7 @@ paths:
                         expireTime: '2021-09-22T18:21:56'
                         id: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
                         pickupWindow: '2021-06-22T18:16:56.361353'
-                        price: 13.04
+                        priceExVAT: 13.04
                         providerId: 'stuart'
                       - createdTime: '2021-06-22T18:16:56'
                         currency: GBP
@@ -476,7 +483,7 @@ paths:
                         expireTime: '2021-09-22T18:21:56'
                         id: 'quote_4scqrEA@bItf21cewaxc'
                         pickupWindow: '2021-06-22T18:16:56.361353'
-                        price: 13.04
+                        priceExVAT: 13.04
                         providerId: 'gophr'
                   status: CREATED
                 - createdAt: '2021-09-27T13:06:59.560Z'
@@ -484,6 +491,7 @@ paths:
                   jobSpecification:
                     id: 100172991
                     orderNumber: 30
+                    deliveryType: 'on-demand'
                     packages:
                       - description: 'Xbox One S Console'
                         dropoffLocation:
@@ -514,7 +522,7 @@ paths:
                           businessName: 'Seconds Technologies'
                           instructions: 'N/A'
                         itemsCount: 1
-                        value: 250.00
+                        transport: 'Bicycle'
                   selectedConfiguration:
                     createdAt: '2021-06-22T18:16:54.025917'
                     id: 'A2G0W*Qu;6D;[*2iEg-ot]6N'
@@ -529,7 +537,7 @@ paths:
                         expireTime: '2021-09-22T18:21:56'
                         id: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
                         pickupWindow: '2021-06-22T18:16:56.361353'
-                        price: 13.04
+                        priceExVAT: 13.04
                         providerId: 'stuart'
                       - createdTime: '2021-06-22T18:16:56'
                         currency: GBP
@@ -537,7 +545,7 @@ paths:
                         expireTime: '2021-09-22T18:21:56'
                         id: 'quote_4scqrEA@bItf21cewaxc'
                         pickupWindow: '2021-06-22T18:16:56.361353'
-                        price: 13.04
+                        priceExVAT: 13.04
                         providerId: 'gophr'
                   status: DISPATCHING
   /api/v1/jobs/create:

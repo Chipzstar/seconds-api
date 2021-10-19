@@ -2,7 +2,8 @@
   "type": "object",
   "properties": {
 	"id": {
-	  "type": "string"
+	  "type": "string",
+	  "pattern": "quote_^\\[a-z0-9]{16}$"
 	},
 	"createdAt": {
 	  "type": "string",
@@ -10,7 +11,9 @@
 	},
 	"currency": {
 	  "type": "number",
-	  "format": "double"
+	  "format": "double",
+	  "maximum": 1000,
+	  "minimum": 0
 	},
 	"dropoffEta": {
 	  "type": "string",
@@ -20,9 +23,11 @@
 	  "type": "string",
 	  "format": "date-time"
 	},
-	"price": {
+	"priceExVAT": {
 	  "type": "number",
-	  "format": "double"
+	  "format": "double",
+	  "maximum": 1000,
+	  "minimum": 0
 	},
 	"providerId": {
 	  "type": "string"
