@@ -55,5 +55,5 @@ Before going into production with your service, test your integration with Secon
 
 | Environment |  API|  
 |--|--|  
-| Sandbox | sandbox-api.useseconds.com |  
+| Sandbox | sandbox.useseconds.com |  
 | Production | app.useseconds.com |
