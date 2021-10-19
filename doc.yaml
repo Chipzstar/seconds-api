@@ -396,24 +396,18 @@ tags:
     description: API endpoints for delivery jobs
 paths:
   /api/v1/jobs:
-    post:
+    get:
       tags:
         - Jobs
       description: Lists all delivery jobs under a given client
       summary: API endpoint to retrieve all delivery jobs.
-      requestBody:
-        description: Email required to verify the client
-        content:
-          application/json:
-            schema:
-              required:
-                - email
-              type: object
-              properties:
-                email:
-                  type: string
-            example:
-              email: chisom.oguibe@googlemail.com
+      parameters:
+        - in: query
+          name: email
+          schema:
+            type: string
+          description: client's email address
+          example: "secondsdelivery@gmail.com"
       responses:
         200:
           description: Array of delivery jobs
