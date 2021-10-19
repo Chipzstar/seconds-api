@@ -88,6 +88,7 @@ components:
             dropoffFirstName: 'Ola'
             dropoffLastName: 'Oladapo'
             dropoffInstructions: 'Leave in the front porch, if not available'
+            packageDeliveryType: 'scheduled'
             packageDropoffStartTime: '2021-09-30T15:45:14+0000'
             packageDropoffEndTime: '2021-09-30T16:00:14+0000'
             packagePickupStartTime: '2021-09-30T15:15:14+0000'
@@ -97,8 +98,7 @@ components:
             packageSizeY: 10
             packageSizeZ: 30
             packageWeight: 20
-            packageValue: 250
-            packageTax: 0.2
+            vehicleType: "BIC"
             itemsCount: 1
     updateJobRequest:
       description: Request body of delivery properties
@@ -117,9 +117,9 @@ components:
             createdAt: '2021-09-27T13:06:59.560Z'
             jobId: 6151c1f38a9660a0241d2e06
             driverInformation:
-              name: Searching
-              phone: Searching
-              transport: Searching
+              name: 'Searching'
+              phone: 'Searching'
+              transport: 'Searching'
             jobSpecification:
               id: 100172991
               orderNumber: 30
@@ -190,9 +190,9 @@ components:
             createdAt: '2021-09-27T13:06:59.560Z'
             jobId: 6151c1f38a9660a0241d2e06
             driverInformation:
-              name: David Willis
-              phone: 07534670805
-              transport: bike
+              name: 'David Willis'
+              phone: '07534670805'
+              transport: 'bike'
             jobSpecification:
               id: 100172991
               orderNumber: 30
@@ -263,9 +263,9 @@ components:
             createdAt: '2021-09-27T13:06:59.560Z'
             jobId: 6151c1f38a9660a0241d2e06
             driverInformation:
-              name: Lucy Baker
-              phone: 07595217501
-              transport: bike
+              name: 'Lucy Baker'
+              phone: '07595217501'
+              transport: 'bike'
             jobSpecification:
               id: 100172991
               orderNumber: 30
