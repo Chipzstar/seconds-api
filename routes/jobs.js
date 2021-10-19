@@ -227,6 +227,7 @@ router.get("/:job_id", async (req, res) => {
 			})
 		}
 	} catch (err) {
+		console.log(err)
 		return res.status(500).json({
 			...err
 		})
