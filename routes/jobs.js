@@ -29,20 +29,33 @@ router.get("/", async (req, res, next) => {
 	try {
 		console.log(req.query)
 		const {email} = req.query;
-		const user = await db.User.findOne({"email": email}, {})
-		console.log(user)
-		const clientId = user._id
-		console.log(clientId)
-		const jobs = await db.Job.find({"clientId": clientId})
-		console.log(jobs)
-		return res.status(200).json({
-			jobs,
-			message: "All jobs returned!"
-		})
+		if (email) {
+			const user = await db.User.findOne({ "email": email })
+			if (user) {
+				const clientId = user._id
+				console.log(clientId)
+				const jobs = await db.Job.find({ "clientId": clientId })
+				console.log(jobs)
+				return res.status(200).json({
+					jobs,
+					message: "All jobs returned!"
+				})
+			} else {
+				res.status(404).json({
+					code: 404,
+					message: "No user found with that email address"
+				})
+			}
+		} else {
+			res.status(400).json({
+				code: 400,
+				message: "'email' parameter missing. Please append your email address as a query parameter"
+			})
+		}
 	} catch (err) {
 		console.error(err)
-		return next({
-			status: 400,
+		res.status(400).json({
+			err,
 			message: err.message
 		})
 	}

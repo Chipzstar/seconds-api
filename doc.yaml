@@ -542,10 +542,29 @@ paths:
                         priceExVAT: 13.04
                         providerId: 'gophr'
                   status: DISPATCHING
+        '400':
+          description: email paramenter missing from the endpoint URL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: 400
+                message: "'email' parameter missing. Please append your email address as a query parameter"
         '401':
           $ref: '#/components/responses/401Unauthorized'
         '403':
           $ref: '#/components/responses/403Forbidden'
+        '404':
+          description: The email passed does not belong to a user account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: 404
+                message: "No user found with that email address"
+          "Email address not found"
   /api/v1/jobs/create:
     post:
       tags:
