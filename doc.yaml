@@ -564,7 +564,6 @@ paths:
               example:
                 code: 404
                 message: "No user found with that email address"
-          "Email address not found"
   /api/v1/jobs/create:
     post:
       tags:
