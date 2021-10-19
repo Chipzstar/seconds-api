@@ -116,6 +116,10 @@ components:
           example:
             createdAt: '2021-09-27T13:06:59.560Z'
             jobId: 6151c1f38a9660a0241d2e06
+            driverInformation:
+              name: Searching
+              phone: Searching
+              transport: Searching
             jobSpecification:
               id: 100172991
               orderNumber: 30
@@ -185,6 +189,10 @@ components:
           example:
             createdAt: '2021-09-27T13:06:59.560Z'
             jobId: 6151c1f38a9660a0241d2e06
+            driverInformation:
+              name: David Willis
+              phone: 07534670805
+              transport: bike
             jobSpecification:
               id: 100172991
               orderNumber: 30
@@ -254,6 +262,10 @@ components:
           example:
             createdAt: '2021-09-27T13:06:59.560Z'
             jobId: 6151c1f38a9660a0241d2e06
+            driverInformation:
+              name: Lucy Baker
+              phone: 07595217501
+              transport: bike
             jobSpecification:
               id: 100172991
               orderNumber: 30

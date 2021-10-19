@@ -8,6 +8,20 @@
 	"jobId": {
 	  "type": "string"
 	},
+	"driverInformation": {
+	  "name": {
+		"type": "string",
+		"default": "Searching"
+	  },
+	  "phone": {
+		"type": "string",
+		"default": "Searching"
+	  },
+	  "transport": {
+		"type": "string",
+		"default": "Searching"
+	  }
+	},
 	"jobSpecification": {
 	  "type": "object",
 	  "properties": {
