@@ -12,7 +12,7 @@ info:
   description: |-
     Documentation of access **APIs** to **Seconds Technologies** services
 servers:
-  - url: 'https://seconds-api-dev.herokuapp.com'
+  - url: 'https://sandbox.useseconds.com'
     description: Staging environment
   - url: 'https://app.useseconds.com'
     description: Production environment
