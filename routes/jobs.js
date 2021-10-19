@@ -36,10 +36,7 @@ router.get("/", async (req, res, next) => {
 				console.log(clientId)
 				const jobs = await db.Job.find({ "clientId": clientId })
 				console.log(jobs)
-				return res.status(200).json({
-					jobs,
-					message: "All jobs returned!"
-				})
+				return res.status(200).json(jobs)
 			} else {
 				res.status(404).json({
 					code: 404,
