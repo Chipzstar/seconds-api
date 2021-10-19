@@ -27,8 +27,10 @@ const nanoid = customAlphabet(alphabet, 24)
  */
 router.get("/", async (req, res, next) => {
 	try {
+		console.log(req.query)
 		const {email} = req.query;
 		const user = await db.User.findOne({"email": email}, {})
+		console.log(user)
 		const clientId = user._id
 		console.log(clientId)
 		const jobs = await db.Job.find({"clientId": clientId})
