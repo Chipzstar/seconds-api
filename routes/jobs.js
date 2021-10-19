@@ -25,9 +25,9 @@ const nanoid = customAlphabet(alphabet, 24)
  * @param next - moves to the next helper function
  * @returns {Promise<*>}
  */
-router.post("/", async (req, res, next) => {
+router.get("/", async (req, res, next) => {
 	try {
-		const {email} = req.body;
+		const {email} = req.query;
 		const user = await db.User.findOne({"email": email}, {})
 		const clientId = user._id
 		console.log(clientId)
