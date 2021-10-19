@@ -5,7 +5,7 @@
 	  "type": "string",
 	  "format": "date-time"
 	},
-	"id": {
+	"jobId": {
 	  "type": "string"
 	},
 	"jobSpecification": {

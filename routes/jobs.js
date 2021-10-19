@@ -213,11 +213,12 @@ router.post("/create", async (req, res) => {
 router.get("/:job_id", async (req, res) => {
 	try {
 		const {job_id} = req.params;
-		let {_doc: {_id, ...foundJob}} = await db.Job.findById(job_id, {})
+		let foundJob = await db.Job.findOne({"_id": job_id})
 		if (foundJob) {
+			let { _id, ...job} = foundJob["_doc"];
 			return res.status(200).json({
 				jobId: job_id,
-				...foundJob
+				...job
 			})
 		} else {
 			return res.status(404).json({

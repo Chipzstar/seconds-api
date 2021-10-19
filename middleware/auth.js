@@ -1,6 +1,5 @@
 require('dotenv').config();
 const express = require("express")
-const { clients } = require("../data");
 const { AUTHORIZATION_KEY, AUTH_KEYS} = require("../constants");
 const db = require('../models');
 
@@ -34,9 +33,9 @@ const validateApiKey = async (req, res, next) => {
 			isValid = true
 		}
 		console.log("############################################")
-		return isValid ? next() : res.status(401).json({
-			code: 401,
-			message: "UNAUTHORIZED",
+		return isValid ? next() : res.status(403).json({
+			code: 403,
+			message: "FORBIDDEN",
 			description: "API Key is INVALID"
 		})
 	} catch (err) {
