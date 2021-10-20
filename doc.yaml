@@ -14,7 +14,7 @@ info:
 servers:
   - url: 'https://sandbox.useseconds.com'
     description: Staging environment
-  - url: 'https://app.useseconds.com'
+  - url: 'https://api.useseconds.com'
     description: Production environment
 components:
   securitySchemes:

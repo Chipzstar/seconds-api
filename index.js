@@ -1,5 +1,4 @@
 require("dotenv").config();
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const express = require("express");
 const bodyParser = require('body-parser');
 const moment = require('moment-timezone');
