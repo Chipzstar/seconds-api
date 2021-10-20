@@ -1,6 +1,5 @@
 exports.AUTHORIZATION_KEY = "X-Seconds-Api-Key".toLowerCase();
 exports.PROVIDER_ID = "X-Seconds-Provider-Id".toLowerCase();
-exports.SUBSCRIPTION_DOMAIN = "http://localhost:3000/subscription";
 
 exports.STATUS = {
 	NEW: "new".toUpperCase(),
