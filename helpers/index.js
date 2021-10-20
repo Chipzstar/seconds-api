@@ -88,8 +88,26 @@ function getPackageType(vehicleCode, provider) {
 		}
 	} else {
 		throw new Error(
-			`Vehicle code ${vehicleCode} is not recognized. Please visit our list of allowed vehicle codes`
+			`Vehicle code ${vehicleCode} is not recognized. Please check our list of allowed vehicle codes`
 		);
+	}
+}
+
+async function getResultantQuotes(requestBody) {
+	try {
+		const QUOTES = [];
+		// QUOTE AGGREGATION
+		// send delivery request to integrated providers
+		let stuartQuote = await getStuartQuote(genJobReference(), requestBody);
+		QUOTES.push(stuartQuote);
+		let gophrQuote = await getGophrQuote(requestBody);
+		QUOTES.push(gophrQuote);
+		let streetStreamQuote = await getStreetStreamQuote(requestBody);
+		QUOTES.push(streetStreamQuote);
+		return QUOTES;
+	} catch (err) {
+		console.error(err);
+		throw err;
 	}
 }
 
@@ -114,24 +132,6 @@ async function providerCreatesJob(provider, ref, strategy, request) {
 async function getClientDetails(apiKey) {
 	try {
 		return await db.User.findOne({ apiKey: apiKey }, {});
-	} catch (err) {
-		console.error(err);
-		throw err;
-	}
-}
-
-async function getResultantQuotes(requestBody) {
-	try {
-		const QUOTES = [];
-		// QUOTE AGGREGATION
-		// send delivery request to integrated providers
-		let stuartQuote = await getStuartQuote(genJobReference(), requestBody);
-		QUOTES.push(stuartQuote);
-		let gophrQuote = await getGophrQuote(requestBody);
-		QUOTES.push(gophrQuote);
-		let streetStreamQuote = await getStreetStreamQuote(requestBody);
-		QUOTES.push(streetStreamQuote);
-		return QUOTES;
 	} catch (err) {
 		console.error(err);
 		throw err;
@@ -203,9 +203,9 @@ async function getStuartQuote(reference, params) {
 	console.log({ ...payload.job });
 	console.log('--------------------------');
 	try {
-		const config = { headers: { Authorization: `Bearer ${process.env.STUART_ACCESS_TOKEN}` } };
-		const priceURL = 'https://api.sandbox.stuart.com/v2/jobs/pricing';
-		const etaURL = 'https://api.sandbox.stuart.com/v2/jobs/eta';
+		const config = { headers: { Authorization: `Bearer ${process.env.STUART_API_KEY}` } };
+		const priceURL = `${process.env.STUART_ENV}/v2/jobs/pricing`;
+		const etaURL = `${process.env.STUART_ENV}/v2/jobs/eta`;
 		let { amount, currency } = (await axios.post(priceURL, payload, config)).data;
 		let data = (await axios.post(etaURL, payload, config)).data;
 		const quote = {
@@ -275,7 +275,7 @@ async function getGophrQuote(params) {
 	});
 	try {
 		const config = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
-		const quoteURL = 'https://api-sandbox.gophr.com/v1/commercial-api/get-a-quote';
+		const quoteURL = `${process.env.GOPHR_ENV}/v1/commercial-api/get-a-quote`;
 		let response = (await axios.post(quoteURL, payload, config)).data;
 		//error checking
 		if (response.success) {
@@ -339,7 +339,7 @@ async function getStreetStreamQuote(params) {
 				packageTypeId: packageType,
 			},
 		};
-		const quoteURL = 'https://stage-api.streetstreamdev.co.uk/api/estimate';
+		const quoteURL = `${process.env.STREET_STREAM_ENV}/api/estimate`;
 		let data = (await axios.get(quoteURL, config)).data;
 		console.log('RESPONSE');
 		console.log('****************************');
@@ -389,8 +389,6 @@ async function stuartJobRequest(refNumber, params) {
 		packageDescription,
 		vehicleType,
 	} = params;
-	console.log(pickupAddress);
-	console.log(dropoffAddress);
 	const payload = {
 		job: {
 			pickup_at: moment(packagePickupStartTime, 'DD/MM/YYYY HH:mm:ss'),
@@ -431,15 +429,13 @@ async function stuartJobRequest(refNumber, params) {
 		},
 	};
 	try {
-		const baseURL = 'https://api.sandbox.stuart.com';
-		const path = '/v2/jobs';
-		let URL = baseURL + path;
-		const config = { headers: { Authorization: `Bearer ${process.env.STUART_ACCESS_TOKEN}` } };
+		const URL = `${process.env.STUART_ENV}/v2/jobs`;
+		const config = { headers: { Authorization: `Bearer ${process.env.STUART_API_KEY}` } };
 		let data = (await axios.post(URL, payload, config)).data;
 		console.log(data);
 		return {
 			id: String(data.id),
-			deliveryFee: data.pricing['price_tax_included'],
+			deliveryFee: data['pricing']['price_tax_included'],
 			trackingURL: data.deliveries[0].tracking_url,
 			pickupAt: data['pickup_at'],
 			dropoffAt: data['dropoff_at'],
@@ -508,7 +504,7 @@ async function gophrJobRequest(refNumber, params) {
 
 	try {
 		const config = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
-		const createJobURL = 'https://api-sandbox.gophr.com/v1/commercial-api/create-confirm-job';
+		const createJobURL = `${process.env.GOPHR_ENV}/v1/commercial-api/create-confirm-job`;
 		const { data } = (await axios.post(createJobURL, payload, config)).data;
 		console.log(data);
 		const { job_id, public_tracker_url, pickup_eta, delivery_eta, price_gross } = data;
@@ -584,13 +580,13 @@ async function streetStreamJobRequest(refNumber, strategy, params) {
 	};
 	try {
 		const config = { headers: { Authorization: `Bearer ${process.env.STREET_STREAM_API_KEY}` } };
-		const createJobURL = 'https://stage-api.streetstreamdev.co.uk/api/job/pointtopoint';
+		const createJobURL = `${process.env.STREET_STREAM_ENV}/api/job/pointtopoint`;
 		const data = (await axios.post(createJobURL, payload, config)).data;
 		console.log(data);
 		return {
 			id: data.id,
 			trackingURL: null,
-			deliveryFee: data.jobCharge['totalPayableWithVat'],
+			deliveryFee: data['jobCharge']['totalPayableWithVat'],
 			pickupAt: moment(packagePickupStartTime).toISOString(),
 			dropoffAt: moment(packagePickupStartTime).add(data['estimatedRouteTimeSeconds'], 'seconds').toISOString(),
 		};
@@ -599,7 +595,7 @@ async function streetStreamJobRequest(refNumber, strategy, params) {
 	}
 }
 
-async function confirmCharge(amount, customerId, paymentIntentId) {
+/*async function confirmCharge(amount, customerId, paymentIntentId) {
 	try {
 		console.log('*********************************');
 		console.log('AMOUNT:', amount);
@@ -620,7 +616,7 @@ async function confirmCharge(amount, customerId, paymentIntentId) {
 		console.error(e);
 		throw e;
 	}
-}
+}*/
 
 async function handleActiveSubscription(subscription) {
 	try {
@@ -675,7 +671,6 @@ module.exports = {
 	genOrderNumber,
 	getResultantQuotes,
 	providerCreatesJob,
-	confirmCharge,
 	handleActiveSubscription,
 	handleCanceledSubscription,
 };
