@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require("express")
-const { AUTHORIZATION_KEY, AUTH_KEYS} = require("../constants");
+const { AUTHORIZATION_KEY } = require("../constants");
 const db = require('../models');
 
 const validateApiKey = async (req, res, next) => {
@@ -22,7 +22,7 @@ const validateApiKey = async (req, res, next) => {
 		 */
 
 		//STUART
-		if (apiKey === AUTH_KEYS.STUART) {
+		if (apiKey === process.env.STUART_WEBHOOK_KEY) {
 			console.log("API Key is valid!")
 			isValid = true
 		}

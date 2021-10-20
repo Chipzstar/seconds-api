@@ -23,11 +23,6 @@ exports.PROVIDERS = {
 	STREET_STREAM: "street_stream"
 }
 
-exports.AUTH_KEYS = {
-	STUART: "d59328cec7b021d59f15208616d14c8d4653477c3db9d7eaa08629fa0bc3e395",
-	GOPHR: "sand-1c8d46f1-0ddf-11ec-9428-42010a840077"
-}
-
 exports.VEHICLE_CODES = {
 	BIC: {
 		name: "Bicycle",

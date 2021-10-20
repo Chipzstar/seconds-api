@@ -1,6 +1,6 @@
 const express = require("express");
 const {JOB_STATUS } = require("../constants/gophr");
-const {STATUS, AUTH_KEYS} = require("../constants");
+const {STATUS } = require("../constants");
 const db = require("../models");
 const moment = require("moment");
 const router = express.Router();
@@ -62,7 +62,7 @@ async function update(data){
 router.post("/", async (req, res) => {
 	try {
 		// GOPHR
-		if (req.body['api_key'] === AUTH_KEYS.GOPHR) {
+		if (req.body['api_key'] === String(process.env.GOPHR_API_KEY)) {
 			let jobStatus = await update(req.body)
 			console.log("--------------------------------")
 			console.log("NEW STATUS:", jobStatus)
@@ -71,7 +71,7 @@ router.post("/", async (req, res) => {
 				...req.body
 			})
 		} else {
-			throw new Error("API KEY IS INVLAID!")
+			throw new Error("API KEY IS INVALID!")
 		}
 	} catch (err) {
 		console.error(err)
