@@ -14,7 +14,6 @@ const moment = require("moment");
 const {customAlphabet} = require("nanoid");
 const mongoose = require("mongoose");
 const router = express.Router();
-moment.tz.setDefault("Europe/London");
 const nanoid = customAlphabet(alphabet, 24)
 
 /**
@@ -130,7 +129,7 @@ router.post("/create", async (req, res) => {
 			const jobs = await db.Job.find({})
 
 			let job = {
-				createdAt: moment().utc(true).format(),
+				createdAt: moment().format(),
 				jobSpecification: {
 					id: spec_id,
 					orderNumber: genOrderNumber(jobs.length),
@@ -150,10 +149,10 @@ router.post("/create", async (req, res) => {
 							businessName: dropoffBusinessName,
 							instructions: dropoffInstructions
 						},
-						dropoffStartTime: dropoffAt ? moment(dropoffAt).utc(true) : packageDropoffStartTime,
+						dropoffStartTime: dropoffAt ? moment(dropoffAt) : packageDropoffStartTime,
 						dropoffEndTime: packageDropoffEndTime,
 						itemsCount,
-						pickupStartTime: pickupAt ? moment(pickupAt).utc(true) : packagePickupStartTime,
+						pickupStartTime: pickupAt ? moment(pickupAt) : packagePickupStartTime,
 						pickupEndTime: packagePickupEndTime,
 						pickupLocation: {
 							fullAddress: pickupAddress,
@@ -173,7 +172,7 @@ router.post("/create", async (req, res) => {
 				},
 				selectedConfiguration: {
 					jobReference: clientRefNumber,
-					createdAt: moment().utc(true).format(),
+					createdAt: moment().format(),
 					deliveryFee,
 					winnerQuote,
 					providerId,

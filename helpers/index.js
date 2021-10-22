@@ -10,7 +10,6 @@ const { SELECTION_STRATEGIES, PROVIDERS, VEHICLE_CODES, DELIVERY_TYPES } = requi
 const { STRATEGIES } = require('../constants/streetStream');
 const { ERROR_CODES: STUART_ERROR_CODES } = require('../constants/stuart');
 const { ERROR_CODES: GOPHR_ERROR_CODES } = require('../constants/gophr');
-moment.tz.setDefault('Europe/London');
 
 function genAssignmentCode() {
 	const rand = crypto.randomBytes(7);
@@ -53,7 +52,7 @@ function chooseBestProvider(strategy, quotes) {
 			bestPrice = priceExVAT;
 			bestPriceIndex = index;
 		}
-		console.log(moment());
+		console.log(dropoffEta)
 		console.log(moment(dropoffEta));
 		let duration = moment.duration(moment(dropoffEta).diff(moment())).asSeconds();
 		console.log('DURATION:', duration);
@@ -210,13 +209,13 @@ async function getStuartQuote(reference, params) {
 		const quote = {
 			...quoteSchema,
 			id: `quote_${nanoid(15)}`,
-			createdAt: moment().utc(true).format(),
-			expireTime: moment().utc(true).add(5, 'minutes').format(),
+			createdAt: moment().format(),
+			expireTime: moment().add(5, 'minutes').format(),
 			priceExVAT: amount,
 			currency,
 			dropoffEta: packagePickupStartTime
-				? moment(packagePickupStartTime).utc(true).add(data.eta, 'seconds').format()
-				: moment().utc(true).add(data.eta, 'seconds').format(),
+				? moment(packagePickupStartTime).add(data.eta, 'seconds').format()
+				: moment().add(data.eta, 'seconds').format(),
 			providerId: PROVIDERS.STUART,
 		};
 		console.log('STUART QUOTE');
@@ -295,11 +294,11 @@ async function getGophrQuote(params) {
 			const quote = {
 				...quoteSchema,
 				id: `quote_${nanoid(15)}`,
-				createdAt: moment().utc(true).format(),
-				expireTime: moment().utc(true).add(5, 'minutes').format(),
+				createdAt: moment().format(),
+				expireTime: moment().add(5, 'minutes').format(),
 				priceExVAT: price_net,
 				currency: 'GBP',
-				dropoffEta: moment(delivery_eta).utc(true).format(),
+				dropoffEta: moment(delivery_eta).format(),
 				providerId: PROVIDERS.GOPHR,
 			};
 			console.log('GOPHR QUOTE');
@@ -336,7 +335,7 @@ async function getGophrQuote(params) {
 }
 
 async function getStreetStreamQuote(params) {
-	const { packagePickupStartTime, pickupFormattedAddress, dropoffFormattedAddress, vehicleType } = params;
+	const { pickupFormattedAddress, dropoffFormattedAddress, vehicleType } = params;
 	const packageType = getPackageType(vehicleType, PROVIDERS.STREET_STREAM);
 	try {
 		const config = {
@@ -356,13 +355,11 @@ async function getStreetStreamQuote(params) {
 		const quote = {
 			...quoteSchema,
 			id: `quote_${nanoid(15)}`,
-			createdAt: moment().utc(true).format(),
-			expireTime: moment().utc(true).add(5, 'minutes').format(),
+			createdAt: moment().format(),
+			expireTime: moment().add(5, 'minutes').format(),
 			priceExVAT: data['estimatedCostVatExclusive'],
 			currency: 'GBP',
-			dropoffEta: packagePickupStartTime
-				? moment(packagePickupStartTime).utc(true).add(data['estimatedTravelTimeInSeconds'], 'seconds').format()
-				: null,
+			dropoffEta: null,
 			providerId: PROVIDERS.STREET_STREAM,
 		};
 		console.log('STREET STREAM QUOTE');
@@ -592,11 +589,11 @@ async function streetStreamJobRequest(refNumber, strategy, params) {
 			postcode: pickupFormattedAddress.postcode,
 			pickUpNotes: pickupInstructions,
 			pickUpFrom: packagePickupStartTime
-				? moment(packagePickupStartTime).utc(true).format()
-				: moment().utc(true).format(),
+				? moment(packagePickupStartTime).format()
+				: moment().format(),
 			pickUpTo: packagePickupEndTime
-				? moment(packagePickupEndTime).utc(true).format()
-				: moment().utc(true).add(5, 'minutes').format(),
+				? moment(packagePickupEndTime).format()
+				: moment().add(5, 'minutes').format(),
 		},
 		dropOff: {
 			contactNumber: dropoffPhoneNumber,
@@ -605,11 +602,11 @@ async function streetStreamJobRequest(refNumber, strategy, params) {
 			city: dropoffFormattedAddress.city,
 			postcode: dropoffFormattedAddress.postcode,
 			dropOffFrom: packageDropoffStartTime
-				? moment(packageDropoffStartTime).utc(true).format()
-				: moment().utc(true).format(),
+				? moment(packageDropoffStartTime).format()
+				: moment().format(),
 			dropOffTo: packageDropoffEndTime
-				? moment(packageDropoffEndTime).utc().format()
-				: moment().utc(true).add(5, 'minutes').format(),
+				? moment(packageDropoffEndTime).format()
+				: moment().add(5, 'minutes').format(),
 			clientTag: refNumber,
 			deliveryNotes: dropoffInstructions,
 		},
@@ -623,8 +620,8 @@ async function streetStreamJobRequest(refNumber, strategy, params) {
 			id: data.id,
 			trackingURL: null,
 			deliveryFee: data['jobCharge']['totalPayableWithVat'],
-			pickupAt: moment(packagePickupStartTime).toISOString(),
-			dropoffAt: moment(packagePickupStartTime).add(data['estimatedRouteTimeSeconds'], 'seconds').toISOString(),
+			pickupAt: moment(packagePickupStartTime).format(),
+			dropoffAt: moment(packagePickupStartTime).add(data['estimatedRouteTimeSeconds'], 'seconds').format(),
 		};
 	} catch (err) {
 		throw err;
