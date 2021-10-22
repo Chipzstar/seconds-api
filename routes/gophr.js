@@ -1,5 +1,5 @@
 const express = require("express");
-const {JOB_STATUS } = require("../constants/gophr");
+const {JOB_STATUS, WEBHOOK_TYPES } = require("../constants/gophr");
 const {STATUS } = require("../constants");
 const db = require("../models");
 const moment = require("moment");
@@ -28,7 +28,7 @@ function translateGophrStatus(value) {
 	}
 }
 
-async function update(data){
+async function updateStatus(data){
 	try {
 		console.log(data)
 		const {status: STATUS, external_id: REFERENCE, pickup_eta, delivery_eta, courier_name } = data
@@ -43,8 +43,8 @@ async function update(data){
 			{"selectedConfiguration.jobReference": REFERENCE},
 			{
 				'$set': {
-					"jobSpecification.packages.$[].pickupStartTime": moment(pickup_eta).toISOString(),
-					"jobSpecification.packages.$[].dropoffStartTime": moment(delivery_eta).toISOString(),
+					"jobSpecification.packages.$[].pickupStartTime": moment(pickup_eta).toISOString(true),
+					"jobSpecification.packages.$[].dropoffStartTime": moment(delivery_eta).toISOString(true),
 					"driverInformation.name": courier_name
 				},
 			}, {
@@ -59,17 +59,45 @@ async function update(data){
 	}
 }
 
+async function updateETA(data){
+	console.log(data)
+	const {external_id: REFERENCE, pickup_eta, delivery_eta } = data
+	console.log({ REFERENCE })
+	// update the status for the current job
+	let {_doc: { _id, ...job} } = await db.Job.findOneAndUpdate(
+		{"selectedConfiguration.jobReference": REFERENCE},
+		{
+			'$set': {
+				"jobSpecification.packages.$[].pickupStartTime": moment(pickup_eta).toISOString(true),
+				"jobSpecification.packages.$[].dropoffStartTime": moment(delivery_eta).toISOString(true),
+			},
+		}, {
+			new: true,
+			sanitizeProjection: true,
+		})
+	console.log(job)
+	return {pickup_eta, delivery_eta}
+}
+
 router.post("/", async (req, res) => {
 	try {
 		// GOPHR
-		if (req.body['api_key'] === String(process.env.GOPHR_API_KEY)) {
-			let jobStatus = await update(req.body)
-			console.log("--------------------------------")
-			console.log("NEW STATUS:", jobStatus)
-			console.log("--------------------------------")
-			res.status(200).json({
-				...req.body
-			})
+		const {api_key, webhook_type } = req.body;
+		if (api_key === String(process.env.GOPHR_API_KEY)) {
+			if (webhook_type === WEBHOOK_TYPES.STATUS) {
+				let jobStatus = await updateStatus(req.body)
+				console.log("--------------------------------")
+				console.log("NEW STATUS:", jobStatus)
+				console.log("--------------------------------")
+			} else if (webhook_type === WEBHOOK_TYPES.ETA){
+				let jobETA = await updateETA(req.body)
+				console.log("--------------------------------")
+				console.log("NEW ETA:", jobETA)
+				console.log("--------------------------------")
+			} else {
+				throw new Error(`Unknown webhook type, ${webhook_type}`)
+			}
+			res.status(200).json(req.body)
 		} else {
 			throw new Error("API KEY IS INVALID!")
 		}
