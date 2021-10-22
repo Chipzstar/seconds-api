@@ -33,9 +33,7 @@ router.get("/", async (req, res, next) => {
 			const user = await db.User.findOne({ "email": email })
 			if (user) {
 				const clientId = user._id
-				console.log(clientId)
 				const jobs = await db.Job.find({ "clientId": clientId })
-				console.log(jobs)
 				return res.status(200).json(jobs)
 			} else {
 				res.status(404).json({
@@ -152,10 +150,10 @@ router.post("/create", async (req, res) => {
 							businessName: dropoffBusinessName,
 							instructions: dropoffInstructions
 						},
-						dropoffStartTime: dropoffAt ? moment(dropoffAt).toISOString() : packageDropoffStartTime,
+						dropoffStartTime: dropoffAt ? moment(dropoffAt).utc(true) : packageDropoffStartTime,
 						dropoffEndTime: packageDropoffEndTime,
 						itemsCount,
-						pickupStartTime: pickupAt ? moment(pickupAt).toISOString() : packagePickupStartTime,
+						pickupStartTime: pickupAt ? moment(pickupAt).utc(true) : packagePickupStartTime,
 						pickupEndTime: packagePickupEndTime,
 						pickupLocation: {
 							fullAddress: pickupAddress,
