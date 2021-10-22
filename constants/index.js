@@ -1,6 +1,11 @@
 exports.AUTHORIZATION_KEY = "X-Seconds-Api-Key".toLowerCase();
 exports.PROVIDER_ID = "X-Seconds-Provider-Id".toLowerCase();
 
+exports.DELIVERY_TYPES = {
+	ON_DEMAND: "on-demand",
+	SAME_DAY: "scheduled"
+}
+
 exports.STATUS = {
 	NEW: "new".toUpperCase(),
 	PENDING: "pending".toUpperCase(),

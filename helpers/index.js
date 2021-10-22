@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const moment = require('moment-timezone');
 const { nanoid } = require('nanoid');
 const { quoteSchema } = require('../schemas/quote');
-const { SELECTION_STRATEGIES, PROVIDERS, VEHICLE_CODES } = require('../constants');
+const { SELECTION_STRATEGIES, PROVIDERS, VEHICLE_CODES, DELIVERY_TYPES } = require('../constants');
 const { STRATEGIES } = require('../constants/streetStream');
 const { ERROR_CODES: STUART_ERROR_CODES } = require('../constants/stuart');
 const { ERROR_CODES: GOPHR_ERROR_CODES } = require('../constants/gophr');
@@ -77,13 +77,13 @@ function genOrderNumber(number) {
 
 function getPackageType(vehicleCode, provider) {
 	if (vehicleCode in VEHICLE_CODES) {
-		switch (provider){
+		switch (provider) {
 			case PROVIDERS.STUART:
 				return VEHICLE_CODES[vehicleCode].stuartPackageType;
 			case PROVIDERS.STREET_STREAM:
 				return VEHICLE_CODES[vehicleCode].streetPackageType;
 			default:
-				return ""
+				return '';
 		}
 	} else {
 		throw new Error(
@@ -156,7 +156,7 @@ async function getStuartQuote(reference, params) {
 		packageDropoffStartTime,
 		packageDropoffEndTime,
 		packagePickupStartTime,
-		vehicleType
+		vehicleType,
 	} = params;
 
 	const payload = {
@@ -258,7 +258,7 @@ async function getGophrQuote(params) {
 	const payload = qs.stringify({
 		api_key: `${process.env.GOPHR_API_KEY}`,
 		pickup_address1: pickupFormattedAddress['street'],
-		...(pickupFormattedAddress.city && { pickup_city: pickupFormattedAddress.city}),
+		...(pickupFormattedAddress.city && { pickup_city: pickupFormattedAddress.city }),
 		pickup_postcode: pickupFormattedAddress.postcode,
 		pickup_country_code: pickupFormattedAddress.countryCode,
 		size_x,
@@ -268,7 +268,7 @@ async function getGophrQuote(params) {
 		...(packagePickupStartTime && { earliest_pickup_time: moment(packagePickupStartTime).toISOString() }),
 		...(packageDropoffStartTime && { earliest_delivery_time: moment(packageDropoffStartTime).toISOString() }),
 		delivery_address1: dropoffFormattedAddress['street'],
-		...(dropoffFormattedAddress.city && { delivery_city: dropoffFormattedAddress.city}),
+		...(dropoffFormattedAddress.city && { delivery_city: dropoffFormattedAddress.city }),
 		delivery_postcode: dropoffFormattedAddress.postcode,
 		delivery_country_code: dropoffFormattedAddress['countryCode'],
 	});
@@ -460,43 +460,45 @@ async function gophrJobRequest(refNumber, params) {
 		dropoffFirstName,
 		dropoffLastName,
 		dropoffInstructions,
+		packageDeliveryType,
 		packageDropoffStartTime,
 		packageDropoffEndTime,
 		packagePickupStartTime,
 		packagePickupEndTime,
-		vehicleType
+		vehicleType,
 	} = params;
 
 	const { x: size_x, y: size_y, z: size_z, weight } = VEHICLE_CODES[vehicleType];
 	const payload = qs.stringify({
 		api_key: `${process.env.GOPHR_API_KEY}`,
-		external_id: `${refNumber}`,
-		pickup_person_name: `${pickupFirstName} + ' ' + ${pickupLastName}`,
+		external_id: genJobReference(),
+		reference_number: genJobReference(),
+		pickup_person_name: `${pickupFirstName} ${pickupLastName}`,
 		pickup_mobile_number: `${pickupPhoneNumber}`,
 		pickup_company_name: `${pickupBusinessName}`,
 		pickup_email: pickupEmailAddress,
-		delivery_person_name: `${dropoffFirstName} + ' ' + ${dropoffLastName}`,
+		delivery_person_name: `${dropoffFirstName} ${dropoffLastName}`,
 		delivery_mobile_number: `${dropoffPhoneNumber}`,
 		delivery_company_name: `${dropoffBusinessName}`,
 		delivery_email: dropoffEmailAddress,
 		pickup_address1: pickupFormattedAddress['street'],
-		...(pickupFormattedAddress.city && { pickup_city: pickupFormattedAddress.city}),
+		...(pickupFormattedAddress.city && { pickup_city: pickupFormattedAddress.city }),
 		pickup_postcode: pickupFormattedAddress.postcode,
-		pickup_country_code: pickupFormattedAddress.countryCode,
+		pickup_country_code: pickupFormattedAddress['countryCode'],
 		pickup_tips_how_to_find: pickupInstructions,
 		size_x,
 		size_y,
 		size_z,
 		weight,
-		job_priority: 3,
+		...(packageDeliveryType === DELIVERY_TYPES.ON_DEMAND && { job_priority: 2}),
 		earliest_pickup_time: packagePickupStartTime,
 		pickup_deadline: packagePickupEndTime,
 		earliest_delivery_time: packageDropoffStartTime,
 		dropoff_deadline: packageDropoffEndTime,
 		delivery_address1: dropoffFormattedAddress['street'],
-		...(dropoffFormattedAddress.city && { delivery_city: dropoffFormattedAddress.city}),
+		...(dropoffFormattedAddress.city && { delivery_city: dropoffFormattedAddress.city }),
 		delivery_postcode: dropoffFormattedAddress.postcode,
-		delivery_country_code: dropoffFormattedAddress.countryCode,
+		delivery_country_code: dropoffFormattedAddress['countryCode'],
 		delivery_tips_how_to_find: dropoffInstructions,
 		callback_url: process.env.GOPHR_CALLBACK_URL,
 	});
@@ -671,5 +673,5 @@ module.exports = {
 	getResultantQuotes,
 	providerCreatesJob,
 	handleActiveSubscription,
-	handleCanceledSubscription,
+	handleCanceledSubscription
 };
