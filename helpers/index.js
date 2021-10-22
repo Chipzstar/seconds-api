@@ -502,7 +502,7 @@ async function gophrJobRequest(refNumber, params) {
 		delivery_tips_how_to_find: dropoffInstructions,
 		callback_url: process.env.GOPHR_CALLBACK_URL,
 	});
-
+	console.log(payload)
 	try {
 		const config = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
 		const createJobURL = `${process.env.GOPHR_ENV}/v1/commercial-api/create-confirm-job`;
