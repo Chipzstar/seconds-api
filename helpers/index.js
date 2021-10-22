@@ -508,8 +508,7 @@ async function gophrJobRequest(refNumber, params) {
 		...(dropoffFormattedAddress.city && { delivery_city: `${dropoffFormattedAddress.city}` }),
 		delivery_postcode: `${dropoffFormattedAddress.postcode}`,
 		delivery_country_code: `${dropoffFormattedAddress['countryCode']}`,
-		delivery_tips_how_to_find: `${dropoffInstructions}`,
-		callback_url: process.env.GOPHR_CALLBACK_URL,
+		delivery_tips_how_to_find: `${dropoffInstructions}`
 	});
 	console.log(payload)
 	try {
