@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const moment = require('moment-timezone');
 const { nanoid } = require('nanoid');
 const { quoteSchema } = require('../schemas/quote');
-const { SELECTION_STRATEGIES, PROVIDERS, VEHICLE_CODES, DELIVERY_TYPES } = require('../constants');
+const { SELECTION_STRATEGIES, PROVIDERS, VEHICLE_CODES } = require('../constants');
 const { STRATEGIES } = require('../constants/streetStream');
 const { ERROR_CODES: STUART_ERROR_CODES } = require('../constants/stuart');
 const { ERROR_CODES: GOPHR_ERROR_CODES } = require('../constants/gophr');
@@ -52,7 +52,7 @@ function chooseBestProvider(strategy, quotes) {
 			bestPrice = priceExVAT;
 			bestPriceIndex = index;
 		}
-		console.log(dropoffEta)
+		console.log(dropoffEta);
 		console.log(moment(dropoffEta));
 		let duration = moment.duration(moment(dropoffEta).diff(moment())).asSeconds();
 		console.log('DURATION:', duration);
@@ -89,6 +89,17 @@ function getPackageType(vehicleCode, provider) {
 			`Vehicle code ${vehicleCode} is not recognized. Please check our list of allowed vehicle codes`
 		);
 	}
+}
+
+async function authStreetStream(){
+	const authURL = `${process.env.STREET_STREAM_ENV}/api/tokens`
+	const payload = {
+		email: "secondsdelivery@gmail.com",
+		authType: "CUSTOMER",
+		password: process.env.STREET_STREAM_PASSWORD
+	}
+	let res = (await (axios.post(authURL, payload))).headers
+	return res.authorization.split(" ")[1]
 }
 
 async function getResultantQuotes(requestBody) {
@@ -338,8 +349,16 @@ async function getStreetStreamQuote(params) {
 	const { pickupFormattedAddress, dropoffFormattedAddress, vehicleType } = params;
 	const packageType = getPackageType(vehicleType, PROVIDERS.STREET_STREAM);
 	try {
+		const token = await authStreetStream()
+		/*const url = `https://api.heroku.com/apps/seconds-api-dev/config-vars`;
+		let vars = (await axios.get(url, {
+			headers: {
+				Authorization: `Bearer ${process.env.HEROKU_API_KEY}`,
+				Accept: "application/vnd.heroku+json; version=3"
+			},
+		})).data*/
 		const config = {
-			headers: { Authorization: `Bearer ${process.env.STREET_STREAM_API_KEY}` },
+			headers: { Authorization: `Bearer ${token}` },
 			params: {
 				startPostcode: pickupFormattedAddress.postcode,
 				endPostcode: dropoffFormattedAddress.postcode,
@@ -505,9 +524,9 @@ async function gophrJobRequest(refNumber, params) {
 		...(dropoffFormattedAddress.city && { delivery_city: `${dropoffFormattedAddress.city}` }),
 		delivery_postcode: `${dropoffFormattedAddress.postcode}`,
 		delivery_country_code: `${dropoffFormattedAddress['countryCode']}`,
-		delivery_tips_how_to_find: `${dropoffInstructions}`
+		delivery_tips_how_to_find: `${dropoffInstructions}`,
 	});
-	console.log(payload)
+	console.log(payload);
 	try {
 		const config = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
 		const createJobURL = `${process.env.GOPHR_ENV}/v1/commercial-api/create-confirm-job`;
@@ -588,9 +607,7 @@ async function streetStreamJobRequest(refNumber, strategy, params) {
 			city: pickupFormattedAddress.city,
 			postcode: pickupFormattedAddress.postcode,
 			pickUpNotes: pickupInstructions,
-			pickUpFrom: packagePickupStartTime
-				? moment(packagePickupStartTime).format()
-				: moment().format(),
+			pickUpFrom: packagePickupStartTime ? moment(packagePickupStartTime).format() : moment().format(),
 			pickUpTo: packagePickupEndTime
 				? moment(packagePickupEndTime).format()
 				: moment().add(5, 'minutes').format(),
@@ -601,9 +618,7 @@ async function streetStreamJobRequest(refNumber, strategy, params) {
 			addressOne: dropoffFormattedAddress.street,
 			city: dropoffFormattedAddress.city,
 			postcode: dropoffFormattedAddress.postcode,
-			dropOffFrom: packageDropoffStartTime
-				? moment(packageDropoffStartTime).format()
-				: moment().format(),
+			dropOffFrom: packageDropoffStartTime ? moment(packageDropoffStartTime).format() : moment().format(),
 			dropOffTo: packageDropoffEndTime
 				? moment(packageDropoffEndTime).format()
 				: moment().add(5, 'minutes').format(),
@@ -612,7 +627,8 @@ async function streetStreamJobRequest(refNumber, strategy, params) {
 		},
 	};
 	try {
-		const config = { headers: { Authorization: `Bearer ${process.env.STREET_STREAM_API_KEY}` } };
+		const token = await authStreetStream()
+		const config = { headers: { Authorization: `Bearer ${token}` } };
 		const createJobURL = `${process.env.STREET_STREAM_ENV}/api/job/pointtopoint`;
 		const data = (await axios.post(createJobURL, payload, config)).data;
 		console.log(data);
@@ -705,5 +721,5 @@ module.exports = {
 	getResultantQuotes,
 	providerCreatesJob,
 	handleActiveSubscription,
-	handleCanceledSubscription
+	handleCanceledSubscription,
 };
