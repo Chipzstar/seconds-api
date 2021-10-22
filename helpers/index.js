@@ -254,24 +254,33 @@ async function getGophrQuote(params) {
 		packageDropoffStartTime,
 		vehicleType,
 	} = params;
-	const { x: size_x, y: size_y, z: size_z, weight } = VEHICLE_CODES[vehicleType];
+	const { x: size_x, y: size_y, z: size_z, weight, gophrVehicleType } = VEHICLE_CODES[vehicleType];
+	/*console.log("PICK UP:", moment(packagePickupStartTime).toISOString())
+	console.log("DROP OFF:", moment(packageDropoffStartTime).toISOString())
+	console.log("PICK UP:", moment(packagePickupStartTime).toISOString(true))
+	console.log("DROP OFF:", moment(packageDropoffStartTime).toISOString(true))*/
 	const payload = qs.stringify({
 		api_key: `${process.env.GOPHR_API_KEY}`,
 		pickup_address1: pickupFormattedAddress['street'],
 		...(pickupFormattedAddress.city && { pickup_city: pickupFormattedAddress.city }),
 		pickup_postcode: pickupFormattedAddress.postcode,
-		pickup_country_code: pickupFormattedAddress.countryCode,
+		pickup_country_code: pickupFormattedAddress['countryCode'],
 		size_x,
 		size_y,
 		size_z,
 		weight,
-		...(packagePickupStartTime && { earliest_pickup_time: moment(packagePickupStartTime).toISOString() }),
-		...(packageDropoffStartTime && { earliest_delivery_time: moment(packageDropoffStartTime).toISOString() }),
+		vehicle_type: gophrVehicleType,
+		...(packagePickupStartTime && { earliest_pickup_time: moment(packagePickupStartTime).toISOString(true) }),
+		...(packageDropoffStartTime && { earliest_delivery_time: moment(packageDropoffStartTime).toISOString(true) }),
 		delivery_address1: dropoffFormattedAddress['street'],
 		...(dropoffFormattedAddress.city && { delivery_city: dropoffFormattedAddress.city }),
 		delivery_postcode: dropoffFormattedAddress.postcode,
 		delivery_country_code: dropoffFormattedAddress['countryCode'],
 	});
+	console.log('PAYLOAD');
+	console.log('--------------------------');
+	console.log(JSON.parse(JSON.stringify(payload)));
+	console.log('--------------------------');
 	try {
 		const config = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
 		const quoteURL = `${process.env.GOPHR_ENV}/v1/commercial-api/get-a-quote`;
@@ -468,11 +477,11 @@ async function gophrJobRequest(refNumber, params) {
 		vehicleType,
 	} = params;
 
-	const { x: size_x, y: size_y, z: size_z, weight } = VEHICLE_CODES[vehicleType];
+	const { x: size_x, y: size_y, z: size_z, weight, gophrVehicleType } = VEHICLE_CODES[vehicleType];
 	const payload = qs.stringify({
 		api_key: `${process.env.GOPHR_API_KEY}`,
-		external_id: genJobReference(),
-		reference_number: genJobReference(),
+		external_id: refNumber,
+		reference_number: refNumber,
 		pickup_person_name: `${pickupFirstName} ${pickupLastName}`,
 		pickup_mobile_number: `${pickupPhoneNumber}`,
 		pickup_company_name: `${pickupBusinessName}`,
@@ -490,32 +499,59 @@ async function gophrJobRequest(refNumber, params) {
 		size_y,
 		size_z,
 		weight,
-		...(packageDeliveryType === DELIVERY_TYPES.ON_DEMAND && { job_priority: 2 }),
-		earliest_pickup_time: `${packagePickupStartTime}`,
-		pickup_deadline: `${packagePickupEndTime}`,
-		earliest_delivery_time: `${packageDropoffStartTime}`,
-		dropoff_deadline: `${packageDropoffEndTime}`,
+		vehicle_type: gophrVehicleType,
+		...(packagePickupStartTime && { earliest_pickup_time: moment(packagePickupStartTime).toISOString(true) }),
+		...(packageDropoffStartTime && { earliest_delivery_time: moment(packageDropoffStartTime).toISOString(true) }),
+		...(packagePickupEndTime && { pickup_deadline: moment(packagePickupEndTime).toISOString(true) }),
+		...(packageDropoffEndTime && { dropoff_deadline: moment(packageDropoffEndTime).toISOString(true) }),
 		delivery_address1: `${dropoffFormattedAddress['street']}`,
 		...(dropoffFormattedAddress.city && { delivery_city: `${dropoffFormattedAddress.city}` }),
 		delivery_postcode: `${dropoffFormattedAddress.postcode}`,
 		delivery_country_code: `${dropoffFormattedAddress['countryCode']}`,
 		delivery_tips_how_to_find: `${dropoffInstructions}`,
-		callback_url: `${process.env.GOPHR_CALLBACK_URL}`,
+		callback_url: process.env.GOPHR_CALLBACK_URL,
 	});
-	console.log(JSON.parse(payload))
+	console.log(payload)
 	try {
 		const config = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
 		const createJobURL = `${process.env.GOPHR_ENV}/v1/commercial-api/create-confirm-job`;
-		const { data } = (await axios.post(createJobURL, payload, config)).data;
-		console.log(data);
-		const { job_id, public_tracker_url, pickup_eta, delivery_eta, price_gross } = data;
-		return {
-			id: job_id,
-			trackingURL: public_tracker_url,
-			deliveryFee: price_gross,
-			pickupAt: pickup_eta,
-			dropoffAt: delivery_eta,
-		};
+		const response = (await axios.post(createJobURL, payload, config)).data;
+		console.log(response);
+		if (response.success) {
+			console.log('RESPONSE');
+			console.log('****************************');
+			console.log(response.data);
+			console.log('****************************');
+			const { job_id, public_tracker_url, pickup_eta, delivery_eta, price_gross } = response.data;
+			return {
+				id: job_id,
+				trackingURL: public_tracker_url,
+				deliveryFee: price_gross,
+				pickupAt: pickup_eta,
+				dropoffAt: delivery_eta,
+			};
+		} else {
+			console.log(response.error);
+			if (response.error.code === GOPHR_ERROR_CODES.ERROR_MAX_DISTANCE_EXCEEDED) {
+				throw { ...response.error, code: 400 };
+			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_SAME_LAT_LNG) {
+				throw { ...response.error, code: 400 };
+			} else if (response.error.code === GOPHR_ERROR_CODES.INVALID_GRANT) {
+				throw { ...response.error, code: 400 };
+			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_DISTANCE) {
+				throw { ...response.error, code: 400 };
+			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_PHONE_NUMBER) {
+				throw { ...response.error, code: 400 };
+			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_DATETIME_INCORRECT) {
+				throw { ...response.error, code: 400 };
+			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_PICKUP_ADDRESS_MISSING) {
+				throw { ...response.error, code: 400 };
+			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_DELIVERY_ADDRESS_MISSING) {
+				throw { ...response.error, code: 400 };
+			} else {
+				throw { ...response.error, code: 400 };
+			}
+		}
 	} catch (err) {
 		throw err;
 	}

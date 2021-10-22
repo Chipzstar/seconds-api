@@ -35,6 +35,7 @@ exports.VEHICLE_CODES = {
 		z: 15,
 		weight: 8,
 		stuartPackageType: 'xsmall',
+		gophrVehicleType: 10,
 		streetPackageType: 'PT1006'
 	},
 	MTB: {
@@ -44,6 +45,7 @@ exports.VEHICLE_CODES = {
 		z: 30,
 		weight: 12,
 		stuartPackageType: 'small',
+		gophrVehicleType: 20,
 		streetPackageType: 'PT1008'
 	},
 	CAR: {
@@ -53,6 +55,7 @@ exports.VEHICLE_CODES = {
 		z: 40,
 		weight: 25,
 		stuartPackageType: 'large',
+		gophrVehicleType: 30,
 		streetPackageType: 'PT1009'
 	},
 	CGB: {
@@ -62,6 +65,7 @@ exports.VEHICLE_CODES = {
 		z: 50,
 		weight: 65,
 		stuartPackageType: 'medium',
+		gophrVehicleType: 15,
 		streetPackageType: 'PT1012'
 	},
 	VAN: {
@@ -70,6 +74,7 @@ exports.VEHICLE_CODES = {
 		y: 120,
 		z: 90,
 		weight: 70,
+		gophrVehicleType: 40,
 		stuartPackageType: 'xlarge',
 		streetPackageType: 'PT1010'
 	}
