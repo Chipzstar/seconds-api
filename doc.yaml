@@ -415,6 +415,7 @@ paths:
     post:
       tags:
         - Auth
+      security: []
       description: Retrieve your api key using your account credentials
       summary: API endpoint to fetch a user's API key
       requestBody:
