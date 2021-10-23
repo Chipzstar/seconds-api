@@ -6,6 +6,7 @@ const moment = require('moment-timezone');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const authRoutes = require('./routes/auth');
 const jobRoutes = require('./routes/jobs');
 const quoteRoutes = require('./routes/quotes');
 const paymentRoutes = require('./routes/payments');
@@ -42,14 +43,12 @@ app.use(cors());
 // adding morgan to log HTTP requests
 app.use(morgan('combined'));
 
-// add middleware
-// app.use(validateApiKey)
-
 // defining an endpoint to return a welcome message
 app.get('/', (req, res) => {
 	res.send("WELCOME TO SECONDS API");
 });
 
+// used by New Relic for keeping the api alive
 app.use('/ping', (req, res) => {
 	console.log("Pinged at " + Date.now())
 	res.status(200).json({
@@ -58,6 +57,7 @@ app.use('/ping', (req, res) => {
 })
 
 // CORE ROUTES
+app.use('/api/v1/token', authRoutes);
 app.use('/api/v1/jobs', validateApiKey, jobRoutes);
 app.use('/api/v1/quotes', validateApiKey, quoteRoutes);
 

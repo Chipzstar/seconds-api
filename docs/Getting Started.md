@@ -53,7 +53,27 @@ During setup, the best strategy and configuration of delivery fleet providers wi
 
 Before going into production with your service, test your integration with Seconds in our sandbox environment. In this environment the callback is mocked, being possible to validate different scenarios.
 
-| Environment |  API|  
+| Environment | API |  
 |--|--|  
 | Sandbox | sandbox.useseconds.com |  
 | Production | api.useseconds.com |
+
+### Authentication 
+
+After setting up a seconds account, you will be able to generate an api key through our dashboard. When making request to our endpoints. Please attach the field name "X-Seconds-Api-Key" to the request header passing your api keys as its value.
+
+| Request header name | Header value |  
+|--|--|  
+| x-seconds-api-key (must be lowercase) | <YOUR API KEY> |
+
+### Supported Vehicle Types
+
+Our integrated fleet providers offer a range of different transport vehicles. Below is a table of the vehicle types we offer through our API, including the parcel size and parcel weight recommended for each vehicle.    
+
+| Vehicle |  3-Letter Code | Parcel Size (x, y, z) in cm | Parcel Weight (w) in kg |  
+|--|--|--|--| 
+| Bicycle | BIC | 40, 20, 15 | 8 |
+| Motorbike | MTB | 40, 30, 30 | 12 |
+| Cargobike | CGB |  60, 50, 50 | 65 |
+| Car | CAR | 60, 40, 40 | 25 |
+| Small Van | VAN |  150, 120, 90 | 70 |
