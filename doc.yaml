@@ -404,9 +404,72 @@ components:
 security:
   - ApiKeyAuth: [ ]
 tags:
+  - name: Auth
+    description: API endpoints relating to the user's account
   - name: Jobs
     description: API endpoints for delivery jobs
+  - name: Quotes
+    description: API endpoints for delivery quotes
 paths:
+  /api/v1/token:
+    post:
+      tags:
+        - Auth
+      description: Retrieve your api key using your account credentials
+      summary: API endpoint to fetch a user's API key
+      requestBody:
+        description: Request body of delivery properties
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        200:
+          description: Response for valid credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  token:
+                    type: string
+              example:
+                message: 'SUCCESS'
+                token: 'CxeHbzgyk9m4SQCtGpPiSoFm'
+        400:
+          description: Missing email or password properties
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: 400
+                message: 'Bad request. Email or password is missing'
+        401:
+          description: User has passed invalid password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: 401
+                message: 'Wrong password'
+        404:
+          description: Email does not belong to a user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: 404
+                message: 'No user found with that email address'
   /api/v1/jobs:
     get:
       tags:
