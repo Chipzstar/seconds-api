@@ -52,7 +52,9 @@ app.get('/', (req, res) => {
 
 app.use('/ping', (req, res) => {
 	console.log(Object.keys(req))
-	res.status(200).send("pinged at ", Date.now())
+	res.status(200).json({
+		message: "Pinged at " + Date.now()
+	})
 })
 
 // CORE ROUTES
