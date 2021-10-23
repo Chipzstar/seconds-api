@@ -51,8 +51,10 @@ app.get('/', (req, res) => {
 });
 
 app.use('/ping', (req, res) => {
-	console.log(req)
-	res.send("pinged at ", Date.now())
+	console.log(req.body)
+	res.status(200).json({
+		message: "Pinged at " + Date.now()
+	})
 })
 
 // CORE ROUTES
