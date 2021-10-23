@@ -64,16 +64,16 @@ After setting up a seconds account, you will be able to generate an api key thro
 
 | Request header name | Header value |  
 |--|--|  
-| x-seconds-api-key (must be lowercase) | <YOUR API KEY> |
+| x-seconds-api-key (must be lowercase) | `</YOUR API KEY/>` |
 
 ### Supported Vehicle Types
 
 Our integrated fleet providers offer a range of different transport vehicles. Below is a table of the vehicle types we offer through our API, including the parcel size and parcel weight recommended for each vehicle.    
 
-| Vehicle |  3-Letter Code | Parcel Size (x, y, z) in cm | Parcel Weight (w) in kg |  
+| Vehicle |  3-Letter Code | Parcel Size (cm) | Parcel Weight (kg) |  
 |--|--|--|--| 
-| Bicycle | BIC | 40, 20, 15 | 8 |
-| Motorbike | MTB | 40, 30, 30 | 12 |
-| Cargobike | CGB |  60, 50, 50 | 65 |
-| Car | CAR | 60, 40, 40 | 25 |
-| Small Van | VAN |  150, 120, 90 | 70 |
+| Bicycle | BIC | 40cm, 20cm, 15cm | 8kg |
+| Motorbike | MTB | 40cm, 30cm, 30cm | 12kg |
+| Cargobike | CGB |  60cm, 50cm, 50cm | 65kg |
+| Car | CAR | 60cm, 40cm, 40cm | 25kg |
+| Small Van | VAN |  150cm, 120cm, 90cm | 70kg |
