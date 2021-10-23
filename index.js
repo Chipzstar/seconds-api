@@ -51,7 +51,7 @@ app.get('/', (req, res) => {
 });
 
 app.use('/ping', (req, res) => {
-	console.log(req.body)
+	console.log("Pinged at " + Date.now())
 	res.status(200).json({
 		message: "Pinged at " + Date.now()
 	})
