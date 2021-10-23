@@ -50,6 +50,11 @@ app.get('/', (req, res) => {
 	res.send("WELCOME TO SECONDS API");
 });
 
+app.use('/ping', (req, res) => {
+	console.log(req)
+	res.send("pinged at ", Date.now())
+})
+
 // CORE ROUTES
 app.use('/api/v1/jobs', validateApiKey, jobRoutes);
 app.use('/api/v1/quotes', validateApiKey, quoteRoutes);
