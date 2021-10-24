@@ -93,6 +93,8 @@ components:
       type: apiKey
       in: header
       name: X-Seconds-Api-Key
+      description: |-
+        After setting up a seconds account, you will be able to generate an api key through our dashboard. When making request to our endpoints. Please attach the field name "X-Seconds-Api-Key" to the request header passing your api keys as its value.
   schemas:
     DeliveryRequirements:
       $ref: ./schemas/JobRequirements.json
