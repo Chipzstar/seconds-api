@@ -70,13 +70,6 @@ info:
     | Sandbox | sandbox.useseconds.com |
     | Production | api.useseconds.com |
 
-    ### Authentication
-    After setting up a seconds account, you will be able to generate an api key through our dashboard. When making request to our endpoints. Please attach the field name "X-Seconds-Api-Key" to the request header passing your api keys as its value.
-
-    | Request header name | Header value |
-    |--|--|
-    | x-seconds-api-key (must be lowercase) | `</YOUR API KEY>`|
-
     ### Supported Vehicle Types
 
     Our integrated fleet providers offer a range of different transport vehicles. Below is a table of the vehicle types we offer through our API, including the parcel size and parcel weight recommended for each vehicle.
