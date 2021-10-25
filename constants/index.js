@@ -2,8 +2,14 @@ exports.AUTHORIZATION_KEY = "X-Seconds-Api-Key".toLowerCase();
 exports.PROVIDER_ID = "X-Seconds-Provider-Id".toLowerCase();
 
 exports.DELIVERY_TYPES = {
-	ON_DEMAND: "on-demand",
-	SAME_DAY: "scheduled"
+	ON_DEMAND: {
+		name: 'on-demand',
+		ecofleet: 'on demand'
+	},
+	SAME_DAY: {
+		name: "same-day",
+		ecofleet: 'same day'
+	}
 }
 
 exports.STATUS = {
@@ -24,7 +30,8 @@ exports.SELECTION_STRATEGIES = {
 exports.PROVIDERS = {
 	STUART: "stuart",
 	GOPHR: "gophr",
-	STREET_STREAM: "street_stream"
+	STREET_STREAM: "street_stream",
+	ECOFLEET: "ecofleet"
 }
 
 exports.VEHICLE_CODES = {

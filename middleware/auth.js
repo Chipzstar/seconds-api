@@ -20,7 +20,6 @@ const validateApiKey = async (req, res, next) => {
 		/**
 		 * check if the incoming request is from a fleet provider
 		 */
-
 		//STUART
 		if (apiKey === process.env.STUART_WEBHOOK_KEY) {
 			console.log("API Key is valid!")

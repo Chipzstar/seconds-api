@@ -116,7 +116,7 @@ router.post("/create", async (req, res) => {
 			console.log("***************************************************")
 			winnerQuote = chosenQuote ? chosenQuote.id : null
 		}
-		console.log("SUBSCRIPTION ID", subscriptionId)
+		console.log("SUBSCRIPTION ID", !!subscriptionId)
 		if (subscriptionId) {
 			const {
 				id: spec_id,

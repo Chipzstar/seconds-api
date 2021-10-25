@@ -50,9 +50,10 @@ app.get('/', (req, res) => {
 
 // used by New Relic for keeping the api alive
 app.use('/ping', (req, res) => {
-	console.log("Pinged at " + Date.now())
+	const message = `Pinged at ${new Date().toUTCString()}`
+	console.log(message)
 	res.status(200).json({
-		message: "Pinged at " + Date.now()
+		message
 	})
 })
 

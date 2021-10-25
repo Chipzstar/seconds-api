@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const moment = require('moment-timezone');
 const { nanoid } = require('nanoid');
 const { quoteSchema } = require('../schemas/quote');
-const { SELECTION_STRATEGIES, PROVIDERS, VEHICLE_CODES } = require('../constants');
+const { SELECTION_STRATEGIES, PROVIDERS, VEHICLE_CODES, DELIVERY_TYPES } = require('../constants');
 const { STRATEGIES } = require('../constants/streetStream');
 const { ERROR_CODES: STUART_ERROR_CODES } = require('../constants/stuart');
 const { ERROR_CODES: GOPHR_ERROR_CODES } = require('../constants/gophr');
@@ -91,15 +91,15 @@ function getPackageType(vehicleCode, provider) {
 	}
 }
 
-async function authStreetStream(){
-	const authURL = `${process.env.STREET_STREAM_ENV}/api/tokens`
+async function authStreetStream() {
+	const authURL = `${process.env.STREET_STREAM_ENV}/api/tokens`;
 	const payload = {
-		email: "secondsdelivery@gmail.com",
-		authType: "CUSTOMER",
-		password: process.env.STREET_STREAM_PASSWORD
-	}
-	let res = (await (axios.post(authURL, payload))).headers
-	return res.authorization.split(" ")[1]
+		email: 'secondsdelivery@gmail.com',
+		authType: 'CUSTOMER',
+		password: process.env.STREET_STREAM_PASSWORD,
+	};
+	let res = (await axios.post(authURL, payload)).headers;
+	return res.authorization.split(' ')[1];
 }
 
 async function getResultantQuotes(requestBody) {
@@ -131,6 +131,9 @@ async function providerCreatesJob(provider, ref, strategy, request) {
 		case PROVIDERS.STREET_STREAM:
 			console.log('Creating STREET-STREAM Job');
 			return await streetStreamJobRequest(ref, strategy, request);
+		case PROVIDERS.ECOFLEET:
+			console.log('Creating ECOFLEET Job');
+			return await ecofleetJobRequest(ref, request);
 		// default case if no valid providerId was chosen
 		default:
 			console.log('Creating a STUART Job');
@@ -349,7 +352,7 @@ async function getStreetStreamQuote(params) {
 	const { pickupFormattedAddress, dropoffFormattedAddress, vehicleType } = params;
 	const packageType = getPackageType(vehicleType, PROVIDERS.STREET_STREAM);
 	try {
-		const token = await authStreetStream()
+		const token = await authStreetStream();
 		/*const url = `https://api.heroku.com/apps/seconds-api-dev/config-vars`;
 		let vars = (await axios.get(url, {
 			headers: {
@@ -627,7 +630,7 @@ async function streetStreamJobRequest(refNumber, strategy, params) {
 		},
 	};
 	try {
-		const token = await authStreetStream()
+		const token = await authStreetStream();
 		const config = { headers: { Authorization: `Bearer ${token}` } };
 		const createJobURL = `${process.env.STREET_STREAM_ENV}/api/job/pointtopoint`;
 		const data = (await axios.post(createJobURL, payload, config)).data;
@@ -641,6 +644,82 @@ async function streetStreamJobRequest(refNumber, strategy, params) {
 		};
 	} catch (err) {
 		throw err;
+	}
+}
+
+async function ecofleetJobRequest(refNumber, params) {
+	const {
+		pickupFormattedAddress,
+		pickupPhoneNumber,
+		pickupEmailAddress,
+		pickupBusinessName,
+		pickupFirstName,
+		pickupLastName,
+		pickupInstructions,
+		dropoffFormattedAddress,
+		dropoffPhoneNumber,
+		dropoffEmailAddress,
+		dropoffBusinessName,
+		dropoffFirstName,
+		dropoffLastName,
+		dropoffInstructions,
+		packageDeliveryType,
+		packageDropoffStartTime,
+		packagePickupStartTime,
+		packageDescription,
+		vehicleType,
+	} = params;
+
+	const payload = {
+		pickup: {
+			name: `${pickupFirstName} ${pickupLastName}`,
+			company_name: pickupBusinessName,
+			address_line1: pickupFormattedAddress.street,
+			city: pickupFormattedAddress.city,
+			postal: pickupFormattedAddress.postcode,
+			country: 'England',
+			phone: pickupPhoneNumber,
+			email: pickupEmailAddress,
+			comment: pickupInstructions
+		},
+		drops: [
+			{
+				name: `${dropoffFirstName} ${dropoffLastName}`,
+				company_name: dropoffBusinessName,
+				address_line1: dropoffFormattedAddress.street,
+				city: dropoffFormattedAddress.city,
+				postal: dropoffFormattedAddress.postcode,
+				country: 'England',
+				phone: dropoffPhoneNumber,
+				email: dropoffEmailAddress,
+				comment: dropoffInstructions
+			},
+		],
+		parcel: {
+			weight: VEHICLE_CODES[vehicleType].weight,
+			type: packageDescription ? packageDescription : '[]'
+		},
+		schedule: {
+			type: DELIVERY_TYPES[packageDeliveryType].ecofleet,
+			...(packagePickupStartTime && { pickupWindow: moment(packagePickupStartTime).unix() }),
+			...(packageDropoffStartTime && { dropoffWindow: moment(packageDropoffStartTime).unix() })
+		},
+	};
+	console.log(payload)
+	try {
+		const config = { headers: { Authorization: `Bearer ${process.env.ECOFLEET_API_KEY}` } };
+		const createJobURL = `${process.env.ECOFLEET_ENV}/api/v1/order`;
+		const data = (await axios.post(createJobURL, payload, config)).data;
+		console.log(data);
+		return {
+			id: data.id,
+			trackingURL: null,
+			deliveryFee: data['rate_card']['minimum_cost'],
+			pickupAt: packagePickupStartTime ? moment(packagePickupStartTime).format() : undefined,
+			dropoffAt: packageDropoffStartTime ? moment(packageDropoffStartTime).format() : undefined
+		};
+	} catch (err) {
+		throw err
 	}
 }
 
@@ -721,5 +800,5 @@ module.exports = {
 	getResultantQuotes,
 	providerCreatesJob,
 	handleActiveSubscription,
-	handleCanceledSubscription,
+	handleCanceledSubscription
 };
