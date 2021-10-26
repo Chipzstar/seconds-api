@@ -15,8 +15,6 @@ const router = express.Router();
 function convertWeightToVehicleCode(total_weight) {
 	let vehicleName;
 	let vehicleCode;
-	console.log(Object.keys(VEHICLE_CODES_MAP));
-
 	VEHICLE_CODES.forEach(code => {
 		const { name, weight } = VEHICLE_CODES_MAP[code];
 		if (total_weight > weight) {
@@ -33,7 +31,8 @@ async function createNewJob(order, user) {
 		const itemsCount = order.line_items.reduce(() => (prev, curr) => prev + curr.quantity);
 		const packageDescription = order.line_items.map(order => order['variant_title']).toString();
 		const vehicleType = convertWeightToVehicleCode(order['total_weight'] / 1000).vehicleCode;
-
+		console.log("DETAILS")
+		console.table({itemsCount, packageDescription, vehicleType})
 		const payload = {
 			pickupAddress: user.address,
 			pickupFormattedAddress: {
@@ -65,7 +64,7 @@ async function createNewJob(order, user) {
 			packagePickupEndTime: undefined,
 			packageDropoffStartTime: undefined,
 			packageDropoffEndTime: undefined,
-			packageDeliveryType: DELIVERY_TYPES.ON_DEMAND,
+			packageDeliveryType: DELIVERY_TYPES.ON_DEMAND.name,
 			packageDescription,
 			itemsCount,
 			vehicleType,
@@ -153,7 +152,7 @@ async function createNewJob(order, user) {
 		}
 	} catch (err) {
 		console.error(err);
-		throw err
+		return err
 	}
 }
 
