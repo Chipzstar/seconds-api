@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const moment = require('moment-timezone');
 const { nanoid } = require('nanoid');
 const { quoteSchema } = require('../schemas/quote');
-const { SELECTION_STRATEGIES, PROVIDERS, VEHICLE_CODES, DELIVERY_TYPES } = require('../constants');
+const { SELECTION_STRATEGIES, PROVIDERS, VEHICLE_CODES_MAP, DELIVERY_TYPES } = require('../constants');
 const { STRATEGIES } = require('../constants/streetStream');
 const { ERROR_CODES: STUART_ERROR_CODES } = require('../constants/stuart');
 const { ERROR_CODES: GOPHR_ERROR_CODES } = require('../constants/gophr');
@@ -75,12 +75,12 @@ function genOrderNumber(number) {
 }
 
 function getPackageType(vehicleCode, provider) {
-	if (vehicleCode in VEHICLE_CODES) {
+	if (vehicleCode in VEHICLE_CODES_MAP) {
 		switch (provider) {
 			case PROVIDERS.STUART:
-				return VEHICLE_CODES[vehicleCode].stuartPackageType;
+				return VEHICLE_CODES_MAP[vehicleCode].stuartPackageType;
 			case PROVIDERS.STREET_STREAM:
-				return VEHICLE_CODES[vehicleCode].streetPackageType;
+				return VEHICLE_CODES_MAP[vehicleCode].streetPackageType;
 			default:
 				return '';
 		}
@@ -267,7 +267,7 @@ async function getGophrQuote(params) {
 		packageDropoffStartTime,
 		vehicleType,
 	} = params;
-	const { x: size_x, y: size_y, z: size_z, weight, gophrVehicleType } = VEHICLE_CODES[vehicleType];
+	const { x: size_x, y: size_y, z: size_z, weight, gophrVehicleType } = VEHICLE_CODES_MAP[vehicleType];
 	/*console.log("PICK UP:", moment(packagePickupStartTime).toISOString())
 	console.log("DROP OFF:", moment(packageDropoffStartTime).toISOString())
 	console.log("PICK UP:", moment(packagePickupStartTime).toISOString(true))
@@ -496,7 +496,7 @@ async function gophrJobRequest(refNumber, params) {
 		vehicleType,
 	} = params;
 
-	const { x: size_x, y: size_y, z: size_z, weight, gophrVehicleType } = VEHICLE_CODES[vehicleType];
+	const { x: size_x, y: size_y, z: size_z, weight, gophrVehicleType } = VEHICLE_CODES_MAP[vehicleType];
 	const payload = qs.stringify({
 		api_key: `${process.env.GOPHR_API_KEY}`,
 		external_id: refNumber,
@@ -696,7 +696,7 @@ async function ecofleetJobRequest(refNumber, params) {
 			},
 		],
 		parcel: {
-			weight: VEHICLE_CODES[vehicleType].weight,
+			weight: VEHICLE_CODES_MAP[vehicleType].weight,
 			type: packageDescription ? packageDescription : '[]'
 		},
 		schedule: {

@@ -34,7 +34,8 @@ exports.PROVIDERS = {
 	ECOFLEET: "ecofleet"
 }
 
-exports.VEHICLE_CODES = {
+exports.VEHICLE_CODES = [ 'BIC', 'MTB', 'CAR', 'CGB', 'VAN' ]
+exports.VEHICLE_CODES_MAP = {
 	BIC: {
 		name: "Bicycle",
 		x: 40,

@@ -9,7 +9,7 @@ const {
 	providerCreatesJob,
 	genOrderNumber
 } = require("../helpers");
-const {AUTHORIZATION_KEY, PROVIDER_ID, STATUS, alphabet, VEHICLE_CODES} = require("../constants");
+const {AUTHORIZATION_KEY, PROVIDER_ID, STATUS, alphabet, VEHICLE_CODES_MAP} = require("../constants");
 const moment = require("moment");
 const {customAlphabet} = require("nanoid");
 const mongoose = require("mongoose");
@@ -167,7 +167,7 @@ router.post("/create", async (req, res) => {
 							businessName: pickupBusinessName,
 							instructions: pickupInstructions
 						},
-						transport: VEHICLE_CODES[vehicleType].name
+						transport: VEHICLE_CODES_MAP[vehicleType].name
 					}]
 				},
 				selectedConfiguration: {
