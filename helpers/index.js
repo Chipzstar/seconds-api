@@ -746,59 +746,11 @@ async function ecofleetJobRequest(refNumber, params) {
 	}
 }*/
 
-async function handleActiveSubscription(subscription) {
-	try {
-		console.log(subscription);
-		const { id, customer, status } = subscription;
-		if (status === 'active') {
-			const user = await db.User.findOneAndUpdate(
-				{ stripeCustomerId: customer },
-				{ subscriptionId: id },
-				{ new: true }
-			);
-			console.log('------------------------------------');
-			console.log('updated user:', user);
-			console.log('------------------------------------');
-			return 'Subscription is active';
-		} else {
-			throw new Error('Subscription status is not active');
-		}
-	} catch (err) {
-		console.error(err);
-		throw new Error('No user found with a matching stripe customer ID!');
-	}
-}
-
-async function handleCanceledSubscription(subscription) {
-	try {
-		console.log(subscription);
-		const { customer, status } = subscription;
-		if (status === 'canceled') {
-			const user = await db.User.findOneAndUpdate(
-				{ stripeCustomerId: customer },
-				{ subscriptionId: '' },
-				{ new: true }
-			);
-			console.log('------------------------------------');
-			console.log('updated user:', user);
-			console.log('------------------------------------');
-			return 'Subscription is canceled';
-		} else {
-			throw new Error('Subscription status is not canceled');
-		}
-	} catch (err) {
-		console.error(err);
-		throw new Error('No user found with a matching stripe customer ID!');
-	}
-}
-
 module.exports = {
 	genJobReference,
 	getClientDetails,
 	chooseBestProvider,
 	genOrderNumber,
 	getResultantQuotes,
-	providerCreatesJob,
-	handleActiveSubscription,
-	handleCanceledSubscription
+	providerCreatesJob
 };

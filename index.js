@@ -9,9 +9,6 @@ const morgan = require('morgan');
 const authRoutes = require('./routes/auth');
 const jobRoutes = require('./routes/jobs');
 const quoteRoutes = require('./routes/quotes');
-const paymentRoutes = require('./routes/payments');
-const subscriptionRoutes = require('./routes/subscriptions');
-const stripeRoutes = require('./routes/stripe');
 const stuartRoutes = require('./routes/stuart');
 const gophrRoutes = require('./routes/gophr');
 const streetStreamRoutes = require('./routes/streetStream')
@@ -29,9 +26,6 @@ app.set('port', process.env.PORT || port);
 
 // adding Helmet to enhance your API's security
 app.use(helmet());
-
-//STRIPE WEBHOOKS
-app.use('/api/v1/stripe', stripeRoutes)
 
 // using bodyParser to parse JSON bodies into JS objects
 app.use(bodyParser.json());
@@ -67,10 +61,6 @@ app.use('/api/v1/stuart', validateApiKey, stuartRoutes);
 app.use('/api/v1/gophr', gophrRoutes);
 app.use('/api/v1/ecofleet', ecoFleetRoutes);
 app.use('/api/v1/street-stream', streetStreamRoutes);
-
-// PAYMENTS ROUTES
-app.use('/api/v1/payments', paymentRoutes);
-app.use('/api/v1/subscription', subscriptionRoutes);
 
 // starting the server
 app.listen(port, () => {
