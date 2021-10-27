@@ -39,15 +39,13 @@ async function createNewJob(order, user) {
 		console.log("DETAILS")
 		console.table({itemsCount, packageDescription, vehicleType})
 
-		// get the store location and use as the pickup address
-
 		const payload = {
-			pickupAddress: user.address,
+			pickupAddress: user.fullAddress,
 			pickupFormattedAddress: {
-				street: order.shipping_address['address1'],
-				city: order.shipping_address['city'],
-				postcode: order.shipping_address['zip'],
-				countryCode: 'GB',
+				street: user.address['street'],
+				city: user.address['city'],
+				postcode: user.address['postcode'],
+				countryCode: user.address['countryCode'],
 			},
 			pickupPhoneNumber: user.phone,
 			pickupEmailAddress: user.email,
