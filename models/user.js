@@ -51,7 +51,6 @@ const userSchema = new mongoose.Schema({
 		}
 	},
 	shopify: {
-		orders: [],
 		products: [],
 		shopId: String,
 		shopOwner: String,

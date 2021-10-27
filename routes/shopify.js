@@ -13,8 +13,9 @@ const moment = require('moment');
 const router = express.Router();
 
 function convertWeightToVehicleCode(total_weight) {
-	let vehicleName;
-	let vehicleCode;
+	console.log("Total Weight", total_weight)
+	let vehicleName = "Bicycle";
+	let vehicleCode = "BIC";
 	VEHICLE_CODES.forEach(code => {
 		const { name, weight } = VEHICLE_CODES_MAP[code];
 		if (total_weight > weight) {
@@ -28,11 +29,18 @@ function convertWeightToVehicleCode(total_weight) {
 async function createNewJob(order, user) {
 	try {
 		const clientRefNumber = genJobReference();
-		const itemsCount = order.line_items.reduce(() => (prev, curr) => prev + curr.quantity);
-		const packageDescription = order.line_items.map(order => order['variant_title']).toString();
+		console.log("************************************")
+		console.log(order)
+		console.log("************************************")
+		const itemsCount = order.line_items.reduce((prev, curr) => prev.quantity + curr.quantity);
+		const packageDescription = order.line_items.map(item => item['title']).join("\n")
+		console.log(order['total_weight'])
 		const vehicleType = convertWeightToVehicleCode(order['total_weight'] / 1000).vehicleCode;
 		console.log("DETAILS")
 		console.table({itemsCount, packageDescription, vehicleType})
+
+		// get the store location and use as the pickup address
+
 		const payload = {
 			pickupAddress: user.address,
 			pickupFormattedAddress: {
@@ -170,7 +178,7 @@ router.post('/', async (req, res) => {
 			console.log('-----------------------------');
 			// check that the shop domain belongs to a user
 			const user = await db.User.findOne({ 'shopify.domain': shop });
-			console.log(user);
+			console.log("User Found:", !!user);
 			if (user) {
 				await createNewJob(req.body, user);
 				res.status(200).json({
