@@ -26,9 +26,27 @@ const userSchema = new mongoose.Schema({
 		type: String,
 		required: true
 	},
-	address: {
+	fullAddress: {
 		type: String,
 		required: true
+	},
+	address: {
+		street: {
+			type: String,
+			default: ''
+		},
+		city: {
+			type: String,
+			default: ''
+		},
+		postcode: {
+			type: String,
+			default: ''
+		},
+		countryCode: {
+			type: String,
+			default: 'GB'
+		}
 	},
 	password: {
 		type: String,
