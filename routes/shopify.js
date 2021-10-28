@@ -65,7 +65,7 @@ async function createNewJob(order, user) {
 			dropoffBusinessName: order.shipping_address.company,
 			dropoffFirstName: order.customer.first_name,
 			dropoffLastName: order.customer.last_name,
-			dropoffInstructions: '',
+			dropoffInstructions: order.customer['note'] ? order.customer['note'] : '',
 			packagePickupStartTime: undefined,
 			packagePickupEndTime: undefined,
 			packageDropoffStartTime: undefined,
@@ -79,7 +79,7 @@ async function createNewJob(order, user) {
 		console.log("Payload")
 		console.log(payload)
 		console.log("-----------------------------------")
-		const { _id: email, clientId, selectionStrategy, subscriptionId } = user;
+		const { _id: clientId, email, selectionStrategy, subscriptionId } = user;
 		const QUOTES = await getResultantQuotes(payload);
 		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
 		const providerId = bestQuote.providerId;
