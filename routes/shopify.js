@@ -185,7 +185,7 @@ router.post('/', async (req, res) => {
 				const isLocalDelivery = req.body['shipping_lines'][0].code === DELIVERY_METHODS.LOCAL;
 				console.log("isLocalDelivery:", isLocalDelivery)
 				if (isLocalDelivery) {
-					await createNewJob(req.body, user);
+					createNewJob(req.body, user);
 					res.status(200).json({
 						success: true,
 						status: 'DELIVERY_JOB_CREATED',
