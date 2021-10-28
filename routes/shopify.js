@@ -10,6 +10,7 @@ const {
 } = require('../helpers');
 const { DELIVERY_TYPES, VEHICLE_CODES_MAP, VEHICLE_CODES, STATUS } = require('../constants');
 const moment = require('moment');
+const { DELIVERY_METHODS } = require('../constants/shopify');
 const router = express.Router();
 
 function convertWeightToVehicleCode(total_weight) {
@@ -32,7 +33,10 @@ async function createNewJob(order, user) {
 		console.log('************************************');
 		console.log(order);
 		console.log('************************************');
-		const itemsCount = order.line_items.reduce((prev, curr) => prev.quantity + curr.quantity);
+		const itemsCount = order.line_items.reduce((prev, curr) => {
+			console.log(prev, curr)
+			return prev + curr.quantity
+		}, 0);
 		const packageDescription = order.line_items.map(item => item['title']).join('\n');
 		console.log(order['total_weight']);
 		const vehicleType = convertWeightToVehicleCode(order['total_weight'] / 1000).vehicleCode;
@@ -178,7 +182,8 @@ router.post('/', async (req, res) => {
 			console.log('User Found:', !!user);
 			if (user) {
 				// CHECK if the incoming delivery is a local delivery
-				const isLocalDelivery = req.body['shipping_lines'][0].code === 'Local delivery';
+				const isLocalDelivery = req.body['shipping_lines'][0].code === DELIVERY_METHODS.LOCAL;
+				console.log("isLocalDelivery:", isLocalDelivery)
 				if (isLocalDelivery) {
 					await createNewJob(req.body, user);
 					res.status(200).json({
