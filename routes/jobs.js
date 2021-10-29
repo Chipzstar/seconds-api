@@ -132,6 +132,7 @@ router.post("/create", async (req, res) => {
 				createdAt: moment().format(),
 				jobSpecification: {
 					id: spec_id,
+					shopifyId: null,
 					orderNumber: genOrderNumber(jobs.length),
 					deliveryType: packageDeliveryType,
 					packages: [{

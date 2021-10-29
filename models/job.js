@@ -11,6 +11,10 @@ const jobSchema = new mongoose.Schema({
 			type: String,
 			required: true,
 		},
+		shopifyId: {
+			type: String,
+			default: null
+		},
 		deliveryType: String,
 		orderNumber: {
 			type: String,

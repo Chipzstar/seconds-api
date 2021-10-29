@@ -102,6 +102,7 @@ async function createNewJob(order, user) {
 				createdAt: moment().format(),
 				jobSpecification: {
 					id: spec_id,
+					shopifyId: order.id,
 					orderNumber: genOrderNumber(jobs.length),
 					deliveryType: payload.packageDeliveryType,
 					packages: [

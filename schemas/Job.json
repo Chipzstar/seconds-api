@@ -31,6 +31,10 @@
 		"id": {
 		  "type": "string"
 		},
+		"shopifyId": {
+		  "type": "string",
+		  "default": null
+		},
 		"deliveryType": {
 		  "type": "string"
 		},

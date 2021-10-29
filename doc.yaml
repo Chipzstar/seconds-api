@@ -195,6 +195,7 @@ components:
               transport: 'Searching'
             jobSpecification:
               id: 100172991
+              shopifyId: null
               orderNumber: 30
               deliveryType: 'on-demand'
               packages:
@@ -266,6 +267,7 @@ components:
               transport: 'bike'
             jobSpecification:
               id: 100172991
+              shopifyId: null
               orderNumber: 30
               deliveryType: 'on-demand'
               packages:
@@ -337,6 +339,7 @@ components:
               transport: 'bike'
             jobSpecification:
               id: 100172991
+              shopifyId: null
               orderNumber: 30
               deliveryType: 'on-demand'
               packages:
@@ -564,6 +567,7 @@ paths:
                   jobId: 6151c1f38a9660a0241d2e06
                   jobSpecification:
                     id: 100172991
+                    shopifyId: null
                     orderNumber: 30
                     deliveryType: 'on-demand'
                     packages:
@@ -624,6 +628,7 @@ paths:
                   jobId: 6151c1f38a9660a0241d2e06
                   jobSpecification:
                     id: 100172991
+                    shopifyId: null
                     orderNumber: 30
                     deliveryType: 'on-demand'
                     packages:
