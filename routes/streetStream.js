@@ -27,13 +27,16 @@ async function update(data){
 		const {status: STATUS, jobId: ID } = data
 		console.log({STATUS, ID})
 		// update the status for the current job
-		let {_doc: { _id, ...job} } = await db.Job.findOneAndUpdate(
+		let job = await db.Job.findOneAndUpdate(
 			{"jobSpecification.id": ID},
 			{"status": translateStreetStreamStatus(STATUS)},
 			{new: true}
 		)
-		console.log(job)
-		return job.status
+		if (job){
+			console.log(job)
+			return job.status
+		}
+		throw {status: "NO_JOB_FOUND", message: `The jobId ${ID} does not exist`}
 	} catch (err) {
 		console.error(err)
 		throw err
@@ -44,12 +47,16 @@ router.post("/", async (req, res) => {
 	try {
 		let jobStatus = await update(req.body)
 	    res.status(200).send({
-		    new_status: jobStatus
+		    success: true,
+		    status: "NEW_JOB_STATUS",
+		    message: `$Job status is now ${jobStatus}`
 	    })
 	} catch (err) {
 	    console.error(err)
 		res.status(200).json({
-			error: { ...err}
+			success: false,
+			status: err.status,
+			message: err.message
 		})
 	}
 })
