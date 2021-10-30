@@ -38,7 +38,6 @@ async function update(data){
 		}
 		throw {status: "NO_JOB_FOUND", message: `The jobId ${ID} does not exist`}
 	} catch (err) {
-		console.error(err)
 		throw err
 	}
 }
@@ -49,7 +48,7 @@ router.post("/", async (req, res) => {
 	    res.status(200).send({
 		    success: true,
 		    status: "NEW_JOB_STATUS",
-		    message: `$Job status is now ${jobStatus}`
+		    message: `Job status is now ${jobStatus}`
 	    })
 	} catch (err) {
 	    console.error(err)
