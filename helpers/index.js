@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { Client } = require('@googlemaps/google-maps-services-js');
 const { pickupSchema, dropoffSchema } = require('../schemas/stuart/CreateJob');
 const qs = require('qs');
 const db = require('../models');
@@ -6,10 +7,12 @@ const crypto = require('crypto');
 const moment = require('moment-timezone');
 const { nanoid } = require('nanoid');
 const { quoteSchema } = require('../schemas/quote');
-const { SELECTION_STRATEGIES, PROVIDERS, VEHICLE_CODES_MAP, DELIVERY_TYPES } = require('../constants');
+const { SELECTION_STRATEGIES, PROVIDERS, VEHICLE_CODES_MAP, DELIVERY_TYPES, VEHICLE_CODES } = require('../constants');
 const { STRATEGIES } = require('../constants/streetStream');
 const { ERROR_CODES: STUART_ERROR_CODES } = require('../constants/stuart');
 const { ERROR_CODES: GOPHR_ERROR_CODES } = require('../constants/gophr');
+
+const client = new Client();
 
 function genAssignmentCode() {
 	const rand = crypto.randomBytes(7);
@@ -74,20 +77,60 @@ function genOrderNumber(number) {
 	return number.toString().padStart(4, '0');
 }
 
-function getPackageType(vehicleCode, provider) {
-	if (vehicleCode in VEHICLE_CODES_MAP) {
-		switch (provider) {
-			case PROVIDERS.STUART:
-				return VEHICLE_CODES_MAP[vehicleCode].stuartPackageType;
-			case PROVIDERS.STREET_STREAM:
-				return VEHICLE_CODES_MAP[vehicleCode].streetPackageType;
-			default:
-				return '';
-		}
+async function calculateJobDistance(origin, destination, mode) {
+	console.log('PICKUP:', origin);
+	console.log('DROPOFF:', destination);
+	try {
+		const distanceMatrix = (
+			await client.distancematrix({
+				params: {
+					origins: [origin],
+					destinations: [destination],
+					key: process.env.GOOGLE_MAPS_API_KEY,
+					units: 'imperial',
+					mode,
+				},
+				responseType: 'json',
+			})
+		).data;
+		let distance = Number(distanceMatrix.rows[0].elements[0].distance.text.split(' ')[0]);
+		console.log('================================================');
+		console.log('JOB DISTANCE');
+		console.log(distance);
+		console.log('================================================');
+		return distance;
+	} catch (err) {
+		throw err;
+	}
+}
+
+function getVehicleSpecs(vehicleCode) {
+	if (VEHICLE_CODES.includes(vehicleCode)) {
+		return VEHICLE_CODES_MAP[vehicleCode];
 	} else {
 		throw new Error(
 			`Vehicle code ${vehicleCode} is not recognized. Please check our list of allowed vehicle codes`
 		);
+	}
+}
+
+async function checkAlternativeVehicles(pickup, dropoff, jobDistance, travelMode) {
+	try {
+		for (let [code, specs] of Object.entries(VEHICLE_CODES_MAP)) {
+			// if travelMode of the transport type changes, calculate the job distance again using the new mode
+			if (travelMode !== specs.travelMode)
+				jobDistance = await calculateJobDistance(pickup, dropoff, specs.travelMode);
+			if (jobDistance <= specs.maxDistance) {
+				console.log('Changing Vehicle Type:', specs.name);
+				return specs;
+			}
+		}
+		return Promise.reject({
+			message: 'Job distance exceeds the maximum limit. The maximum distance for delivery jobs is 12 miles',
+			code: 400,
+		});
+	} catch (err) {
+		console.log(err);
 	}
 }
 
@@ -102,35 +145,34 @@ async function authStreetStream() {
 	return res.authorization.split(' ')[1];
 }
 
-async function getResultantQuotes(requestBody) {
+async function getResultantQuotes(requestBody, vehicleSpecs) {
 	try {
 		const QUOTES = [];
 		// QUOTE AGGREGATION
 		// send delivery request to integrated providers
-		let stuartQuote = await getStuartQuote(genJobReference(), requestBody);
+		let stuartQuote = await getStuartQuote(genJobReference(), requestBody, vehicleSpecs);
 		QUOTES.push(stuartQuote);
-		let gophrQuote = await getGophrQuote(requestBody);
+		let gophrQuote = await getGophrQuote(requestBody, vehicleSpecs);
 		QUOTES.push(gophrQuote);
-		let streetStreamQuote = await getStreetStreamQuote(requestBody);
+		let streetStreamQuote = await getStreetStreamQuote(requestBody, vehicleSpecs);
 		QUOTES.push(streetStreamQuote);
 		return QUOTES;
 	} catch (err) {
-		console.error(err);
 		throw err;
 	}
 }
 
-async function providerCreatesJob(provider, ref, strategy, request) {
+async function providerCreatesJob(provider, ref, strategy, request, vehicleSpecs) {
 	switch (provider) {
 		case PROVIDERS.STUART:
 			console.log('Creating STUART Job');
-			return await stuartJobRequest(ref, request);
+			return await stuartJobRequest(ref, request, vehicleSpecs);
 		case PROVIDERS.GOPHR:
 			console.log('Creating GOPHR Job');
-			return await gophrJobRequest(ref, request);
+			return await gophrJobRequest(ref, request, vehicleSpecs);
 		case PROVIDERS.STREET_STREAM:
 			console.log('Creating STREET-STREAM Job');
-			return await streetStreamJobRequest(ref, strategy, request);
+			return await streetStreamJobRequest(ref, strategy, request, vehicleSpecs);
 		case PROVIDERS.ECOFLEET:
 			console.log('Creating ECOFLEET Job');
 			return await ecofleetJobRequest(ref, request);
@@ -150,7 +192,7 @@ async function getClientDetails(apiKey) {
 	}
 }
 
-async function getStuartQuote(reference, params) {
+async function getStuartQuote(reference, params, vehicleSpecs) {
 	const {
 		pickupAddress,
 		pickupPhoneNumber,
@@ -169,52 +211,50 @@ async function getStuartQuote(reference, params) {
 		packageDropoffStartTime,
 		packageDropoffEndTime,
 		packagePickupStartTime,
-		vehicleType,
 	} = params;
-
-	const payload = {
-		job: {
-			...(packagePickupStartTime && { pickup_at: moment(packagePickupStartTime).toISOString() }),
-			assignment_code: genAssignmentCode(),
-			pickups: [
-				{
-					...pickupSchema,
-					address: pickupAddress,
-					comment: pickupInstructions,
-					contact: {
-						firstname: pickupFirstName,
-						lastname: pickupLastName,
-						phone: pickupPhoneNumber,
-						email: pickupEmailAddress,
-						company: pickupBusinessName,
-					},
-				},
-			],
-			dropoffs: [
-				{
-					...dropoffSchema,
-					package_type: getPackageType(vehicleType, PROVIDERS.STUART),
-					client_reference: reference,
-					address: dropoffAddress,
-					comment: dropoffInstructions,
-					contact: {
-						firstname: dropoffFirstName,
-						lastname: dropoffLastName,
-						phone: dropoffPhoneNumber,
-						email: dropoffEmailAddress,
-						company: dropoffBusinessName,
-					},
-					...(packageDropoffStartTime && { end_customer_time_window_start: packageDropoffStartTime }),
-					...(packageDropoffEndTime && { end_customer_time_window_end: packageDropoffEndTime }),
-				},
-			],
-		},
-	};
-	console.log('PAYLOAD');
-	console.log('--------------------------');
-	console.log({ ...payload.job });
-	console.log('--------------------------');
 	try {
+		const payload = {
+			job: {
+				...(packagePickupStartTime && { pickup_at: moment(packagePickupStartTime).toISOString() }),
+				assignment_code: genAssignmentCode(),
+				pickups: [
+					{
+						...pickupSchema,
+						address: pickupAddress,
+						comment: pickupInstructions,
+						contact: {
+							firstname: pickupFirstName,
+							lastname: pickupLastName,
+							phone: pickupPhoneNumber,
+							email: pickupEmailAddress,
+							company: pickupBusinessName,
+						},
+					},
+				],
+				dropoffs: [
+					{
+						...dropoffSchema,
+						package_type: vehicleSpecs.stuartPackageType,
+						client_reference: reference,
+						address: dropoffAddress,
+						comment: dropoffInstructions,
+						contact: {
+							firstname: dropoffFirstName,
+							lastname: dropoffLastName,
+							phone: dropoffPhoneNumber,
+							email: dropoffEmailAddress,
+							company: dropoffBusinessName,
+						},
+						...(packageDropoffStartTime && { end_customer_time_window_start: packageDropoffStartTime }),
+						...(packageDropoffEndTime && { end_customer_time_window_end: packageDropoffEndTime }),
+					},
+				],
+			},
+		};
+		console.log('PAYLOAD');
+		console.log('--------------------------');
+		console.log({ ...payload.job });
+		console.log('--------------------------');
 		const config = { headers: { Authorization: `Bearer ${process.env.STUART_API_KEY}` } };
 		const priceURL = `${process.env.STUART_ENV}/v2/jobs/pricing`;
 		const etaURL = `${process.env.STUART_ENV}/v2/jobs/eta`;
@@ -259,42 +299,35 @@ async function getStuartQuote(reference, params) {
 	}
 }
 
-async function getGophrQuote(params) {
-	const {
-		pickupFormattedAddress,
-		dropoffFormattedAddress,
-		packagePickupStartTime,
-		packageDropoffStartTime,
-		vehicleType,
-	} = params;
-	const { x: size_x, y: size_y, z: size_z, weight, gophrVehicleType } = VEHICLE_CODES_MAP[vehicleType];
-	/*console.log("PICK UP:", moment(packagePickupStartTime).toISOString())
-	console.log("DROP OFF:", moment(packageDropoffStartTime).toISOString())
-	console.log("PICK UP:", moment(packagePickupStartTime).toISOString(true))
-	console.log("DROP OFF:", moment(packageDropoffStartTime).toISOString(true))*/
-	const payload = qs.stringify({
-		api_key: `${process.env.GOPHR_API_KEY}`,
-		pickup_address1: pickupFormattedAddress['street'],
-		...(pickupFormattedAddress.city && { pickup_city: pickupFormattedAddress.city }),
-		pickup_postcode: pickupFormattedAddress.postcode,
-		pickup_country_code: pickupFormattedAddress['countryCode'],
-		size_x,
-		size_y,
-		size_z,
-		weight,
-		vehicle_type: gophrVehicleType,
-		...(packagePickupStartTime && { earliest_pickup_time: moment(packagePickupStartTime).toISOString(true) }),
-		...(packageDropoffStartTime && { earliest_delivery_time: moment(packageDropoffStartTime).toISOString(true) }),
-		delivery_address1: dropoffFormattedAddress['street'],
-		...(dropoffFormattedAddress.city && { delivery_city: dropoffFormattedAddress.city }),
-		delivery_postcode: dropoffFormattedAddress.postcode,
-		delivery_country_code: dropoffFormattedAddress['countryCode'],
-	});
-	console.log('PAYLOAD');
-	console.log('--------------------------');
-	console.log(JSON.parse(JSON.stringify(payload)));
-	console.log('--------------------------');
+async function getGophrQuote(params, vehicleSpecs) {
+	const { pickupFormattedAddress, dropoffFormattedAddress, packagePickupStartTime, packageDropoffStartTime } = params;
+	// get gophr vehicle/package specs
 	try {
+		const { x: size_x, y: size_y, z: size_z, weight, gophrVehicleType } = vehicleSpecs;
+		const payload = qs.stringify({
+			api_key: `${process.env.GOPHR_API_KEY}`,
+			pickup_address1: pickupFormattedAddress['street'],
+			...(pickupFormattedAddress.city && { pickup_city: pickupFormattedAddress.city }),
+			pickup_postcode: pickupFormattedAddress.postcode,
+			pickup_country_code: pickupFormattedAddress['countryCode'],
+			size_x,
+			size_y,
+			size_z,
+			weight,
+			vehicle_type: gophrVehicleType,
+			...(packagePickupStartTime && { earliest_pickup_time: moment(packagePickupStartTime).toISOString(true) }),
+			...(packageDropoffStartTime && {
+				earliest_delivery_time: moment(packageDropoffStartTime).toISOString(true),
+			}),
+			delivery_address1: dropoffFormattedAddress['street'],
+			...(dropoffFormattedAddress.city && { delivery_city: dropoffFormattedAddress.city }),
+			delivery_postcode: dropoffFormattedAddress.postcode,
+			delivery_country_code: dropoffFormattedAddress['countryCode'],
+		});
+		console.log('PAYLOAD');
+		console.log('--------------------------');
+		console.log(JSON.parse(JSON.stringify(payload)));
+		console.log('--------------------------');
 		const config = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
 		const quoteURL = `${process.env.GOPHR_ENV}/v1/commercial-api/get-a-quote`;
 		let response = (await axios.post(quoteURL, payload, config)).data;
@@ -321,7 +354,6 @@ async function getGophrQuote(params) {
 			console.log('----------------------------');
 			return quote;
 		} else {
-			console.log(response.error);
 			if (response.error.code === GOPHR_ERROR_CODES.ERROR_MAX_DISTANCE_EXCEEDED) {
 				throw { ...response.error, code: 400 };
 			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_SAME_LAT_LNG) {
@@ -348,9 +380,8 @@ async function getGophrQuote(params) {
 	}
 }
 
-async function getStreetStreamQuote(params) {
-	const { pickupFormattedAddress, dropoffFormattedAddress, vehicleType } = params;
-	const packageType = getPackageType(vehicleType, PROVIDERS.STREET_STREAM);
+async function getStreetStreamQuote(params, vehicleSpecs) {
+	const { pickupFormattedAddress, dropoffFormattedAddress } = params;
 	try {
 		const token = await authStreetStream();
 		/*const url = `https://api.heroku.com/apps/seconds-api-dev/config-vars`;
@@ -365,7 +396,7 @@ async function getStreetStreamQuote(params) {
 			params: {
 				startPostcode: pickupFormattedAddress.postcode,
 				endPostcode: dropoffFormattedAddress.postcode,
-				packageTypeId: packageType,
+				packageTypeId: vehicleSpecs.streetPackageType,
 			},
 		};
 		const quoteURL = `${process.env.STREET_STREAM_ENV}/api/estimate`;
@@ -394,7 +425,7 @@ async function getStreetStreamQuote(params) {
 	}
 }
 
-async function stuartJobRequest(refNumber, params) {
+async function stuartJobRequest(refNumber, params, vehicleSpecs) {
 	const {
 		pickupAddress,
 		pickupPhoneNumber,
@@ -414,48 +445,47 @@ async function stuartJobRequest(refNumber, params) {
 		packageDropoffEndTime,
 		packagePickupStartTime,
 		packageDescription,
-		vehicleType,
 	} = params;
-	const payload = {
-		job: {
-			pickup_at: moment(packagePickupStartTime, 'DD/MM/YYYY HH:mm:ss'),
-			assignment_code: genAssignmentCode(),
-			pickups: [
-				{
-					...pickupSchema,
-					address: pickupAddress,
-					comment: pickupInstructions,
-					contact: {
-						firstname: pickupFirstName,
-						lastname: pickupLastName,
-						phone: pickupPhoneNumber,
-						email: pickupEmailAddress,
-						company: pickupBusinessName,
-					},
-				},
-			],
-			dropoffs: [
-				{
-					...dropoffSchema,
-					package_type: getPackageType(vehicleType, PROVIDERS.STUART),
-					package_description: packageDescription,
-					client_reference: refNumber,
-					address: dropoffAddress,
-					comment: dropoffInstructions,
-					contact: {
-						firstname: dropoffFirstName,
-						lastname: dropoffLastName,
-						phone: dropoffPhoneNumber,
-						email: dropoffEmailAddress,
-						company: dropoffBusinessName,
-					},
-					end_customer_time_window_start: packageDropoffStartTime,
-					end_customer_time_window_end: packageDropoffEndTime,
-				},
-			],
-		},
-	};
 	try {
+		const payload = {
+			job: {
+				pickup_at: moment(packagePickupStartTime, 'DD/MM/YYYY HH:mm:ss'),
+				assignment_code: genAssignmentCode(),
+				pickups: [
+					{
+						...pickupSchema,
+						address: pickupAddress,
+						comment: pickupInstructions,
+						contact: {
+							firstname: pickupFirstName,
+							lastname: pickupLastName,
+							phone: pickupPhoneNumber,
+							email: pickupEmailAddress,
+							company: pickupBusinessName,
+						},
+					},
+				],
+				dropoffs: [
+					{
+						...dropoffSchema,
+						package_type: vehicleSpecs.stuartPackageType,
+						package_description: packageDescription,
+						client_reference: refNumber,
+						address: dropoffAddress,
+						comment: dropoffInstructions,
+						contact: {
+							firstname: dropoffFirstName,
+							lastname: dropoffLastName,
+							phone: dropoffPhoneNumber,
+							email: dropoffEmailAddress,
+							company: dropoffBusinessName,
+						},
+						end_customer_time_window_start: packageDropoffStartTime,
+						end_customer_time_window_end: packageDropoffEndTime,
+					},
+				],
+			},
+		};
 		const URL = `${process.env.STUART_ENV}/v2/jobs`;
 		const config = { headers: { Authorization: `Bearer ${process.env.STUART_API_KEY}` } };
 		let data = (await axios.post(URL, payload, config)).data;
@@ -472,7 +502,7 @@ async function stuartJobRequest(refNumber, params) {
 	}
 }
 
-async function gophrJobRequest(refNumber, params) {
+async function gophrJobRequest(refNumber, params, vehicleSpecs) {
 	const {
 		pickupFormattedAddress,
 		pickupPhoneNumber,
@@ -493,44 +523,45 @@ async function gophrJobRequest(refNumber, params) {
 		packageDropoffEndTime,
 		packagePickupStartTime,
 		packagePickupEndTime,
-		vehicleType,
 	} = params;
 
-	const { x: size_x, y: size_y, z: size_z, weight, gophrVehicleType } = VEHICLE_CODES_MAP[vehicleType];
-	const payload = qs.stringify({
-		api_key: `${process.env.GOPHR_API_KEY}`,
-		external_id: refNumber,
-		reference_number: refNumber,
-		pickup_person_name: `${pickupFirstName} ${pickupLastName}`,
-		pickup_mobile_number: `${pickupPhoneNumber}`,
-		pickup_company_name: `${pickupBusinessName}`,
-		pickup_email: pickupEmailAddress,
-		delivery_person_name: `${dropoffFirstName} ${dropoffLastName}`,
-		delivery_mobile_number: `${dropoffPhoneNumber}`,
-		delivery_company_name: `${dropoffBusinessName}`,
-		delivery_email: `${dropoffEmailAddress}`,
-		pickup_address1: `${pickupFormattedAddress['street']}`,
-		...(pickupFormattedAddress.city && { pickup_city: `${pickupFormattedAddress.city}` }),
-		pickup_postcode: `${pickupFormattedAddress.postcode}`,
-		pickup_country_code: `${pickupFormattedAddress['countryCode']}`,
-		pickup_tips_how_to_find: `${pickupInstructions}`,
-		size_x,
-		size_y,
-		size_z,
-		weight,
-		vehicle_type: gophrVehicleType,
-		...(packagePickupStartTime && { earliest_pickup_time: moment(packagePickupStartTime).toISOString(true) }),
-		...(packageDropoffStartTime && { earliest_delivery_time: moment(packageDropoffStartTime).toISOString(true) }),
-		...(packagePickupEndTime && { pickup_deadline: moment(packagePickupEndTime).toISOString(true) }),
-		...(packageDropoffEndTime && { dropoff_deadline: moment(packageDropoffEndTime).toISOString(true) }),
-		delivery_address1: `${dropoffFormattedAddress['street']}`,
-		...(dropoffFormattedAddress.city && { delivery_city: `${dropoffFormattedAddress.city}` }),
-		delivery_postcode: `${dropoffFormattedAddress.postcode}`,
-		delivery_country_code: `${dropoffFormattedAddress['countryCode']}`,
-		delivery_tips_how_to_find: `${dropoffInstructions}`,
-	});
-	console.log(payload);
 	try {
+		const { x: size_x, y: size_y, z: size_z, weight, gophrVehicleType } = vehicleSpecs;
+		const payload = qs.stringify({
+			api_key: `${process.env.GOPHR_API_KEY}`,
+			external_id: refNumber,
+			reference_number: refNumber,
+			pickup_person_name: `${pickupFirstName} ${pickupLastName}`,
+			pickup_mobile_number: `${pickupPhoneNumber}`,
+			pickup_company_name: `${pickupBusinessName}`,
+			pickup_email: pickupEmailAddress,
+			delivery_person_name: `${dropoffFirstName} ${dropoffLastName}`,
+			delivery_mobile_number: `${dropoffPhoneNumber}`,
+			delivery_company_name: `${dropoffBusinessName}`,
+			delivery_email: `${dropoffEmailAddress}`,
+			pickup_address1: `${pickupFormattedAddress['street']}`,
+			...(pickupFormattedAddress.city && { pickup_city: `${pickupFormattedAddress.city}` }),
+			pickup_postcode: `${pickupFormattedAddress.postcode}`,
+			pickup_country_code: `${pickupFormattedAddress['countryCode']}`,
+			pickup_tips_how_to_find: `${pickupInstructions}`,
+			size_x,
+			size_y,
+			size_z,
+			weight,
+			vehicle_type: gophrVehicleType,
+			...(packagePickupStartTime && { earliest_pickup_time: moment(packagePickupStartTime).toISOString(true) }),
+			...(packageDropoffStartTime && {
+				earliest_delivery_time: moment(packageDropoffStartTime).toISOString(true),
+			}),
+			...(packagePickupEndTime && { pickup_deadline: moment(packagePickupEndTime).toISOString(true) }),
+			...(packageDropoffEndTime && { dropoff_deadline: moment(packageDropoffEndTime).toISOString(true) }),
+			delivery_address1: `${dropoffFormattedAddress['street']}`,
+			...(dropoffFormattedAddress.city && { delivery_city: `${dropoffFormattedAddress.city}` }),
+			delivery_postcode: `${dropoffFormattedAddress.postcode}`,
+			delivery_country_code: `${dropoffFormattedAddress['countryCode']}`,
+			delivery_tips_how_to_find: `${dropoffInstructions}`,
+		});
+		console.log(payload);
 		const config = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
 		const createJobURL = `${process.env.GOPHR_ENV}/v1/commercial-api/create-confirm-job`;
 		const response = (await axios.post(createJobURL, payload, config)).data;
@@ -549,7 +580,7 @@ async function gophrJobRequest(refNumber, params) {
 				dropoffAt: delivery_eta,
 			};
 		} else {
-			console.log(response.error);
+			// TODO - refactor into its own function
 			if (response.error.code === GOPHR_ERROR_CODES.ERROR_MAX_DISTANCE_EXCEEDED) {
 				throw { ...response.error, code: 400 };
 			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_SAME_LAT_LNG) {
@@ -575,7 +606,7 @@ async function gophrJobRequest(refNumber, params) {
 	}
 }
 
-async function streetStreamJobRequest(refNumber, strategy, params) {
+async function streetStreamJobRequest(refNumber, strategy, params, vehicleSpecs) {
 	const {
 		pickupFormattedAddress,
 		pickupPhoneNumber,
@@ -591,45 +622,43 @@ async function streetStreamJobRequest(refNumber, strategy, params) {
 		packageDropoffEndTime,
 		packagePickupStartTime,
 		packagePickupEndTime,
-		vehicleType,
 	} = params;
-
-	const payload = {
-		offerAcceptanceStrategy:
-			strategy === SELECTION_STRATEGIES.RATING
-				? STRATEGIES.AUTO_HIGHEST_RATED_COURIER
-				: STRATEGIES.AUTO_CLOSEST_COURIER_TO_ME,
-		packageTypeId: getPackageType(vehicleType, PROVIDERS.STREET_STREAM),
-		jobLabel: refNumber,
-		insuranceCover: 'PERSONAL',
-		submitForQuotesImmediately: true,
-		pickUp: {
-			contactNumber: pickupPhoneNumber,
-			contactName: `${pickupFirstName} ${pickupLastName}`,
-			addressOne: pickupFormattedAddress.street,
-			city: pickupFormattedAddress.city,
-			postcode: pickupFormattedAddress.postcode,
-			pickUpNotes: pickupInstructions,
-			pickUpFrom: packagePickupStartTime ? moment(packagePickupStartTime).format() : moment().format(),
-			pickUpTo: packagePickupEndTime
-				? moment(packagePickupEndTime).format()
-				: moment().add(5, 'minutes').format(),
-		},
-		dropOff: {
-			contactNumber: dropoffPhoneNumber,
-			contactName: `${dropoffFirstName} ${dropoffLastName}`,
-			addressOne: dropoffFormattedAddress.street,
-			city: dropoffFormattedAddress.city,
-			postcode: dropoffFormattedAddress.postcode,
-			dropOffFrom: packageDropoffStartTime ? moment(packageDropoffStartTime).format() : moment().format(),
-			dropOffTo: packageDropoffEndTime
-				? moment(packageDropoffEndTime).format()
-				: moment().add(5, 'minutes').format(),
-			clientTag: refNumber,
-			deliveryNotes: dropoffInstructions,
-		},
-	};
 	try {
+		const payload = {
+			offerAcceptanceStrategy:
+				strategy === SELECTION_STRATEGIES.RATING
+					? STRATEGIES.AUTO_HIGHEST_RATED_COURIER
+					: STRATEGIES.AUTO_CLOSEST_COURIER_TO_ME,
+			packageTypeId: vehicleSpecs.streetPackageType,
+			jobLabel: refNumber,
+			insuranceCover: 'PERSONAL',
+			submitForQuotesImmediately: true,
+			pickUp: {
+				contactNumber: pickupPhoneNumber,
+				contactName: `${pickupFirstName} ${pickupLastName}`,
+				addressOne: pickupFormattedAddress.street,
+				city: pickupFormattedAddress.city,
+				postcode: pickupFormattedAddress.postcode,
+				pickUpNotes: pickupInstructions,
+				pickUpFrom: packagePickupStartTime ? moment(packagePickupStartTime).format() : moment().format(),
+				pickUpTo: packagePickupEndTime
+					? moment(packagePickupEndTime).format()
+					: moment().add(5, 'minutes').format(),
+			},
+			dropOff: {
+				contactNumber: dropoffPhoneNumber,
+				contactName: `${dropoffFirstName} ${dropoffLastName}`,
+				addressOne: dropoffFormattedAddress.street,
+				city: dropoffFormattedAddress.city,
+				postcode: dropoffFormattedAddress.postcode,
+				dropOffFrom: packageDropoffStartTime ? moment(packageDropoffStartTime).format() : moment().format(),
+				dropOffTo: packageDropoffEndTime
+					? moment(packageDropoffEndTime).format()
+					: moment().add(5, 'minutes').format(),
+				clientTag: refNumber,
+				deliveryNotes: dropoffInstructions,
+			},
+		};
 		const token = await authStreetStream();
 		const config = { headers: { Authorization: `Bearer ${token}` } };
 		const createJobURL = `${process.env.STREET_STREAM_ENV}/api/job/pointtopoint`;
@@ -680,7 +709,7 @@ async function ecofleetJobRequest(refNumber, params) {
 			country: 'England',
 			phone: pickupPhoneNumber,
 			email: pickupEmailAddress,
-			comment: pickupInstructions
+			comment: pickupInstructions,
 		},
 		drops: [
 			{
@@ -692,20 +721,20 @@ async function ecofleetJobRequest(refNumber, params) {
 				country: 'England',
 				phone: dropoffPhoneNumber,
 				email: dropoffEmailAddress,
-				comment: dropoffInstructions
+				comment: dropoffInstructions,
 			},
 		],
 		parcel: {
 			weight: VEHICLE_CODES_MAP[vehicleType].weight,
-			type: packageDescription ? packageDescription : '[]'
+			type: packageDescription ? packageDescription : '[]',
 		},
 		schedule: {
 			type: DELIVERY_TYPES[packageDeliveryType].ecofleet,
 			...(packagePickupStartTime && { pickupWindow: moment(packagePickupStartTime).unix() }),
-			...(packageDropoffStartTime && { dropoffWindow: moment(packageDropoffStartTime).unix() })
+			...(packageDropoffStartTime && { dropoffWindow: moment(packageDropoffStartTime).unix() }),
 		},
 	};
-	console.log(payload)
+	console.log(payload);
 	try {
 		const config = { headers: { Authorization: `Bearer ${process.env.ECOFLEET_API_KEY}` } };
 		const createJobURL = `${process.env.ECOFLEET_ENV}/api/v1/order`;
@@ -716,41 +745,21 @@ async function ecofleetJobRequest(refNumber, params) {
 			trackingURL: null,
 			deliveryFee: data['rate_card']['minimum_cost'],
 			pickupAt: packagePickupStartTime ? moment(packagePickupStartTime).format() : undefined,
-			dropoffAt: packageDropoffStartTime ? moment(packageDropoffStartTime).format() : undefined
+			dropoffAt: packageDropoffStartTime ? moment(packageDropoffStartTime).format() : undefined,
 		};
 	} catch (err) {
-		throw err
+		throw err;
 	}
 }
-
-/*async function confirmCharge(amount, customerId, paymentIntentId) {
-	try {
-		console.log('*********************************');
-		console.log('AMOUNT:', amount);
-		console.log('CUSTOMER_ID:', customerId);
-		console.log('PAYMENT_INTENT_ID:', paymentIntentId);
-		console.log('*********************************');
-		if (customerId) {
-			const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId, {
-				setup_future_usage: 'off_session',
-			});
-			console.log('----------------------------------------------');
-			console.log('PAYMENT CONFIRMED!!!!');
-			console.log(paymentIntent);
-			console.log('----------------------------------------------');
-			return 'Payment Confirmed!';
-		}
-	} catch (e) {
-		console.error(e);
-		throw e;
-	}
-}*/
 
 module.exports = {
 	genJobReference,
 	getClientDetails,
+	getVehicleSpecs,
+	calculateJobDistance,
+	checkAlternativeVehicles,
 	chooseBestProvider,
 	genOrderNumber,
 	getResultantQuotes,
-	providerCreatesJob
+	providerCreatesJob,
 };

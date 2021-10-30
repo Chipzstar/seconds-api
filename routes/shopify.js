@@ -7,6 +7,9 @@ const {
 	chooseBestProvider,
 	providerCreatesJob,
 	genOrderNumber,
+	getVehicleSpecs,
+	calculateJobDistance,
+	checkAlternativeVehicles,
 } = require('../helpers');
 const { DELIVERY_TYPES, VEHICLE_CODES_MAP, VEHICLE_CODES, STATUS } = require('../constants');
 const moment = require('moment');
@@ -14,7 +17,7 @@ const { DELIVERY_METHODS } = require('../constants/shopify');
 const router = express.Router();
 
 function convertWeightToVehicleCode(total_weight) {
-	console.log('Total Weight', total_weight);
+	console.log('Total Weight:', total_weight, 'kg');
 	let vehicleName = 'Bicycle';
 	let vehicleCode = 'BIC';
 	VEHICLE_CODES.forEach(code => {
@@ -29,14 +32,10 @@ function convertWeightToVehicleCode(total_weight) {
 
 async function createNewJob(order, user) {
 	try {
-		const clientRefNumber = genJobReference();
 		console.log('************************************');
 		console.log(order);
 		console.log('************************************');
-		const itemsCount = order.line_items.reduce((prev, curr) => {
-			console.log(prev, curr)
-			return prev + curr.quantity
-		}, 0);
+		const itemsCount = order.line_items.reduce((prev, curr) => prev + curr.quantity, 0);
 		const packageDescription = order.line_items.map(item => item['title']).join('\n');
 		console.log(order['total_weight']);
 		const vehicleType = convertWeightToVehicleCode(order['total_weight'] / 1000).vehicleCode;
@@ -83,84 +82,102 @@ async function createNewJob(order, user) {
 		console.log('Payload');
 		console.log(payload);
 		console.log('-----------------------------------------------------------------');
-		const { _id: clientId, email, selectionStrategy, subscriptionId } = user;
-		const QUOTES = await getResultantQuotes(payload);
+		const clientRefNumber = genJobReference();
+		const { _id: clientId, email, selectionStrategy } = user;
+		// get specifications for the vehicle
+		let vehicleSpecs = getVehicleSpecs(payload.vehicleType);
+		console.log("=====================================")
+		console.log("VEHICLE SPECS")
+		console.log(vehicleSpecs);
+		console.log("=====================================")
+		// calculate job distance
+		const jobDistance = await calculateJobDistance(
+			payload.pickupAddress,
+			payload.dropoffAddress,
+			vehicleSpecs.travelMode
+		);
+		// check if distance is less than or equal to the vehicle's max pickup to dropoff distance
+		if (jobDistance > vehicleSpecs.maxDistance)
+			vehicleSpecs = await checkAlternativeVehicles(
+				payload.pickupAddress,
+				payload.dropoffAddress,
+				jobDistance,
+				vehicleSpecs.travelMode
+			);
+		const QUOTES = await getResultantQuotes(payload, vehicleSpecs);
 		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
 		const providerId = bestQuote.providerId;
 		const winnerQuote = bestQuote.id;
-		console.log('SUBSCRIPTION ID', !!subscriptionId);
-		if (subscriptionId) {
-			const {
+		const {
+			id: spec_id,
+			trackingURL,
+			deliveryFee,
+		} = await providerCreatesJob(providerId.toLowerCase(), clientRefNumber, selectionStrategy, payload, vehicleSpecs);
+
+		const jobs = await db.Job.find({});
+
+		let job = {
+			createdAt: moment().format(),
+			jobSpecification: {
 				id: spec_id,
-				trackingURL,
-				deliveryFee,
-			} = await providerCreatesJob(providerId.toLowerCase(), clientRefNumber, selectionStrategy, payload);
-
-			const jobs = await db.Job.find({});
-
-			let job = {
-				createdAt: moment().format(),
-				jobSpecification: {
-					id: spec_id,
-					shopifyId: order.id,
-					orderNumber: genOrderNumber(jobs.length),
-					deliveryType: payload.packageDeliveryType,
-					packages: [
-						{
-							description: packageDescription,
-							dropoffLocation: {
-								fullAddress: payload.dropoffAddress,
-								street_address: payload.dropoffFormattedAddress.street,
-								city: payload.dropoffFormattedAddress.city,
-								postcode: payload.dropoffFormattedAddress.postcode,
-								country: 'UK',
-								phoneNumber: payload.dropoffPhoneNumber,
-								email: payload.dropoffEmailAddress,
-								firstName: payload.dropoffFirstName,
-								lastName: payload.dropoffLastName,
-								businessName: payload.dropoffBusinessName,
-								instructions: payload.dropoffInstructions,
-							},
-							dropoffStartTime: payload.packageDropoffStartTime,
-							dropoffEndTime: payload.packageDropoffEndTime,
-							itemsCount,
-							pickupStartTime: payload.packagePickupStartTime,
-							pickupEndTime: payload.packagePickupEndTime,
-							pickupLocation: {
-								fullAddress: payload.pickupAddress,
-								street_address: payload.pickupFormattedAddress.street,
-								city: payload.pickupFormattedAddress.city,
-								postcode: payload.pickupFormattedAddress.postcode,
-								country: 'UK',
-								phoneNumber: payload.pickupPhoneNumber,
-								email: payload.pickupEmailAddress,
-								firstName: payload.pickupFirstName,
-								lastName: payload.pickupLastName,
-								businessName: payload.pickupBusinessName,
-								instructions: payload.pickupInstructions,
-							},
-							transport: VEHICLE_CODES_MAP[payload.vehicleType].name,
+				shopifyId: order.id,
+				orderNumber: genOrderNumber(jobs.length),
+				deliveryType: payload.packageDeliveryType,
+				packages: [
+					{
+						description: packageDescription,
+						dropoffLocation: {
+							fullAddress: payload.dropoffAddress,
+							street_address: payload.dropoffFormattedAddress.street,
+							city: payload.dropoffFormattedAddress.city,
+							postcode: payload.dropoffFormattedAddress.postcode,
+							country: 'UK',
+							phoneNumber: payload.dropoffPhoneNumber,
+							email: payload.dropoffEmailAddress,
+							firstName: payload.dropoffFirstName,
+							lastName: payload.dropoffLastName,
+							businessName: payload.dropoffBusinessName,
+							instructions: payload.dropoffInstructions,
 						},
-					],
-				},
-				selectedConfiguration: {
-					jobReference: clientRefNumber,
-					createdAt: moment().format(),
-					deliveryFee,
-					winnerQuote,
-					providerId,
-					trackingURL,
-					quotes: QUOTES,
-				},
-				status: STATUS.NEW,
-			};
-			// Append the selected provider job to the jobs database
-			const createdJob = await db.Job.create({ ...job, clientId });
-			console.log(createdJob);
-			// Add the delivery to the users list of jobs
-			await db.User.updateOne({ email: email }, { $push: { jobs: createdJob._id } }, { new: true });
-			return true;
-		}
+						dropoffStartTime: payload.packageDropoffStartTime,
+						dropoffEndTime: payload.packageDropoffEndTime,
+						itemsCount,
+						pickupStartTime: payload.packagePickupStartTime,
+						pickupEndTime: payload.packagePickupEndTime,
+						pickupLocation: {
+							fullAddress: payload.pickupAddress,
+							street_address: payload.pickupFormattedAddress.street,
+							city: payload.pickupFormattedAddress.city,
+							postcode: payload.pickupFormattedAddress.postcode,
+							country: 'UK',
+							phoneNumber: payload.pickupPhoneNumber,
+							email: payload.pickupEmailAddress,
+							firstName: payload.pickupFirstName,
+							lastName: payload.pickupLastName,
+							businessName: payload.pickupBusinessName,
+							instructions: payload.pickupInstructions,
+						},
+						transport: VEHICLE_CODES_MAP[payload.vehicleType].name,
+					},
+				],
+			},
+			selectedConfiguration: {
+				jobReference: clientRefNumber,
+				createdAt: moment().format(),
+				deliveryFee,
+				winnerQuote,
+				providerId,
+				trackingURL,
+				quotes: QUOTES,
+			},
+			status: STATUS.NEW,
+		};
+		// Append the selected provider job to the jobs database
+		const createdJob = await db.Job.create({ ...job, clientId });
+		console.log(createdJob);
+		// Add the delivery to the users list of jobs
+		await db.User.updateOne({ email: email }, { $push: { jobs: createdJob._id } }, { new: true });
+		return true;
 	} catch (err) {
 		console.error(err);
 		return err;
@@ -184,14 +201,24 @@ router.post('/', async (req, res) => {
 			if (user) {
 				// CHECK if the incoming delivery is a local delivery
 				const isLocalDelivery = req.body['shipping_lines'][0].code === DELIVERY_METHODS.LOCAL;
-				console.log("isLocalDelivery:", isLocalDelivery)
+				const isSubscribed = !!user.subscriptionId;
+				console.log('isLocalDelivery:', isLocalDelivery);
 				if (isLocalDelivery) {
-					createNewJob(req.body, user);
-					res.status(200).json({
-						success: true,
-						status: 'DELIVERY_JOB_CREATED',
-						message: 'webhook received',
-					});
+					if (isSubscribed) {
+						createNewJob(req.body, user);
+						res.status(200).json({
+							success: true,
+							status: 'DELIVERY_JOB_CREATED',
+							message: 'webhook received',
+						});
+					} else {
+						console.error('No subscription detected!');
+						return res.status(200).json({
+							success: false,
+							status: 'NO_SUBSCRIPTION',
+							message: 'We cannot carry out orders without a subscription. Please subscribe to one of our business plans!',
+						});
+					}
 				} else {
 					res.status(200).json({
 						success: false,

@@ -2,7 +2,6 @@ const db = require("../models");
 const moment = require("moment");
 const { STATUS } = require("../constants");
 const {JOB_STATUS, DELIVERY_STATUS} = require("../constants/stuart");
-const { confirmCharge } = require("./index");
 
 /**
  * Maps the current job status of a STUART delivery with the SECONDS delivery status
@@ -80,13 +79,6 @@ async function update(data, type) {
 				sanitizeProjection: true,
 			})
 		console.log(job)
-		/*if (STATUS === DELIVERY_STATUS.DELIVERED) {
-			console.log("****************************************************************")
-			console.log("STUART DELIVERY COMPLETEEEEEEE!")
-			console.log("****************************************************************")
-			let { stripeCustomerId } = await db.User.findOne({_id: job.clientId}, {});
-			await confirmCharge(job.deliveryFee, stripeCustomerId, job.paymentIntentId )
-		}*/
 		return STATUS
 	} catch (err) {
 		console.error(err)

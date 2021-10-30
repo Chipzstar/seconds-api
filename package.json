@@ -1,43 +1,44 @@
 {
-  "name": "seconds-api",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-	"test": "echo \"Error: no test specified\" && exit 1",
-	"start": "nodemon index.js"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-	"@newrelic/native-metrics": "^7.0.2",
-	"axios": "^0.21.1",
-	"bcrypt": "^5.0.1",
-	"body-parser": "^1.19.0",
-	"cors": "^2.8.5",
-	"crypto": "^1.0.1",
-	"dotenv": "^10.0.0",
-	"express": "^4.17.1",
-	"helmet": "^4.6.0",
-	"moment": "^2.29.1",
-	"moment-timezone": "^0.5.33",
-	"mongoose": "^6.0.2",
-	"morgan": "^1.10.0",
-	"nanoid": "^3.1.25",
-	"newrelic": "^8.5.0",
-	"order-id": "^2.1.1",
-	"stripe": "^8.176.0",
-	"uuid": "^8.3.2"
-  },
-  "prettier": {
-	"arrowParens": "avoid",
-	"tabWidth": 4,
-	"useTabs": true,
-	"singleQuote": true,
-	"printWidth": 120
-  },
-  "devDependencies": {
-	"prettier": "^2.4.1"
-  }
+	"name": "seconds-api",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"start": "nodemon index.js"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"dependencies": {
+		"@googlemaps/google-maps-services-js": "^3.3.0",
+		"@newrelic/native-metrics": "^7.0.2",
+		"axios": "^0.21.1",
+		"bcrypt": "^5.0.1",
+		"body-parser": "^1.19.0",
+		"cors": "^2.8.5",
+		"crypto": "^1.0.1",
+		"dotenv": "^10.0.0",
+		"express": "^4.17.1",
+		"helmet": "^4.6.0",
+		"moment": "^2.29.1",
+		"moment-timezone": "^0.5.33",
+		"mongoose": "^6.0.2",
+		"morgan": "^1.10.0",
+		"nanoid": "^3.1.25",
+		"newrelic": "^8.5.0",
+		"order-id": "^2.1.1",
+		"stripe": "^8.176.0",
+		"uuid": "^8.3.2"
+	},
+	"prettier": {
+		"arrowParens": "avoid",
+		"tabWidth": 4,
+		"useTabs": true,
+		"singleQuote": true,
+		"printWidth": 120
+	},
+	"devDependencies": {
+		"prettier": "^2.4.1"
+	}
 }
