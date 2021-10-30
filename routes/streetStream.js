@@ -3,21 +3,33 @@ const express = require("express");
 const {STATUS} = require("../constants");
 const {JOB_STATUS} = require("../constants/streetStream");
 const db = require("../models");
-const moment = require("moment");
 const router = express.Router();
 
 function translateStreetStreamStatus(value) {
 	switch (value) {
+		case JOB_STATUS.OFFERS_RECEIVED:
+			return STATUS.PENDING
+		case JOB_STATUS.JOB_AGREED:
+			return STATUS.DISPATCHING
 		case JOB_STATUS.ARRIVED_AT_COLLECTION:
 			return STATUS.DISPATCHING
 		case JOB_STATUS.COLLECTED:
 			return STATUS.EN_ROUTE
-		case JOB_STATUS.DELIVERED:
+		case JOB_STATUS.ARRIVED_AT_DELIVERY:
 			return STATUS.EN_ROUTE
+		case JOB_STATUS.DELIVERED:
+			return STATUS.COMPLETED
 		case JOB_STATUS.COMPLETED_SUCCESSFULLY:
 			return STATUS.COMPLETED
+		case JOB_STATUS.ADMIN_CANCELLED:
+		case JOB_STATUS.DELIVERY_ATTEMPT_FAILED:
+			return STATUS.CANCELLED
+		case JOB_STATUS.NOT_AS_DESCRIBED:
+			return STATUS.CANCELLED
+		case JOB_STATUS.NO_RESPONSE:
+			return STATUS.CANCELLED
 		default:
-			return STATUS.PENDING
+			return STATUS.NEW
 	}
 }
 
