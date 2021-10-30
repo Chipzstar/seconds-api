@@ -235,7 +235,7 @@ router.post('/', async (req, res) => {
 					message: `Failed to find a user with shopify domain ${shop}`,
 				});
 			}
-		} else if (topic === 'orders/fulfilment') {
+		} else if (topic === 'fulfillments/create') {
 			console.log('-----------------------------');
 			console.log('Fulfillment:');
 			console.log(req.body);
