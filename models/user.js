@@ -97,6 +97,10 @@ const userSchema = new mongoose.Schema({
 		type: String,
 		default: "",
 	},
+	subscriptionPlan: {
+		type: String,
+		default: ""
+	},
 	selectionStrategy: {
 		type: String,
 		default: "eta"

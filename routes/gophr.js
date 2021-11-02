@@ -3,6 +3,7 @@ const {JOB_STATUS, WEBHOOK_TYPES } = require("../constants/gophr");
 const {STATUS } = require("../constants");
 const db = require("../models");
 const moment = require("moment");
+const { confirmCharge } = require('../helpers');
 const router = express.Router();
 
 function translateGophrStatus(value) {
@@ -31,7 +32,7 @@ function translateGophrStatus(value) {
 async function updateStatus(data){
 	try {
 		console.log(data)
-		const {status: STATUS, external_id: REFERENCE, pickup_eta, delivery_eta, courier_name } = data
+		const {status: STATUS, external_id: REFERENCE, finished, pickup_eta, delivery_eta, courier_name } = data
 		console.log({STATUS, REFERENCE})
 		// update the status for the current job
 		await db.Job.findOneAndUpdate(
@@ -52,7 +53,7 @@ async function updateStatus(data){
 				sanitizeProjection: true,
 			})
 		console.log(job)
-		return STATUS
+		return {jobStatus: STATUS, isFinished: Number(finished)}
 	} catch (err) {
 		console.error(err)
 		throw err
@@ -82,29 +83,42 @@ async function updateETA(data){
 router.post("/", async (req, res) => {
 	try {
 		// GOPHR
-		const {api_key, webhook_type } = req.body;
+		const {api_key, webhook_type, external_id } = req.body;
 		if (api_key === String(process.env.GOPHR_API_KEY)) {
 			if (webhook_type === WEBHOOK_TYPES.STATUS) {
-				let jobStatus = await updateStatus(req.body)
-				console.log("--------------------------------")
-				console.log("NEW STATUS:", jobStatus)
-				console.log("--------------------------------")
-			} else if (webhook_type === WEBHOOK_TYPES.ETA){
-				let jobETA = await updateETA(req.body)
-				console.log("--------------------------------")
-				console.log("NEW ETA:", jobETA)
-				console.log("--------------------------------")
+				let { jobStatus, isFinished } = await updateStatus(req.body);
+				console.log('--------------------------------');
+				console.log('NEW STATUS:', jobStatus);
+				console.log('--------------------------------');
+				if (isFinished) {
+					let job = await db.Job.findOne({"selectedConfiguration.jobReference": external_id}, {})
+					console.log("****************************************************************")
+					console.log("GOPHR DELIVERY COMPLETEEEEEEE!")
+					console.log("****************************************************************")
+					let { stripeCustomerId } = await db.User.findOne({_id: job.clientId}, {});
+					confirmCharge(job.selectedConfiguration.deliveryFee, stripeCustomerId, job.paymentIntentId)
+				}
+			} else if (webhook_type === WEBHOOK_TYPES.ETA) {
+				let jobETA = await updateETA(req.body);
+				console.log('--------------------------------');
+				console.log('NEW ETA:');
+				console.table(jobETA);
+				console.log('--------------------------------');
 			} else {
-				throw new Error(`Unknown webhook type, ${webhook_type}`)
+				throw new Error(`Unknown webhook type, ${webhook_type}`);
 			}
-			res.status(200).json(req.body)
+			res.status(200).json({
+				success: true,
+				message: "DELIVERY_JOB_UPDATED"
+			});
 		} else {
-			throw new Error("API KEY IS INVALID!")
+			throw new Error('API KEY IS INVALID!');
 		}
 	} catch (err) {
 		console.error(err)
-		res.status(400).json({
-			error: {...err}
+		res.status(200).json({
+			success: false,
+			message: err.message
 		})
 	}
 })

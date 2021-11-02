@@ -3,6 +3,7 @@ const express = require("express");
 const {STATUS} = require("../constants");
 const {JOB_STATUS} = require("../constants/streetStream");
 const db = require("../models");
+const { confirmCharge } = require('../helpers');
 const router = express.Router();
 
 function translateStreetStreamStatus(value) {
@@ -57,6 +58,15 @@ async function update(data){
 router.post("/", async (req, res) => {
 	try {
 		let jobStatus = await update(req.body)
+		if (jobStatus === JOB_STATUS.COMPLETED_SUCCESSFULLY) {
+			let job = await db.Job.findOne({"jobSpecification.id": req.body.jobId}, {})
+			console.log("****************************************************************")
+			console.log("STREET-STREAM DELIVERY COMPLETEEEEEEE!")
+			console.log("****************************************************************")
+			let { stripeCustomerId } = await db.User.findOne({_id: job.clientId}, {});
+			console.log("JOB", job)
+			confirmCharge(job.deliveryFee, stripeCustomerId, job.paymentIntentId )
+		}
 	    res.status(200).send({
 		    success: true,
 		    status: "NEW_JOB_STATUS",

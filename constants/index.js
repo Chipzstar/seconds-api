@@ -98,7 +98,20 @@ exports.VEHICLE_CODES_MAP = {
 	},
 };
 
-exports.TRAVEL_MODES = {
+exports.COMMISSION = {
+	GROWTH: {
+		name: "growth",
+		fee: 0.49,
+		limit: 3
+	},
+	ENTERPRISE: {
+		name: "enterprise",
+		fee: 0.99,
+		limit: 50
+	}
+}
+
+exports.GOOGLE_MAPS_TRAVEL_MODES = {
 	/** (default) indicates standard driving directions using the road network. */
 	DRIVING: 'driving',
 	/** requests walking directions via pedestrian paths & sidewalks (where available). */

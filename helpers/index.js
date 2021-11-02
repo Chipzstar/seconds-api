@@ -1,4 +1,5 @@
 const axios = require('axios');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { Client } = require('@googlemaps/google-maps-services-js');
 const { pickupSchema, dropoffSchema } = require('../schemas/stuart/CreateJob');
 const qs = require('qs');
@@ -156,6 +157,16 @@ async function getResultantQuotes(requestBody, vehicleSpecs) {
 		QUOTES.push(gophrQuote);
 		let streetStreamQuote = await getStreetStreamQuote(requestBody, vehicleSpecs);
 		QUOTES.push(streetStreamQuote);
+		let ecoFleetQuote = {
+			...quoteSchema,
+			createdAt: moment().format(),
+			expireTime: moment().add(5, 'minutes').format(),
+			dropoffEta: null,
+			priceExVAT: Infinity,
+			currency: 'GBP',
+			providerId: 'ecofleet'
+		}
+		QUOTES.push(ecoFleetQuote)
 		return QUOTES;
 	} catch (err) {
 		throw err;
@@ -561,11 +572,9 @@ async function gophrJobRequest(refNumber, params, vehicleSpecs) {
 			delivery_country_code: `${dropoffFormattedAddress['countryCode']}`,
 			delivery_tips_how_to_find: `${dropoffInstructions}`,
 		});
-		console.log(payload);
 		const config = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
 		const createJobURL = `${process.env.GOPHR_ENV}/v1/commercial-api/create-confirm-job`;
 		const response = (await axios.post(createJobURL, payload, config)).data;
-		console.log(response);
 		if (response.success) {
 			console.log('RESPONSE');
 			console.log('****************************');
@@ -752,6 +761,29 @@ async function ecofleetJobRequest(refNumber, params) {
 	}
 }
 
+async function confirmCharge(amount, customerId, paymentIntentId) {
+	try {
+		console.log('*********************************');
+		console.log('AMOUNT:', amount);
+		console.log('CUSTOMER_ID:', customerId);
+		console.log('PAYMENT_INTENT_ID:', paymentIntentId);
+		console.log('*********************************');
+		if (customerId && paymentIntentId) {
+			const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId, {
+				setup_future_usage: 'off_session',
+			});
+			console.log('----------------------------------------------');
+			console.log('PAYMENT CONFIRMED!!!!');
+			console.log(paymentIntent);
+			console.log('----------------------------------------------');
+			return 'Payment Confirmed!';
+		}
+	} catch (e) {
+		console.error(e);
+		throw e;
+	}
+}
+
 module.exports = {
 	genJobReference,
 	getClientDetails,
@@ -762,4 +794,5 @@ module.exports = {
 	genOrderNumber,
 	getResultantQuotes,
 	providerCreatesJob,
+	confirmCharge,
 };

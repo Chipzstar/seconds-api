@@ -12,12 +12,14 @@ const {
 	calculateJobDistance,
 	checkAlternativeVehicles,
 } = require('../helpers');
-const { AUTHORIZATION_KEY, PROVIDER_ID, STATUS, alphabet, VEHICLE_CODES_MAP } = require('../constants');
+const { AUTHORIZATION_KEY, PROVIDER_ID, STATUS, alphabet, VEHICLE_CODES_MAP, COMMISSION } = require('../constants');
 const moment = require('moment');
 const { customAlphabet } = require('nanoid');
 const mongoose = require('mongoose');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const router = express.Router();
 const nanoid = customAlphabet(alphabet, 24);
+const {v4: uuidv4} = require('uuid')
 
 /**
  * List Jobs - The API endpoint for listing all jobs currently belonging to a user
@@ -95,6 +97,7 @@ router.post('/create', async (req, res) => {
 		} = req.body;
 		//fetch api key
 		//generate client reference number
+		let paymentIntent = undefined;
 		const clientRefNumber = genJobReference();
 		const apiKey = req.headers[AUTHORIZATION_KEY];
 		const selectedProvider = req.headers[PROVIDER_ID];
@@ -102,7 +105,7 @@ router.post('/create', async (req, res) => {
 		console.log('Provider selected manually: ', Boolean(selectedProvider));
 		console.log('SELECTED PROVIDER:', selectedProvider);
 		console.log('---------------------------------------------');
-		const { _id: clientId, selectionStrategy, subscriptionId } = await getClientDetails(apiKey);
+		const { _id: clientId, selectionStrategy, stripeCustomerId, paymentMethodId, subscriptionId, subscriptionPlan } = await getClientDetails(apiKey);
 		// check that the vehicleType is valid and return the vehicle's specifications
 		let vehicleSpecs = getVehicleSpecs(vehicleType);
 		console.log(vehicleSpecs);
@@ -117,6 +120,7 @@ router.post('/create', async (req, res) => {
 				vehicleSpecs.travelMode
 			);
 		}
+
 		const QUOTES = await getResultantQuotes(req.body, vehicleSpecs);
 		// Use selection strategy to select the winner quote
 		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
@@ -134,7 +138,34 @@ router.post('/create', async (req, res) => {
 			winnerQuote = chosenQuote ? chosenQuote.id : null;
 		}
 		console.log('SUBSCRIPTION ID', !!subscriptionId);
-		if (subscriptionId) {
+		// check if user has a subscription active
+		if (subscriptionId && subscriptionPlan) {
+			let idempotencyKey = uuidv4()
+			// check the payment plan and lookup the associated commission fee
+			let { fee, limit } = COMMISSION[subscriptionPlan.toUpperCase()]
+			console.log("--------------------------------")
+			console.log("COMMISSION FEE:", fee)
+			// check whether the client number of orders has exceeded the limit
+			const numOrders = await db.Job.where({'clientId': clientId,'status': 'COMPLETED'}).countDocuments();
+			console.log("NUM ORDERS:", numOrders)
+			console.log("--------------------------------")
+			// if so create the payment intent for the new order
+			if (numOrders > limit){
+				paymentIntent = await stripe.paymentIntents.create({
+					amount: fee * 100,
+					customer: stripeCustomerId,
+					currency: 'GBP',
+					setup_future_usage: 'off_session',
+					payment_method: paymentMethodId,
+					payment_method_types: ['card'],
+				}, {
+					idempotencyKey,
+				});
+				console.log("-------------------------------------------")
+				console.log("Payment Intent Created!", paymentIntent)
+				console.log("-------------------------------------------")
+			}
+			const paymentIntentId = paymentIntent ? paymentIntent.id : undefined
 			const {
 				id: spec_id,
 				trackingURL,
@@ -148,11 +179,14 @@ router.post('/create', async (req, res) => {
 				req.body,
 				vehicleSpecs
 			);
-
 			const jobs = await db.Job.find({});
-
 			let job = {
 				createdAt: moment().format(),
+				driverInformation: {
+					name: "Searching",
+					phone: "Searching",
+					transport: "Searching"
+				},
 				jobSpecification: {
 					id: spec_id,
 					shopifyId: null,
@@ -208,7 +242,7 @@ router.post('/create', async (req, res) => {
 				status: STATUS.NEW,
 			};
 			// Append the selected provider job to the jobs database
-			const createdJob = await db.Job.create({ ...job, clientId });
+			const createdJob = await db.Job.create({ ...job, clientId, paymentIntentId});
 			// Add the delivery to the users list of jobs
 			await db.User.updateOne({ apiKey }, { $push: { jobs: createdJob._id } }, { new: true });
 			return res.status(200).json({
