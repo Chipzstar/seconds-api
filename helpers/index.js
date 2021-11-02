@@ -164,9 +164,9 @@ async function getResultantQuotes(requestBody, vehicleSpecs) {
 			dropoffEta: null,
 			priceExVAT: Infinity,
 			currency: 'GBP',
-			providerId: 'ecofleet'
-		}
-		QUOTES.push(ecoFleetQuote)
+			providerId: 'ecofleet',
+		};
+		QUOTES.push(ecoFleetQuote);
 		return QUOTES;
 	} catch (err) {
 		throw err;
@@ -677,8 +677,10 @@ async function streetStreamJobRequest(refNumber, strategy, params, vehicleSpecs)
 			id: data.id,
 			trackingURL: null,
 			deliveryFee: data['jobCharge']['totalPayableWithVat'],
-			pickupAt: moment(packagePickupStartTime).format(),
-			dropoffAt: moment(packagePickupStartTime).add(data['estimatedRouteTimeSeconds'], 'seconds').format(),
+			pickupAt: packagePickupStartTime ? moment(packagePickupStartTime) : moment().add(25, 'minutes'),
+			dropoffAt: packageDropoffStartTime
+				? moment(packagePickupStartTime).add(data['estimatedRouteTimeSeconds'], 'seconds').format()
+				: moment().add(25, 'minutes').add(data['estimatedRouteTimeSeconds'], 'seconds').format(),
 		};
 	} catch (err) {
 		throw err;
@@ -794,5 +796,5 @@ module.exports = {
 	genOrderNumber,
 	getResultantQuotes,
 	providerCreatesJob,
-	confirmCharge,
+	confirmCharge
 };
