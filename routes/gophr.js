@@ -1,6 +1,6 @@
 const express = require("express");
 const {JOB_STATUS, WEBHOOK_TYPES } = require("../constants/gophr");
-const {STATUS } = require("../constants");
+const {STATUS, COMMISSION } = require("../constants");
 const db = require("../models");
 const moment = require("moment");
 const { confirmCharge } = require('../helpers');
@@ -46,7 +46,9 @@ async function updateStatus(data){
 				'$set': {
 					"jobSpecification.packages.$[].pickupStartTime": moment(pickup_eta).toISOString(true),
 					"jobSpecification.packages.$[].dropoffStartTime": moment(delivery_eta).toISOString(true),
-					"driverInformation.name": courier_name
+					"driverInformation.name": courier_name,
+					"driverInformation.phone": "N/A",
+					"driverInformation.transport": "N/A"
 				},
 			}, {
 				new: true,
@@ -91,12 +93,12 @@ router.post("/", async (req, res) => {
 				console.log('NEW STATUS:', jobStatus);
 				console.log('--------------------------------');
 				if (isFinished) {
-					let job = await db.Job.findOne({"selectedConfiguration.jobReference": external_id}, {})
+					let { clientId, paymentIntentId } = await db.Job.findOne({"selectedConfiguration.jobReference": external_id}, {})
 					console.log("****************************************************************")
 					console.log("GOPHR DELIVERY COMPLETEEEEEEE!")
 					console.log("****************************************************************")
-					let { stripeCustomerId } = await db.User.findOne({_id: job.clientId}, {});
-					confirmCharge(job.selectedConfiguration.deliveryFee, stripeCustomerId, job.paymentIntentId)
+					let { stripeCustomerId, subscriptionPlan } = await db.User.findOne({_id: clientId}, {});
+					confirmCharge(COMMISSION[subscriptionPlan.toUpperCase()].fee, stripeCustomerId, paymentIntentId)
 				}
 			} else if (webhook_type === WEBHOOK_TYPES.ETA) {
 				let jobETA = await updateETA(req.body);

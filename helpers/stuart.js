@@ -1,6 +1,6 @@
 const db = require("../models");
 const moment = require("moment");
-const { STATUS } = require("../constants");
+const { STATUS, COMMISSION } = require("../constants");
 const {JOB_STATUS, DELIVERY_STATUS} = require("../constants/stuart");
 const { confirmCharge } = require('./index');
 
@@ -85,8 +85,8 @@ async function update(data, type) {
 			console.log("****************************************************************")
 			console.log("STUART DELIVERY COMPLETEEEEEEE!")
 			console.log("****************************************************************")
-			let { stripeCustomerId } = await db.User.findOne({_id: job.clientId}, {});
-			confirmCharge(job.selectedConfiguration.deliveryFee, stripeCustomerId, job.paymentIntentId )
+			let { stripeCustomerId, subscriptionPlan } = await db.User.findOne({_id: job.clientId}, {});
+			confirmCharge(COMMISSION[subscriptionPlan.toUpperCase()].fee, stripeCustomerId, job.paymentIntentId )
 		}
 		return STATUS
 	} catch (err) {
