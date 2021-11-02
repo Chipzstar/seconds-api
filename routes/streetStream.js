@@ -12,6 +12,8 @@ function translateStreetStreamStatus(value) {
 			return STATUS.PENDING
 		case JOB_STATUS.JOB_AGREED:
 			return STATUS.DISPATCHING
+		case JOB_STATUS.IN_PROGRESS:
+			return STATUS.DISPATCHING
 		case JOB_STATUS.ARRIVED_AT_COLLECTION:
 			return STATUS.DISPATCHING
 		case JOB_STATUS.COLLECTED:
