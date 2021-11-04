@@ -150,7 +150,7 @@ router.post('/create', async (req, res) => {
 			console.log("NUM ORDERS:", numOrders)
 			console.log("--------------------------------")
 			// if so create the payment intent for the new order
-			if (numOrders > limit){
+			if (numOrders >= limit){
 				paymentIntent = await stripe.paymentIntents.create({
 					amount: fee * 100,
 					customer: stripeCustomerId,

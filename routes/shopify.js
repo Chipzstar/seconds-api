@@ -12,34 +12,38 @@ const {
 	calculateJobDistance,
 	checkAlternativeVehicles,
 } = require('../helpers');
-const { DELIVERY_TYPES, VEHICLE_CODES_MAP, VEHICLE_CODES, STATUS } = require('../constants');
+const { DELIVERY_TYPES, VEHICLE_CODES_MAP, VEHICLE_CODES, STATUS, COMMISSION } = require('../constants');
 const moment = require('moment');
 const { DELIVERY_METHODS } = require('../constants/shopify');
+const { v4: uuidv4 } = require('uuid');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const router = express.Router();
 
 const client = new Client();
 
-async function geocodeAddress(address){
+async function geocodeAddress(address) {
 	try {
-		console.log(address)
-		const response = (await client.geocode({
-			params: {
-				address,
-				key: process.env.GOOGLE_MAPS_API_KEY
-			}
-		})).data
+		console.log(address);
+		const response = (
+			await client.geocode({
+				params: {
+					address,
+					key: process.env.GOOGLE_MAPS_API_KEY,
+				},
+			})
+		).data;
 
-		if(response.results.length) {
+		if (response.results.length) {
 			const formattedAddress = {
 				street: '',
 				city: '',
-				postcode: ''
-			}
-			let fullAddress = response.results[0].formatted_address
-			let components = response.results[0].address_components
-			console.log("**************************************************")
-			console.log(components)
-			console.log("**************************************************")
+				postcode: '',
+			};
+			let fullAddress = response.results[0].formatted_address;
+			let components = response.results[0].address_components;
+			console.log('**************************************************');
+			console.log(components);
+			console.log('**************************************************');
 			components.forEach(({ long_name, types }) => {
 				switch (types[0]) {
 					case 'street_number':
@@ -57,13 +61,13 @@ async function geocodeAddress(address){
 					default:
 						break;
 				}
-			})
-			return { fullAddress, formattedAddress }
+			});
+			return { fullAddress, formattedAddress };
 		}
-		throw new Error('No Address suggestions found')
+		throw new Error('No Address suggestions found');
 	} catch (e) {
-		console.error(e)
-		throw e
+		console.error(e);
+		throw e;
 	}
 }
 
@@ -93,7 +97,9 @@ async function createNewJob(order, user) {
 		console.log('DETAILS');
 		console.table({ itemsCount, packageDescription, vehicleType });
 		// geocode dropoff address
-		const { formattedAddress, fullAddress } = await geocodeAddress(`${order.shipping_address['address1']} ${order.shipping_address['city']} ${order.shipping_address['zip']}`)
+		const { formattedAddress, fullAddress } = await geocodeAddress(
+			`${order.shipping_address['address1']} ${order.shipping_address['city']} ${order.shipping_address['zip']}`
+		);
 		const payload = {
 			pickupAddress: user.fullAddress,
 			pickupFormattedAddress: {
@@ -115,7 +121,11 @@ async function createNewJob(order, user) {
 				postcode: formattedAddress.postcode,
 				countryCode: 'GB',
 			},
-			dropoffPhoneNumber: order.phone ? order.phone : order.customer.phone ? order.customer.phone : order.shipping_address['phone'],
+			dropoffPhoneNumber: order.phone
+				? order.phone
+				: order.customer.phone
+				? order.customer.phone
+				: order.shipping_address['phone'],
 			dropoffEmailAddress: order.email,
 			dropoffBusinessName: order.shipping_address.company,
 			dropoffFirstName: order.customer.first_name,
@@ -134,14 +144,15 @@ async function createNewJob(order, user) {
 		console.log('Payload');
 		console.log(payload);
 		console.log('-----------------------------------------------------------------');
+		let paymentIntent = undefined;
 		const clientRefNumber = genJobReference();
 		const { _id: clientId, email, selectionStrategy } = user;
 		// get specifications for the vehicle
 		let vehicleSpecs = getVehicleSpecs(payload.vehicleType);
-		console.log("=====================================")
-		console.log("VEHICLE SPECS")
+		console.log('=====================================');
+		console.log('VEHICLE SPECS');
 		console.log(vehicleSpecs);
-		console.log("=====================================")
+		console.log('=====================================');
 		// calculate job distance
 		const jobDistance = await calculateJobDistance(
 			payload.pickupAddress,
@@ -160,11 +171,46 @@ async function createNewJob(order, user) {
 		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
 		const providerId = bestQuote.providerId;
 		const winnerQuote = bestQuote.id;
+		let idempotencyKey = uuidv4();
+		// check the payment plan and lookup the associated commission fee
+		let { fee, limit } = COMMISSION[user.subscriptionPlan.toUpperCase()];
+		console.log('--------------------------------');
+		console.log('COMMISSION FEE:', fee);
+		// check whether the client number of orders has exceeded the limit
+		const numOrders = await db.Job.where({ clientId: clientId, status: 'COMPLETED' }).countDocuments();
+		console.log('NUM ORDERS:', numOrders);
+		console.log('--------------------------------');
+		// if so create the payment intent for the new order
+		if (numOrders >= limit) {
+			paymentIntent = await stripe.paymentIntents.create(
+				{
+					amount: fee * 100,
+					customer: user.stripeCustomerId,
+					currency: 'GBP',
+					setup_future_usage: 'off_session',
+					payment_method: user.paymentMethodId,
+					payment_method_types: ['card'],
+				},
+				{
+					idempotencyKey,
+				}
+			);
+			console.log('-------------------------------------------');
+			console.log('Payment Intent Created!', paymentIntent);
+			console.log('-------------------------------------------');
+		}
+		const paymentIntentId = paymentIntent ? paymentIntent.id : undefined;
 		const {
 			id: spec_id,
 			trackingURL,
 			deliveryFee,
-		} = await providerCreatesJob(providerId.toLowerCase(), clientRefNumber, selectionStrategy, payload, vehicleSpecs);
+		} = await providerCreatesJob(
+			providerId.toLowerCase(),
+			clientRefNumber,
+			selectionStrategy,
+			payload,
+			vehicleSpecs
+		);
 
 		const jobs = await db.Job.find({});
 
@@ -225,7 +271,7 @@ async function createNewJob(order, user) {
 			status: STATUS.NEW,
 		};
 		// Append the selected provider job to the jobs database
-		const createdJob = await db.Job.create({ ...job, clientId });
+		const createdJob = await db.Job.create({ ...job, clientId, paymentIntentId});
 		console.log(createdJob);
 		// Add the delivery to the users list of jobs
 		await db.User.updateOne({ email: email }, { $push: { jobs: createdJob._id } }, { new: true });
@@ -253,7 +299,7 @@ router.post('/', async (req, res) => {
 			if (user) {
 				// CHECK if the incoming delivery is a local delivery
 				const isLocalDelivery = req.body['shipping_lines'][0].code === DELIVERY_METHODS.LOCAL;
-				const isSubscribed = !!user.subscriptionId;
+				const isSubscribed = !!user.subscriptionId & !!user.subscriptionPlan;
 				console.log('isLocalDelivery:', isLocalDelivery);
 				if (isLocalDelivery) {
 					if (isSubscribed) {
@@ -268,7 +314,8 @@ router.post('/', async (req, res) => {
 						return res.status(200).json({
 							success: false,
 							status: 'NO_SUBSCRIPTION',
-							message: 'We cannot carry out orders without a subscription. Please subscribe to one of our business plans!',
+							message:
+								'We cannot carry out orders without a subscription. Please subscribe to one of our business plans!',
 						});
 					}
 				} else {
