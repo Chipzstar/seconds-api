@@ -41,9 +41,9 @@ async function geocodeAddress(address) {
 			};
 			let fullAddress = response.results[0].formatted_address;
 			let components = response.results[0].address_components;
-			console.log('**************************************************');
+			/*console.log('**************************************************');
 			console.log(components);
-			console.log('**************************************************');
+			console.log('**************************************************');*/
 			components.forEach(({ long_name, types }) => {
 				switch (types[0]) {
 					case 'street_number':
@@ -121,11 +121,7 @@ async function createNewJob(order, user) {
 				postcode: formattedAddress.postcode,
 				countryCode: 'GB',
 			},
-			dropoffPhoneNumber: order.phone
-				? order.phone
-				: order.customer.phone
-				? order.customer.phone
-				: order.shipping_address['phone'],
+			dropoffPhoneNumber: order['shipping_lines'][0].phone,
 			dropoffEmailAddress: order.email,
 			dropoffBusinessName: order.shipping_address.company,
 			dropoffFirstName: order.customer.first_name,
@@ -271,7 +267,7 @@ async function createNewJob(order, user) {
 			status: STATUS.NEW,
 		};
 		// Append the selected provider job to the jobs database
-		const createdJob = await db.Job.create({ ...job, clientId, paymentIntentId});
+		const createdJob = await db.Job.create({ ...job, clientId, paymentIntentId });
 		console.log(createdJob);
 		// Add the delivery to the users list of jobs
 		await db.User.updateOne({ email: email }, { $push: { jobs: createdJob._id } }, { new: true });
