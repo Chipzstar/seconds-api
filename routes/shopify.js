@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const db = require('../models');
+const { Client } = require('@googlemaps/google-maps-services-js');
 const {
 	genJobReference,
 	getResultantQuotes,
@@ -15,6 +16,56 @@ const { DELIVERY_TYPES, VEHICLE_CODES_MAP, VEHICLE_CODES, STATUS } = require('..
 const moment = require('moment');
 const { DELIVERY_METHODS } = require('../constants/shopify');
 const router = express.Router();
+
+const client = new Client();
+
+async function geocodeAddress(address){
+	try {
+		console.log(address)
+		const response = (await client.geocode({
+			params: {
+				address,
+				key: process.env.GOOGLE_MAPS_API_KEY
+			}
+		})).data
+
+		if(response.results.length) {
+			const formattedAddress = {
+				street: '',
+				city: '',
+				postcode: ''
+			}
+			let fullAddress = response.results[0].formatted_address
+			let components = response.results[0].address_components
+			console.log("**************************************************")
+			console.log(components)
+			console.log("**************************************************")
+			components.forEach(({ long_name, types }) => {
+				switch (types[0]) {
+					case 'street_number':
+						formattedAddress.street = formattedAddress.street + long_name;
+						break;
+					case 'route':
+						formattedAddress.street = formattedAddress.street + ' ' + long_name;
+						break;
+					case 'postal_town':
+						formattedAddress.city = long_name;
+						break;
+					case 'postal_code':
+						formattedAddress.postcode = long_name;
+						break;
+					default:
+						break;
+				}
+			})
+			return { fullAddress, formattedAddress }
+		}
+		throw new Error('No Address suggestions found')
+	} catch (e) {
+		console.error(e)
+		throw e
+	}
+}
 
 function convertWeightToVehicleCode(total_weight) {
 	console.log('Total Weight:', total_weight, 'kg');
@@ -41,7 +92,8 @@ async function createNewJob(order, user) {
 		const vehicleType = convertWeightToVehicleCode(order['total_weight'] / 1000).vehicleCode;
 		console.log('DETAILS');
 		console.table({ itemsCount, packageDescription, vehicleType });
-
+		// geocode dropoff address
+		const { formattedAddress, fullAddress } = await geocodeAddress(`${order.shipping_address['address1']} ${order.shipping_address['city']} ${order.shipping_address['zip']}`)
 		const payload = {
 			pickupAddress: user.fullAddress,
 			pickupFormattedAddress: {
@@ -56,14 +108,14 @@ async function createNewJob(order, user) {
 			pickupFirstName: user.firstname,
 			pickupLastName: user.lastname,
 			pickupInstructions: order['note'] ? order['note'] : '',
-			dropoffAddress: `${order.shipping_address['address1']} ${order.shipping_address['city']} ${order.shipping_address['zip']}`,
+			dropoffAddress: fullAddress,
 			dropoffFormattedAddress: {
-				street: order.shipping_address['address1'],
-				city: order.shipping_address['city'],
-				postcode: order.shipping_address['zip'],
+				street: formattedAddress.street,
+				city: formattedAddress.city,
+				postcode: formattedAddress.postcode,
 				countryCode: 'GB',
 			},
-			dropoffPhoneNumber: order.phone,
+			dropoffPhoneNumber: order.phone ? order.phone : order.customer.phone ? order.customer.phone : order.shipping_address['phone'],
 			dropoffEmailAddress: order.email,
 			dropoffBusinessName: order.shipping_address.company,
 			dropoffFirstName: order.customer.first_name,

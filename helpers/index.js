@@ -395,13 +395,6 @@ async function getStreetStreamQuote(params, vehicleSpecs) {
 	const { pickupFormattedAddress, dropoffFormattedAddress } = params;
 	try {
 		const token = await authStreetStream();
-		/*const url = `https://api.heroku.com/apps/seconds-api-dev/config-vars`;
-		let vars = (await axios.get(url, {
-			headers: {
-				Authorization: `Bearer ${process.env.HEROKU_API_KEY}`,
-				Accept: "application/vnd.heroku+json; version=3"
-			},
-		})).data*/
 		const config = {
 			headers: { Authorization: `Bearer ${token}` },
 			params: {
@@ -427,6 +420,70 @@ async function getStreetStreamQuote(params, vehicleSpecs) {
 			providerId: PROVIDERS.STREET_STREAM,
 		};
 		console.log('STREET STREAM QUOTE');
+		console.log('----------------------------');
+		console.log(quote);
+		console.log('----------------------------');
+		return quote;
+	} catch (err) {
+		throw err;
+	}
+}
+
+async function getAddisonLeeQuote(params, vehicleSpecs) {
+	const { pickupFormattedAddress, dropoffFormattedAddress, pickupInstructions, dropoffInstructions } = params;
+	try {
+		const config = { headers: { Authorization: process.env.ADDISON_LEE_API_KEY } };
+		const payload = {
+			services: [
+				{
+					code: 'standard_car',
+				},
+				{
+					code: 'large_car',
+				},
+			],
+			locations: [
+				{
+					street_address: pickupFormattedAddress.street,
+					source: 'Address',
+					lat: pickupFormattedAddress.latitude,
+					long: pickupFormattedAddress.longitude,
+					notes: pickupInstructions,
+					town: pickupFormattedAddress.city,
+					postcode: pickupFormattedAddress.postcode,
+					country: pickupFormattedAddress.countryCode,
+				},
+				{
+					street_address: dropoffFormattedAddress.street,
+					source: 'Address',
+					lat: 51.498233,
+					long: -0.143448,
+					notes: dropoffInstructions,
+					town: dropoffFormattedAddress.city,
+					postcode: dropoffFormattedAddress.postcode,
+					country: dropoffFormattedAddress.countryCode,
+				},
+			],
+		};
+		const etaURL = `${process.env.ADDISON_LEE_ENV}/api-quickbook/v3/api/quote/time`;
+		const priceURL = `${process.env.ADDISON_LEE_ENV}/api-quickbook/v3/api/quote/price`;
+		let eta = (await axios.post(etaURL, payload, config)).data;
+		let price = (await axios.post(priceURL, payload, config)).data;
+		console.log('RESPONSE');
+		console.log('****************************');
+		console.log({ eta, price });
+		console.log('****************************');
+		const quote = {
+			...quoteSchema,
+			id: `quote_${nanoid(15)}`,
+			createdAt: moment().format(),
+			expireTime: moment().add(5, 'minutes').format(),
+			priceExVAT: price,
+			currency: 'GBP',
+			dropoffEta: eta,
+			providerId: PROVIDERS.ADDISON_LEE,
+		};
+		console.log('ADDISON LEE QUOTE');
 		console.log('----------------------------');
 		console.log(quote);
 		console.log('----------------------------');
@@ -763,6 +820,78 @@ async function ecofleetJobRequest(refNumber, params) {
 	}
 }
 
+async function addisonLeeJobRequestWithQuote(quoteId, params, vehicleSpecs) {
+	try {
+		const config = { headers: { Authorization: process.env.ADDISON_LEE_API_KEY } };
+		const payload = {
+			pickup_dt: '2019-10-01T09:00:00+01:00',
+			request_id: '616ed1b9-cf2f-4eec-bbdf-634368c9e070',
+			quote_id: quoteId,
+			promo_code: 'DISCOUNT10',
+			payment_method: 'Account',
+			service: 'standard_car',
+			contact: {
+				name: 'John Doe',
+				mobile: '07123456789',
+				email: 'john.doe@example.com',
+			},
+			passengers: [
+				{
+					name: 'Jane Doe',
+					mobile: '07262555555',
+					email: 'jane.doe@example.com',
+				},
+				{
+					name: 'Jane Smith',
+					mobile: '07123456789',
+					email: 'jane.smith@example.com',
+				},
+			],
+			information: [
+				{
+					type: 'Notes',
+					value: 'Special Instruction Notes',
+				},
+				{
+					type: 'Description',
+					value: 'Addison Lee to Collect John Doe',
+				},
+			],
+			partner_reference: {
+				booking: {
+					id: '9d8760a1-84cb-42d5-8887-f9574e75ede7',
+					number: '345677',
+				},
+			}
+		};
+		const etaURL = `${process.env.ADDISON_LEE_ENV}/api-quickbook/v3/api/quote/time`;
+		const priceURL = `${process.env.ADDISON_LEE_ENV}/api-quickbook/v3/api/quote/price`;
+		let eta = (await axios.post(etaURL, payload, config)).data;
+		let price = (await axios.post(priceURL, payload, config)).data;
+		console.log('RESPONSE');
+		console.log('****************************');
+		console.log({ eta, price });
+		console.log('****************************');
+		const quote = {
+			...quoteSchema,
+			id: `quote_${nanoid(15)}`,
+			createdAt: moment().format(),
+			expireTime: moment().add(5, 'minutes').format(),
+			priceExVAT: price,
+			currency: 'GBP',
+			dropoffEta: eta,
+			providerId: PROVIDERS.ADDISON_LEE,
+		};
+		console.log('ADDISON LEE QUOTE');
+		console.log('----------------------------');
+		console.log(quote);
+		console.log('----------------------------');
+		return quote;
+	} catch (err) {
+		throw err;
+	}
+}
+
 async function confirmCharge(amount, customerId, paymentIntentId) {
 	try {
 		console.log('*********************************');
@@ -796,5 +925,5 @@ module.exports = {
 	genOrderNumber,
 	getResultantQuotes,
 	providerCreatesJob,
-	confirmCharge
+	confirmCharge,
 };
