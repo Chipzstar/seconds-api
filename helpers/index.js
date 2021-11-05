@@ -135,6 +135,20 @@ async function checkAlternativeVehicles(pickup, dropoff, jobDistance, travelMode
 	}
 }
 
+function checkDeliveryHours(createdAt, deliveryHours){
+	const today = String(moment().day());
+	console.log('Current Day:', today);
+	// get open / close times for the current day of the week
+	const open = moment({ h: deliveryHours[today].open['h'], m: deliveryHours[today].open['m'] });
+	const close = moment({ h: deliveryHours[today].close['h'], m: deliveryHours[today].close['m'] });
+	// check time of creation is within the delivery hours
+	let timeFromOpen = moment.duration(moment(createdAt).diff(open)).asHours();
+	let timeFromClose = moment.duration(moment(createdAt).diff(close)).asHours();
+	console.log('DURATION:', { open: open.format("HH:mm"), timeFromOpen });
+	console.log('DURATION:', { close: close.format("HH:mm"), timeFromClose });
+	return timeFromClose <= -1 && timeFromOpen >= 0
+}
+
 async function authStreetStream() {
 	const authURL = `${process.env.STREET_STREAM_ENV}/api/tokens`;
 	const payload = {
@@ -923,6 +937,7 @@ module.exports = {
 	checkAlternativeVehicles,
 	chooseBestProvider,
 	genOrderNumber,
+	checkDeliveryHours,
 	getResultantQuotes,
 	providerCreatesJob,
 	confirmCharge,

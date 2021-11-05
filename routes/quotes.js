@@ -8,6 +8,7 @@ const {
 	calculateJobDistance,
 	checkAlternativeVehicles,
 } = require('../helpers');
+const moment = require('moment');
 const router = express.Router();
 
 /*
@@ -19,8 +20,8 @@ const router = express.Router();
  */
 router.post('/', async (req, res) => {
 	try {
-		const { selectionStrategy } = await getClientDetails(req.headers[AUTHORIZATION_KEY]);
-		console.log('Strategy: ', selectionStrategy);
+		const user = await getClientDetails(req.headers[AUTHORIZATION_KEY]);
+		console.log('Strategy: ', user.selectionStrategy);
 		// check that the vehicleType is valid and return the vehicle's specifications
 		let vehicleSpecs = getVehicleSpecs(req.body.vehicleType);
 		console.log(vehicleSpecs);
@@ -39,7 +40,7 @@ router.post('/', async (req, res) => {
 				vehicleSpecs.travelMode
 			);
 		const quotes = await getResultantQuotes(req.body, vehicleSpecs);
-		const bestQuote = chooseBestProvider(selectionStrategy, quotes);
+		const bestQuote = chooseBestProvider(user.selectionStrategy, quotes);
 		return res.status(200).json({
 			quotes,
 			bestQuote,

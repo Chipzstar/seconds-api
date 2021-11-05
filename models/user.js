@@ -1,72 +1,73 @@
-const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
-const { Schema } = require("mongoose");
+const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
+const { Schema } = require('mongoose');
 const crypto = require('crypto');
 const moment = require('moment');
+const { deliveryHoursSchema, openSchema, closeSchema } = require('./deliveryHours');
 
 const userSchema = new mongoose.Schema({
 	email: {
 		type: String,
 		required: true,
-		unique: true
+		unique: true,
 	},
 	firstname: {
 		type: String,
-		required: true
+		required: true,
 	},
 	lastname: {
 		type: String,
-		required: true
+		required: true,
 	},
 	company: {
 		type: String,
-		required: true
+		required: true,
 	},
 	phone: {
 		type: String,
-		required: true
+		required: true,
 	},
 	fullAddress: {
 		type: String,
-		required: true
+		required: true,
 	},
 	address: {
 		street: {
 			type: String,
-			default: ''
+			default: '',
 		},
 		city: {
 			type: String,
-			default: ''
+			default: '',
 		},
 		postcode: {
 			type: String,
-			default: ''
+			default: '',
 		},
 		countryCode: {
 			type: String,
-			default: 'GB'
-		}
+			default: 'GB',
+		},
 	},
 	password: {
 		type: String,
-		required: true
+		required: true,
 	},
 	passwordResetToken: {
-		type: String
+		type: String,
 	},
 	passwordResetExpires: {
-		type: Date
+		type: Date,
 	},
 	profileImage: {
 		filename: {
 			type: String,
-			default: ""
+			default: '',
 		},
 		location: {
 			type: String,
-			default: ""
-		}
+			default: '',
+		},
 	},
 	shopify: {
 		products: [],
@@ -75,42 +76,117 @@ const userSchema = new mongoose.Schema({
 		country: String,
 		domain: String,
 		baseURL: String,
-		accessToken: String
+		accessToken: String,
 	},
 	createdAt: {
 		type: Date,
-		default: Date.now()
+		default: Date.now(),
 	},
 	apiKey: {
 		type: String,
-		default: ""
+		default: '',
 	},
 	stripeCustomerId: {
 		type: String,
-		default: "",
+		default: '',
 	},
 	paymentMethodId: {
 		type: String,
-		default: "",
+		default: '',
 	},
 	subscriptionId: {
 		type: String,
-		default: "",
+		default: '',
 	},
 	subscriptionPlan: {
 		type: String,
-		default: ""
+		default: '',
 	},
 	selectionStrategy: {
 		type: String,
-		default: "eta"
+		default: 'eta',
 	},
-	jobs: [{type: Schema.Types.ObjectId, ref: 'Job'}],
+	deliveryHours: {
+		type: deliveryHoursSchema,
+		default: {
+			1: {
+				open: {
+					type: openSchema,
+					required: true
+				},
+				close: {
+					type: closeSchema,
+					required: true
+				},
+			},
+			2: {
+				open: {
+					type: openSchema,
+					required: true
+				},
+				close: {
+					type: closeSchema,
+					required: true
+				},
+			},
+			3: {
+				open: {
+					type: openSchema,
+					required: true
+				},
+				close: {
+					type: closeSchema,
+					required: true
+				},
+			},
+			4: {
+				open: {
+					type: openSchema,
+					required: true
+				},
+				close: {
+					type: closeSchema,
+					required: true
+				},
+			},
+			5: {
+				open: {
+					type: openSchema,
+					required: true
+				},
+				close: {
+					type: closeSchema,
+					required: true
+				},
+			},
+			6: {
+				open: {
+					type: openSchema,
+					required: true
+				},
+				close: {
+					type: closeSchema,
+					required: true
+				},
+			},
+			0: {
+				open: {
+					type: openSchema,
+					required: true
+				},
+				close: {
+					type: closeSchema,
+					required: true
+				},
+			},
+		}
+	},
+	jobs: [{ type: Schema.Types.ObjectId, ref: 'Job' }],
 });
 
-userSchema.pre("save", async function(next) {
+userSchema.pre('save', async function (next) {
 	try {
-		if (!this.isModified("password")) {
+		if (!this.isModified('password')) {
 			return next();
 		}
 		this.password = await bcrypt.hash(this.password, 10);
@@ -120,7 +196,7 @@ userSchema.pre("save", async function(next) {
 	}
 });
 
-userSchema.methods.comparePassword = async function(candidatePassword, next) {
+userSchema.methods.comparePassword = async function (candidatePassword, next) {
 	try {
 		return await bcrypt.compare(candidatePassword, this.password);
 	} catch (err) {
@@ -129,16 +205,16 @@ userSchema.methods.comparePassword = async function(candidatePassword, next) {
 	}
 };
 
-userSchema.methods.createPasswordResetToken = function(){
+userSchema.methods.createPasswordResetToken = function () {
 	const resetToken = crypto.randomBytes(32).toString('hex');
 	this.passwordResetToken = crypto.createHash('sha256').update(resetToken).digest('hex');
 
-	console.log({resetToken}, this.passwordResetToken)
+	console.log({ resetToken }, this.passwordResetToken);
 
-	this.passwordResetExpires = moment().add(1, "day").utc(true)
+	this.passwordResetExpires = moment().add(1, 'day');
 	return resetToken;
-}
+};
 
-const User = mongoose.model("User", userSchema);
+const User = mongoose.model('User', userSchema);
 
 module.exports = User;

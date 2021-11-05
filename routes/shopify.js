@@ -11,6 +11,7 @@ const {
 	getVehicleSpecs,
 	calculateJobDistance,
 	checkAlternativeVehicles,
+	checkDeliveryHours,
 } = require('../helpers');
 const { DELIVERY_TYPES, VEHICLE_CODES_MAP, VEHICLE_CODES, STATUS, COMMISSION } = require('../constants');
 const moment = require('moment');
@@ -296,22 +297,31 @@ router.post('/', async (req, res) => {
 				// CHECK if the incoming delivery is a local delivery
 				const isLocalDelivery = req.body['shipping_lines'][0].code === DELIVERY_METHODS.LOCAL;
 				const isSubscribed = !!user.subscriptionId & !!user.subscriptionPlan;
+				const canDeliver = checkDeliveryHours(moment().format(), user.deliveryHours);
 				console.log('isLocalDelivery:', isLocalDelivery);
 				if (isLocalDelivery) {
-					if (isSubscribed) {
-						createNewJob(req.body, user);
-						res.status(200).json({
-							success: true,
-							status: 'DELIVERY_JOB_CREATED',
-							message: 'webhook received',
-						});
+					if (canDeliver) {
+						if (isSubscribed) {
+							createNewJob(req.body, user);
+							res.status(200).json({
+								success: true,
+								status: 'DELIVERY_JOB_CREATED',
+								message: 'webhook received',
+							});
+						} else {
+							console.error('No subscription detected!');
+							return res.status(200).json({
+								success: false,
+								status: 'NO_SUBSCRIPTION',
+								message:
+									'We cannot carry out orders without a subscription. Please subscribe to one of our business plans!',
+							});
+						}
 					} else {
-						console.error('No subscription detected!');
-						return res.status(200).json({
+						res.status(200).json({
 							success: false,
-							status: 'NO_SUBSCRIPTION',
-							message:
-								'We cannot carry out orders without a subscription. Please subscribe to one of our business plans!',
+							status: 'OUTSIDE_DELIVERY_HOURS',
+							message: `You placed an order outside the shop's delivery hours. Please check your shop's delivery hours at ${shop}`,
 						});
 					}
 				} else {
@@ -319,7 +329,7 @@ router.post('/', async (req, res) => {
 						success: false,
 						status: 'NON_LOCAL_DELIVERY',
 						message:
-							'API can only fulfill orders using the local delivery method\n' +
+							'Seconds can only fulfill orders using the local delivery method\n' +
 							'See https://help.shopify.com/en/manual/shipping/setting-up-and-managing-your-shipping/local-methods/local-delivery for reference ',
 					});
 				}
