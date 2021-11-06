@@ -97,7 +97,7 @@ async function calculateJobDistance(origin, destination, mode) {
 		let distance = Number(distanceMatrix.rows[0].elements[0].distance.text.split(' ')[0]);
 		console.log('================================================');
 		console.log('JOB DISTANCE');
-		console.log(distance);
+		console.log(distance + " miles");
 		console.log('================================================');
 		return distance;
 	} catch (err) {
@@ -136,6 +136,7 @@ async function checkAlternativeVehicles(pickup, dropoff, jobDistance, travelMode
 }
 
 function checkDeliveryHours(createdAt, deliveryHours){
+	console.log("===================================================================")
 	const today = String(moment().day());
 	console.log('Current Day:', today);
 	// get open / close times for the current day of the week
@@ -146,7 +147,34 @@ function checkDeliveryHours(createdAt, deliveryHours){
 	let timeFromClose = moment.duration(moment(createdAt).diff(close)).asHours();
 	console.log('DURATION:', { open: open.format("HH:mm"), timeFromOpen });
 	console.log('DURATION:', { close: close.format("HH:mm"), timeFromClose });
+	console.log("===================================================================")
 	return timeFromClose <= -1 && timeFromOpen >= 0
+}
+
+function setNextDayDeliveryTime(deliveryHours){
+	console.log("===================================================================")
+	const max = 6;
+	let interval = 0;
+	let nextDay = moment().day()
+	console.log("Current Day:", nextDay)
+	// check that the store has at least one day in the week that allows delivery
+	const isValid = Object.entries(JSON.parse(JSON.stringify(deliveryHours))).some(([key, value]) => value.canDeliver === true)
+	// check if the datetime is not in the past & if store allows delivery on that day, if not check another day
+	if (isValid) {
+		// if a day does not allow deliveries OR if the time of the order request is AHEAD of the current day's opening time (only when nextDay = "Today")
+		// iterate over to the next day
+		while (!deliveryHours[nextDay].canDeliver || moment().diff(moment(deliveryHours[nextDay].open).add(interval, "days"), "minutes") > 0) {
+			nextDay === max ? nextDay = 0 : nextDay = nextDay + 1
+			interval = interval + 1
+		}
+		// return the pickup time for the next day delivery
+		const open = {h: deliveryHours[nextDay].open['h'], m: deliveryHours[nextDay].open['m']}
+		console.log(open)
+		console.log("===================================================================")
+		return moment(open).add(interval, "days").format();
+	} else {
+		throw new Error('Store has no delivery hours available!')
+	}
 }
 
 async function authStreetStream() {
@@ -173,6 +201,7 @@ async function getResultantQuotes(requestBody, vehicleSpecs) {
 		QUOTES.push(streetStreamQuote);
 		let ecoFleetQuote = {
 			...quoteSchema,
+			id: `quote_${nanoid(15)}`,
 			createdAt: moment().format(),
 			expireTime: moment().add(5, 'minutes').format(),
 			dropoffEta: null,
@@ -531,7 +560,7 @@ async function stuartJobRequest(refNumber, params, vehicleSpecs) {
 	try {
 		const payload = {
 			job: {
-				pickup_at: moment(packagePickupStartTime, 'DD/MM/YYYY HH:mm:ss'),
+				pickup_at: moment(packagePickupStartTime).format(),
 				assignment_code: genAssignmentCode(),
 				pickups: [
 					{
@@ -571,7 +600,9 @@ async function stuartJobRequest(refNumber, params, vehicleSpecs) {
 		const URL = `${process.env.STUART_ENV}/v2/jobs`;
 		const config = { headers: { Authorization: `Bearer ${process.env.STUART_API_KEY}` } };
 		let data = (await axios.post(URL, payload, config)).data;
+		console.log("----------------------------")
 		console.log(data);
+		console.log("----------------------------")
 		return {
 			id: String(data.id),
 			deliveryFee: data['pricing']['price_tax_included'],
@@ -941,4 +972,5 @@ module.exports = {
 	getResultantQuotes,
 	providerCreatesJob,
 	confirmCharge,
+	setNextDayDeliveryTime
 };

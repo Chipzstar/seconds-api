@@ -4,18 +4,6 @@ const router = express.Router();
 const db = require('../models');
 const moment = require('moment');
 
-router.get('/user', async (req, res) => {
-	try {
-		const { email } = req.query;
-		const user = await db.User.findOne({ email });
-		user ?	res.status(200).json(user.deliveryHours) : res.status(400).json({ code: 500, message: 'No delivery hours detected!' });
-	} catch (e) {
-		res.status(400).json({
-			message: e.message,
-		});
-	}
-});
-
 router.post('/', async (req, res) => {
 	try {
 		const { email, password } = req.body;
@@ -46,6 +34,5 @@ router.post('/', async (req, res) => {
 		});
 	}
 });
-
 
 module.exports = router;

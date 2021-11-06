@@ -12,6 +12,7 @@ const {
 	calculateJobDistance,
 	checkAlternativeVehicles,
 	checkDeliveryHours,
+	setNextDayDeliveryTime,
 } = require('../helpers');
 const { DELIVERY_TYPES, VEHICLE_CODES_MAP, VEHICLE_CODES, STATUS, COMMISSION } = require('../constants');
 const moment = require('moment');
@@ -123,7 +124,7 @@ async function createNewJob(order, user) {
 				countryCode: 'GB',
 			},
 			dropoffPhoneNumber: order['shipping_lines'][0].phone,
-			dropoffEmailAddress: order.email,
+			dropoffEmailAddress: order.email ? order.email : order.customer.email,
 			dropoffBusinessName: order.shipping_address.company,
 			dropoffFirstName: order.customer.first_name,
 			dropoffLastName: order.customer.last_name,
@@ -143,7 +144,7 @@ async function createNewJob(order, user) {
 		console.log('-----------------------------------------------------------------');
 		let paymentIntent = undefined;
 		const clientRefNumber = genJobReference();
-		const { _id: clientId, email, selectionStrategy } = user;
+		const { _id: clientId, email, selectionStrategy, deliveryHours } = user;
 		// get specifications for the vehicle
 		let vehicleSpecs = getVehicleSpecs(payload.vehicleType);
 		console.log('=====================================');
@@ -164,6 +165,14 @@ async function createNewJob(order, user) {
 				jobDistance,
 				vehicleSpecs.travelMode
 			);
+		// check delivery hours
+		let canDeliver = checkDeliveryHours(moment().format(), deliveryHours);
+		if (!canDeliver) {
+			const nextDayDeliveryTime = setNextDayDeliveryTime(deliveryHours);
+			payload.packageDeliveryType = DELIVERY_TYPES.NEXT_DAY.name;
+			payload.packagePickupStartTime = nextDayDeliveryTime;
+			payload.packageDropoffStartTime = moment(nextDayDeliveryTime).add(25, 'minutes').format();
+		}
 		const QUOTES = await getResultantQuotes(payload, vehicleSpecs);
 		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
 		const providerId = bestQuote.providerId;
@@ -175,7 +184,7 @@ async function createNewJob(order, user) {
 		console.log('COMMISSION FEE:', fee);
 		// check whether the client number of orders has exceeded the limit
 		const numOrders = await db.Job.where({ clientId: clientId, status: 'COMPLETED' }).countDocuments();
-		console.log('NUM ORDERS:', numOrders);
+		console.log('NUM COMPLETED ORDERS:', numOrders);
 		console.log('--------------------------------');
 		// if so create the payment intent for the new order
 		if (numOrders >= limit) {
@@ -300,28 +309,20 @@ router.post('/', async (req, res) => {
 				const canDeliver = checkDeliveryHours(moment().format(), user.deliveryHours);
 				console.log('isLocalDelivery:', isLocalDelivery);
 				if (isLocalDelivery) {
-					if (canDeliver) {
-						if (isSubscribed) {
-							createNewJob(req.body, user);
-							res.status(200).json({
-								success: true,
-								status: 'DELIVERY_JOB_CREATED',
-								message: 'webhook received',
-							});
-						} else {
-							console.error('No subscription detected!');
-							return res.status(200).json({
-								success: false,
-								status: 'NO_SUBSCRIPTION',
-								message:
-									'We cannot carry out orders without a subscription. Please subscribe to one of our business plans!',
-							});
-						}
-					} else {
+					if (isSubscribed) {
+						createNewJob(req.body, user);
 						res.status(200).json({
+							success: true,
+							status: 'DELIVERY_JOB_CREATED',
+							message: 'webhook received',
+						});
+					} else {
+						console.error('No subscription detected!');
+						return res.status(200).json({
 							success: false,
-							status: 'OUTSIDE_DELIVERY_HOURS',
-							message: `You placed an order outside the shop's delivery hours. Please check your shop's delivery hours at ${shop}`,
+							status: 'NO_SUBSCRIPTION',
+							message:
+								'We cannot carry out orders without a subscription. Please subscribe to one of our business plans!',
 						});
 					}
 				} else {

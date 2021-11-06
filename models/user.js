@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 const { Schema } = require('mongoose');
 const crypto = require('crypto');
 const moment = require('moment');
-const { deliveryHoursSchema, openSchema, closeSchema } = require('./deliveryHours');
+const { deliveryHoursSchema, hoursSchema } = require('./deliveryHours');
 
 const userSchema = new mongoose.Schema({
 	email: {
@@ -108,77 +108,85 @@ const userSchema = new mongoose.Schema({
 	},
 	deliveryHours: {
 		type: deliveryHoursSchema,
+		required: true,
 		default: {
 			1: {
 				open: {
-					type: openSchema,
-					required: true
+					h: 7,
+					m: 0
 				},
 				close: {
-					type: closeSchema,
-					required: true
+					h: 18,
+					m: 0
 				},
+				canDeliver: true
 			},
 			2: {
 				open: {
-					type: openSchema,
-					required: true
+					h: 7,
+					m: 0
 				},
 				close: {
-					type: closeSchema,
-					required: true
+					h: 18,
+					m: 0
 				},
+				canDeliver: true
 			},
 			3: {
 				open: {
-					type: openSchema,
-					required: true
+					h: 7,
+					m: 0
 				},
 				close: {
-					type: closeSchema,
-					required: true
+					h: 18,
+					m: 0
 				},
+				canDeliver: true
 			},
 			4: {
 				open: {
-					type: openSchema,
-					required: true
+					h: 7,
+					m: 0
 				},
 				close: {
-					type: closeSchema,
-					required: true
+					h: 18,
+					m: 0
 				},
+				canDeliver: true
 			},
 			5: {
 				open: {
-					type: openSchema,
-					required: true
+					h: 7,
+					m: 0
 				},
 				close: {
-					type: closeSchema,
-					required: true
+					h: 18,
+					m: 0
 				},
+				canDeliver: true
 			},
 			6: {
 				open: {
-					type: openSchema,
-					required: true
+					h: 7,
+					m: 0
 				},
 				close: {
-					type: closeSchema,
-					required: true
+					h: 18,
+					m: 0
 				},
+				canDeliver: true
 			},
 			0: {
 				open: {
-					type: openSchema,
-					required: true
+					h: 10,
+					m: 0
 				},
 				close: {
-					type: closeSchema,
-					required: true
+					h: 16,
+					m: 0
 				},
-			},
+				canDeliver: true
+			}
 		}
 	},
 	jobs: [{ type: Schema.Types.ObjectId, ref: 'Job' }],

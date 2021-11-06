@@ -10,6 +10,10 @@ exports.DELIVERY_TYPES = {
 		name: 'same-day',
 		ecofleet: 'same day',
 	},
+	NEXT_DAY: {
+		name: 'next-day',
+		ecofleet: null
+	}
 };
 
 exports.STATUS = {

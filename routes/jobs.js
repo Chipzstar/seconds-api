@@ -12,14 +12,13 @@ const {
 	calculateJobDistance,
 	checkAlternativeVehicles,
 	checkDeliveryHours,
+	setNextDayDeliveryTime
 } = require('../helpers');
-const { AUTHORIZATION_KEY, PROVIDER_ID, STATUS, alphabet, VEHICLE_CODES_MAP, COMMISSION } = require('../constants');
+const { AUTHORIZATION_KEY, PROVIDER_ID, STATUS, VEHICLE_CODES_MAP, COMMISSION, DELIVERY_TYPES } = require('../constants');
 const moment = require('moment');
-const { customAlphabet } = require('nanoid');
 const mongoose = require('mongoose');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const router = express.Router();
-const nanoid = customAlphabet(alphabet, 24);
 const { v4: uuidv4 } = require('uuid');
 
 /**
@@ -30,7 +29,7 @@ const { v4: uuidv4 } = require('uuid');
  * @param next - moves to the next helper function
  * @returns {Promise<*>}
  */
-router.get('/', async (req, res, next) => {
+router.get('/', async (req, res) => {
 	try {
 		console.log(req.query);
 		const { email } = req.query;
@@ -70,28 +69,10 @@ router.get('/', async (req, res, next) => {
  */
 router.post('/create', async (req, res) => {
 	try {
-		const {
+		let {
 			pickupAddress,
-			pickupFormattedAddress,
-			pickupPhoneNumber,
-			pickupEmailAddress,
-			pickupBusinessName,
-			pickupFirstName,
-			pickupLastName,
-			pickupInstructions,
 			dropoffAddress,
-			dropoffFormattedAddress,
-			dropoffPhoneNumber,
-			dropoffEmailAddress,
-			dropoffBusinessName,
-			dropoffFirstName,
-			dropoffLastName,
-			dropoffInstructions,
 			packageDeliveryType,
-			packageDropoffStartTime,
-			packageDropoffEndTime,
-			packagePickupStartTime,
-			packagePickupEndTime,
 			packageDescription,
 			itemsCount,
 			vehicleType,
@@ -129,6 +110,14 @@ router.post('/create', async (req, res) => {
 				vehicleSpecs.travelMode
 			);
 		}
+		// check delivery hours
+		let canDeliver = checkDeliveryHours(moment().format(), deliveryHours);
+		if (!canDeliver) {
+			const nextDayDeliveryTime = setNextDayDeliveryTime(deliveryHours)
+			req.body.packageDeliveryType = DELIVERY_TYPES.NEXT_DAY.name
+			req.body.packagePickupStartTime = nextDayDeliveryTime
+			req.body.packageDropoffStartTime = moment(nextDayDeliveryTime).add(25, "minutes").format()
+		}
 		const QUOTES = await getResultantQuotes(req.body, vehicleSpecs);
 		// Use selection strategy to select the winner quote
 		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
@@ -145,143 +134,128 @@ router.post('/create', async (req, res) => {
 			console.log('***************************************************');
 			winnerQuote = chosenQuote ? chosenQuote.id : null;
 		}
-		// check delivery hours
-		let canDeliver = checkDeliveryHours(bestQuote.createdAt, deliveryHours);
-		console.log('SUBSCRIPTION ID', !!subscriptionId);
 		// check if user has a subscription active
-		if (canDeliver) {
-			if (subscriptionId && subscriptionPlan) {
-				let idempotencyKey = uuidv4();
-				// check the payment plan and lookup the associated commission fee
-				let { fee, limit } = COMMISSION[subscriptionPlan.toUpperCase()];
-				console.log('--------------------------------');
-				console.log('COMMISSION FEE:', fee);
-				// check whether the client number of orders has exceeded the limit
-				const numOrders = await db.Job.where({ clientId: clientId, status: 'COMPLETED' }).countDocuments();
-				console.log('NUM ORDERS:', numOrders);
-				console.log('--------------------------------');
-				// if so create the payment intent for the new order
-				if (numOrders >= limit) {
-					paymentIntent = await stripe.paymentIntents.create(
-						{
-							amount: fee * 100,
-							customer: stripeCustomerId,
-							currency: 'GBP',
-							setup_future_usage: 'off_session',
-							payment_method: paymentMethodId,
-							payment_method_types: ['card'],
-						},
-						{
-							idempotencyKey,
-						}
-					);
-					console.log('-------------------------------------------');
-					console.log('Payment Intent Created!', paymentIntent);
-					console.log('-------------------------------------------');
-				}
-				const paymentIntentId = paymentIntent ? paymentIntent.id : undefined;
-				const {
-					id: spec_id,
-					trackingURL,
-					deliveryFee,
-					pickupAt,
-					dropoffAt,
-				} = await providerCreatesJob(
-					providerId.toLowerCase(),
-					clientRefNumber,
-					selectionStrategy,
-					req.body,
-					vehicleSpecs
+		console.log('SUBSCRIPTION ID', !!subscriptionId);
+		if (subscriptionId && subscriptionPlan) {
+			let idempotencyKey = uuidv4();
+			// check the payment plan and lookup the associated commission fee
+			let { fee, limit } = COMMISSION[subscriptionPlan.toUpperCase()];
+			console.log('--------------------------------');
+			console.log('COMMISSION FEE:', fee);
+			// check whether the client number of orders has exceeded the limit
+			const numOrders = await db.Job.where({ clientId: clientId, status: 'COMPLETED' }).countDocuments();
+			console.log('NUM COMPLETED ORDERS:', numOrders);
+			console.log('--------------------------------');
+			// if so create the payment intent for the new order
+			if (numOrders >= limit) {
+				paymentIntent = await stripe.paymentIntents.create(
+					{
+						amount: fee * 100,
+						customer: stripeCustomerId,
+						currency: 'GBP',
+						setup_future_usage: 'off_session',
+						payment_method: paymentMethodId,
+						payment_method_types: ['card'],
+					},
+					{
+						idempotencyKey,
+					}
 				);
-				const jobs = await db.Job.find({});
-				let job = {
-					createdAt: moment().format(),
-					driverInformation: {
-						name: 'Searching',
-						phone: 'Searching',
-						transport: 'Searching',
-					},
-					jobSpecification: {
-						id: spec_id,
-						shopifyId: null,
-						orderNumber: genOrderNumber(jobs.length),
-						deliveryType: packageDeliveryType,
-						packages: [
-							{
-								description: packageDescription,
-								dropoffLocation: {
-									fullAddress: dropoffAddress,
-									street_address: dropoffFormattedAddress.street,
-									city: dropoffFormattedAddress.city,
-									postcode: dropoffFormattedAddress.postcode,
-									country: 'UK',
-									phoneNumber: dropoffPhoneNumber,
-									email: dropoffEmailAddress,
-									firstName: dropoffFirstName,
-									lastName: dropoffLastName,
-									businessName: dropoffBusinessName,
-									instructions: dropoffInstructions,
-								},
-								dropoffStartTime: dropoffAt ? moment(dropoffAt) : packageDropoffStartTime,
-								dropoffEndTime: packageDropoffEndTime,
-								itemsCount,
-								pickupStartTime: pickupAt ? moment(pickupAt) : packagePickupStartTime,
-								pickupEndTime: packagePickupEndTime,
-								pickupLocation: {
-									fullAddress: pickupAddress,
-									street_address: pickupFormattedAddress.street,
-									city: pickupFormattedAddress.city,
-									postcode: pickupFormattedAddress.postcode,
-									country: 'UK',
-									phoneNumber: pickupPhoneNumber,
-									email: pickupEmailAddress,
-									firstName: pickupFirstName,
-									lastName: pickupLastName,
-									businessName: pickupBusinessName,
-									instructions: pickupInstructions,
-								},
-								transport: VEHICLE_CODES_MAP[vehicleType].name,
-							},
-						],
-					},
-					selectedConfiguration: {
-						jobReference: clientRefNumber,
-						createdAt: moment().format(),
-						deliveryFee,
-						winnerQuote,
-						providerId,
-						trackingURL,
-						quotes: QUOTES,
-					},
-					status: STATUS.NEW,
-				};
-				// Append the selected provider job to the jobs database
-				const createdJob = await db.Job.create({ ...job, clientId, paymentIntentId });
-				// Add the delivery to the users list of jobs
-				await db.User.updateOne({ apiKey }, { $push: { jobs: createdJob._id } }, { new: true });
-				return res.status(200).json({
-					jobId: createdJob._id,
-					...job,
-				});
-			} else {
-				console.error('No subscription detected!');
-				return res.status(402).json({
-					error: {
-						code: 402,
-						message: 'Please purchase a subscription plan before making an order. Thank you! 😊',
-					},
-				});
+				console.log('-------------------------------------------');
+				console.log('Payment Intent Created!', paymentIntent);
+				console.log('-------------------------------------------');
 			}
+			const paymentIntentId = paymentIntent ? paymentIntent.id : undefined;
+			const {
+				id: spec_id,
+				trackingURL,
+				deliveryFee,
+				pickupAt,
+				dropoffAt,
+			} = await providerCreatesJob(
+				providerId.toLowerCase(),
+				clientRefNumber,
+				selectionStrategy,
+				req.body,
+				vehicleSpecs
+			);
+			const jobs = await db.Job.find({});
+			let job = {
+				createdAt: moment().format(),
+				driverInformation: {
+					name: 'Searching',
+					phone: 'Searching',
+					transport: 'Searching',
+				},
+				jobSpecification: {
+					id: spec_id,
+					shopifyId: null,
+					orderNumber: genOrderNumber(jobs.length),
+					deliveryType: packageDeliveryType,
+					packages: [
+						{
+							description: packageDescription,
+							dropoffLocation: {
+								fullAddress: req.body.dropoffAddress,
+								street_address: req.body.dropoffFormattedAddress.street,
+								city: req.body.dropoffFormattedAddress.city,
+								postcode: req.body.dropoffFormattedAddress.postcode,
+								country: 'UK',
+								phoneNumber: req.body.dropoffPhoneNumber,
+								email: req.body.dropoffEmailAddress,
+								firstName: req.body.dropoffFirstName,
+								lastName: req.body.dropoffLastName,
+								businessName: req.body.dropoffBusinessName,
+								instructions: req.body.dropoffInstructions,
+							},
+							dropoffStartTime: dropoffAt ? moment(dropoffAt) : req.body.packageDropoffStartTime,
+							dropoffEndTime: req.body.packageDropoffEndTime,
+							itemsCount,
+							pickupStartTime: pickupAt ? moment(pickupAt) : req.body.packagePickupStartTime,
+							pickupEndTime: req.body.packagePickupEndTime,
+							pickupLocation: {
+								fullAddress: req.body.pickupAddress,
+								street_address: req.body.pickupFormattedAddress.street,
+								city: req.body.pickupFormattedAddress.city,
+								postcode: req.body.pickupFormattedAddress.postcode,
+								country: 'UK',
+								phoneNumber: req.body.pickupPhoneNumber,
+								email: req.body.pickupEmailAddress,
+								firstName: req.body.pickupFirstName,
+								lastName: req.body.pickupLastName,
+								businessName: req.body.pickupBusinessName,
+								instructions: req.body.pickupInstructions,
+							},
+							transport: VEHICLE_CODES_MAP[vehicleType].name,
+						},
+					],
+				},
+				selectedConfiguration: {
+					jobReference: clientRefNumber,
+					createdAt: moment().format(),
+					deliveryFee,
+					winnerQuote,
+					providerId,
+					trackingURL,
+					quotes: QUOTES,
+				},
+				status: STATUS.NEW,
+			};
+			// Append the selected provider job to the jobs database
+			const createdJob = await db.Job.create({ ...job, clientId, paymentIntentId });
+			// Add the delivery to the users list of jobs
+			await db.User.updateOne({ apiKey }, { $push: { jobs: createdJob._id } }, { new: true });
+			return res.status(200).json({
+				jobId: createdJob._id,
+				...job,
+			});
 		} else {
-			console.error('Outside Store delivery hours');
-			let day = String(moment().day());
-			let open = { h: deliveryHours[day].open['h'], m: deliveryHours[day].open['m'] };
-			let close = { h: deliveryHours[day].close['h'], m: deliveryHours[day].close['m'] };
-			res.status(400).json({
-				code: 400,
-				message: `You made a delivery outside our delivery hours. Delivery hours are between ${moment(
-					open
-				).format('HH:mm')} and ${moment(close).format('HH:mm')}`,
+			console.error('No subscription detected!');
+			return res.status(402).json({
+				error: {
+					code: 402,
+					message: 'Please purchase a subscription plan before making an order. Thank you! 😊',
+				},
 			});
 		}
 	} catch (e) {
@@ -449,4 +423,3 @@ router.delete('/:job_id', async (req, res) => {
 });
 
 module.exports = router;
-

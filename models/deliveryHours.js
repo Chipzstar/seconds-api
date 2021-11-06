@@ -7,11 +7,7 @@ const openSchema = new mongoose.Schema({
 	},
 	m: {
 		type: Number,
-		default: 0
-	},
-	canDeliver: {
-		type: Boolean,
-		default: true
+		default: 30
 	}
 })
 
@@ -23,10 +19,6 @@ const closeSchema = new mongoose.Schema({
 	m: {
 		type: Number,
 		default: 0
-	},
-	canDeliver: {
-		type: Boolean,
-		default: true
 	}
 })
 
@@ -36,6 +28,10 @@ const hoursSchema = new mongoose.Schema({
 	},
 	close: {
 		type: closeSchema
+	},
+	canDeliver:{
+		type: Boolean,
+		default: true
 	},
 });
 
@@ -64,4 +60,4 @@ const deliveryHoursSchema = new mongoose.Schema({
 	}
 })
 
-module.exports = { deliveryHoursSchema, openSchema, closeSchema };
+module.exports = { deliveryHoursSchema, hoursSchema };
