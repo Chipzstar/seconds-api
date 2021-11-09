@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 const { Schema } = require('mongoose');
 const crypto = require('crypto');
 const moment = require('moment');
-const { deliveryHoursSchema, hoursSchema } = require('./deliveryHours');
+const { deliveryHoursSchema } = require('./deliveryHours');
 
 const userSchema = new mongoose.Schema({
 	email: {
@@ -30,6 +30,10 @@ const userSchema = new mongoose.Schema({
 	fullAddress: {
 		type: String,
 		required: true,
+	},
+	team: {
+		type: Array,
+		default: []
 	},
 	address: {
 		street: {

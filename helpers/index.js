@@ -74,10 +74,6 @@ function chooseBestProvider(strategy, quotes) {
 	}
 }
 
-function genOrderNumber(number) {
-	return number.toString().padStart(4, '0');
-}
-
 async function calculateJobDistance(origin, destination, mode) {
 	console.log('PICKUP:', origin);
 	console.log('DROPOFF:', destination);
@@ -148,7 +144,7 @@ function checkDeliveryHours(createdAt, deliveryHours) {
 	console.log('DURATION:', { open: open.format('HH:mm'), timeFromOpen });
 	console.log('DURATION:', { close: close.format('HH:mm'), timeFromClose });
 	console.log('===================================================================');
-	return timeFromClose <= -1 && timeFromOpen >= 0;
+	return timeFromClose <= -0.5 && timeFromOpen >= 0;
 }
 
 function setNextDayDeliveryTime(deliveryHours) {
@@ -679,6 +675,7 @@ async function gophrJobRequest(refNumber, params, vehicleSpecs) {
 			delivery_country_code: `${dropoffFormattedAddress['countryCode']}`,
 			delivery_tips_how_to_find: `${dropoffInstructions}`,
 		});
+		console.log(payload)
 		const config = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
 		const createJobURL = `${process.env.GOPHR_ENV}/v1/commercial-api/create-confirm-job`;
 		const response = (await axios.post(createJobURL, payload, config)).data;
@@ -972,7 +969,6 @@ module.exports = {
 	calculateJobDistance,
 	checkAlternativeVehicles,
 	chooseBestProvider,
-	genOrderNumber,
 	checkDeliveryHours,
 	getResultantQuotes,
 	providerCreatesJob,

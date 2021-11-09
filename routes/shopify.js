@@ -7,7 +7,6 @@ const {
 	getResultantQuotes,
 	chooseBestProvider,
 	providerCreatesJob,
-	genOrderNumber,
 	getVehicleSpecs,
 	calculateJobDistance,
 	checkAlternativeVehicles,
@@ -18,8 +17,10 @@ const { DELIVERY_TYPES, VEHICLE_CODES_MAP, VEHICLE_CODES, STATUS, COMMISSION } =
 const moment = require('moment');
 const { DELIVERY_METHODS } = require('../constants/shopify');
 const { v4: uuidv4 } = require('uuid');
+const sendEmail = require('../services/email');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const router = express.Router();
+const orderId = require('order-id')(process.env.UID_SECRET_KEY)
 
 const client = new Client();
 
@@ -218,14 +219,12 @@ async function createNewJob(order, user) {
 			vehicleSpecs
 		);
 
-		const jobs = await db.Job.find({});
-
 		let job = {
 			createdAt: moment().format(),
 			jobSpecification: {
 				id: spec_id,
 				shopifyId: order.id,
-				orderNumber: genOrderNumber(jobs.length),
+				orderNumber: orderId.generate(),
 				deliveryType: payload.packageDeliveryType,
 				packages: [
 					{
@@ -279,12 +278,42 @@ async function createNewJob(order, user) {
 		// Append the selected provider job to the jobs database
 		const createdJob = await db.Job.create({ ...job, clientId, paymentIntentId });
 		console.log(createdJob);
+		sendEmails(user.team, job);
 		// Add the delivery to the users list of jobs
 		await db.User.updateOne({ email: email }, { $push: { jobs: createdJob._id } }, { new: true });
 		return true;
 	} catch (err) {
 		console.error(err);
 		return err;
+	}
+}
+
+async function sendEmails(team, job) {
+	try {
+		console.table(job)
+		let allSent = await Promise.all(
+			team.map(async ({name, email}) =>
+				sendEmail({
+					email: email,
+					name: name,
+					subject: 'New delivery job',
+					templateId: 'd-aace035dda44493e8cc507c367da3a03',
+					templateDate: {
+						address: job.jobSpecification.packages[0].dropoffAddress,
+						customer: `${job.jobSpecification.packages[0].dropoffFirstName} ${job.jobSpecification.packages[0].dropoffLastName} `,
+						provider: job.selectedConfiguration.providerId,
+						price: job.selectedConfiguration.deliveryFee,
+						created_at: job.createdAt,
+						eta: job.jobSpecification.packages[0].packageDropoffStartTime,
+						unsubscribe: "https://useseconds.com"
+					}
+				})
+			)
+		);
+		console.log(allSent)
+		return allSent
+	} catch (err) {
+		console.error(err.response.body);
 	}
 }
 

@@ -7,7 +7,6 @@ const {
 	getResultantQuotes,
 	chooseBestProvider,
 	providerCreatesJob,
-	genOrderNumber,
 	getVehicleSpecs,
 	calculateJobDistance,
 	checkAlternativeVehicles,
@@ -20,6 +19,7 @@ const mongoose = require('mongoose');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
+const orderId = require('order-id')(process.env.UID_SECRET_KEY);
 
 /**
  * List Jobs - The API endpoint for listing all jobs currently belonging to a user
@@ -190,7 +190,7 @@ router.post('/create', async (req, res) => {
 				jobSpecification: {
 					id: spec_id,
 					shopifyId: null,
-					orderNumber: genOrderNumber(jobs.length),
+					orderNumber: orderId.generate(),
 					deliveryType: packageDeliveryType,
 					packages: [
 						{
