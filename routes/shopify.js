@@ -306,7 +306,6 @@ router.post('/', async (req, res) => {
 				// CHECK if the incoming delivery is a local delivery
 				const isLocalDelivery = req.body['shipping_lines'][0].code === DELIVERY_METHODS.LOCAL;
 				const isSubscribed = !!user.subscriptionId & !!user.subscriptionPlan;
-				const canDeliver = checkDeliveryHours(moment().format(), user.deliveryHours);
 				console.log('isLocalDelivery:', isLocalDelivery);
 				if (isLocalDelivery) {
 					if (isSubscribed) {

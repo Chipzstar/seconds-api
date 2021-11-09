@@ -61,7 +61,7 @@ router.get('/', async (req, res) => {
 });
 
 /**
- * Create Job - creates a new delivery job based on delivery requirements
+ * Create Job - creates a single point to point job based on delivery requirements
  * @constructor
  * @param req - request object
  * @param res - response object
@@ -258,11 +258,11 @@ router.post('/create', async (req, res) => {
 				},
 			});
 		}
-	} catch (e) {
-		console.error('ERROR:', e);
-		if (e.message) {
-			return res.status(e.code).json({
-				error: e,
+	} catch (err) {
+		err.response ? console.error("ERROR:", err.response.data) : console.log("ERROR:", err);
+		if (err.message) {
+			return res.status(err.code).json({
+				error: err,
 			});
 		}
 		return res.status(500).json({
@@ -271,6 +271,22 @@ router.post('/create', async (req, res) => {
 		});
 	}
 });
+
+router.post('/create-multi', async (req, res) => {
+	try {
+		let {
+			pickupAddress,
+			dropoffAddress,
+			packageDeliveryType,
+			packageDescription,
+			itemsCount,
+			vehicleType,
+		} = req.body;
+		res.status(200).json(req.body)
+	} catch (err) {
+	    console.error(err)
+	}
+})
 
 /**
  * Get Job - The API endpoint for retrieving created delivery jobs
