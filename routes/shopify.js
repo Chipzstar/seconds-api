@@ -299,12 +299,12 @@ async function sendEmails(team, job) {
 					subject: 'New delivery job',
 					templateId: 'd-aace035dda44493e8cc507c367da3a03',
 					templateData: {
-						address: job.jobSpecification.packages[0].dropoffLocation.dropoffAddress,
-						customer: `${job.jobSpecification.packages[0].dropoffLocation.dropoffFirstName} ${job.jobSpecification.packages[0].dropoffLocation.dropoffLastName}`,
+						address: job.jobSpecification.packages[0].dropoffLocation.fullAddress,
+						customer: `${job.jobSpecification.packages[0].dropoffLocation.firstName} ${job.jobSpecification.packages[0].dropoffLocation.lastName}`,
 						provider: job.selectedConfiguration.providerId,
 						price: job.selectedConfiguration.deliveryFee,
-						created_at: job.createdAt,
-						eta: job.jobSpecification.packages[0].dropoffLocation.packageDropoffStartTime,
+						created_at: moment(job.createdAt).format("DD/MM/YYYY HH:mm:ss"),
+						eta: job.jobSpecification.packages[0].pickupStartTime ? moment().to(moment(job.jobSpecification.packages[0].pickupStartTime)) : "N/A",
 						unsubscribe: "https://useseconds.com"
 					}
 				})
