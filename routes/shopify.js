@@ -290,21 +290,21 @@ async function createNewJob(order, user) {
 
 async function sendEmails(team, job) {
 	try {
-		console.table(job)
+		console.log(job)
 		let allSent = await Promise.all(
 			team.map(async ({name, email}) =>
-				sendEmail({
+				await sendEmail({
 					email: email,
 					name: name,
 					subject: 'New delivery job',
 					templateId: 'd-aace035dda44493e8cc507c367da3a03',
 					templateData: {
-						address: job.jobSpecification.packages[0].dropoffAddress,
-						customer: `${job.jobSpecification.packages[0].dropoffFirstName} ${job.jobSpecification.packages[0].dropoffLastName} `,
+						address: job.jobSpecification.packages[0].dropoffLocation.dropoffAddress,
+						customer: `${job.jobSpecification.packages[0].dropoffLocation.dropoffFirstName} ${job.jobSpecification.packages[0].dropoffLocation.dropoffLastName}`,
 						provider: job.selectedConfiguration.providerId,
 						price: job.selectedConfiguration.deliveryFee,
 						created_at: job.createdAt,
-						eta: job.jobSpecification.packages[0].packageDropoffStartTime,
+						eta: job.jobSpecification.packages[0].dropoffLocation.packageDropoffStartTime,
 						unsubscribe: "https://useseconds.com"
 					}
 				})
