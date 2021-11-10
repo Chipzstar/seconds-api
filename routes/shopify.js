@@ -298,7 +298,7 @@ async function sendEmails(team, job) {
 					name: name,
 					subject: 'New delivery job',
 					templateId: 'd-aace035dda44493e8cc507c367da3a03',
-					templateDate: {
+					templateData: {
 						address: job.jobSpecification.packages[0].dropoffAddress,
 						customer: `${job.jobSpecification.packages[0].dropoffFirstName} ${job.jobSpecification.packages[0].dropoffLastName} `,
 						provider: job.selectedConfiguration.providerId,
