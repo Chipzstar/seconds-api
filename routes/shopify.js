@@ -130,10 +130,10 @@ async function createNewJob(order, user) {
 			dropoffFirstName: order.customer.first_name,
 			dropoffLastName: order.customer.last_name,
 			dropoffInstructions: order.customer['note'] ? order.customer['note'] : '',
-			packagePickupStartTime: undefined,
-			packagePickupEndTime: undefined,
-			packageDropoffStartTime: undefined,
-			packageDropoffEndTime: undefined,
+			packagePickupStartTime: moment().add(45, "minutes").format(),
+			packagePickupEndTime: moment().add(60, "minutes").format(),
+			packageDropoffStartTime: moment().add(90, "minutes").format(),
+			packageDropoffEndTime: moment().add(105, "minutes").format(),
 			packageDeliveryType: DELIVERY_TYPES.ON_DEMAND.name,
 			packageDescription,
 			itemsCount,
@@ -278,7 +278,7 @@ async function createNewJob(order, user) {
 		// Append the selected provider job to the jobs database
 		const createdJob = await db.Job.create({ ...job, clientId, paymentIntentId });
 		console.log(createdJob);
-		sendEmails(user.team, job);
+		await sendEmails(user.team, job);
 		// Add the delivery to the users list of jobs
 		await db.User.updateOne({ email: email }, { $push: { jobs: createdJob._id } }, { new: true });
 		return true;
@@ -330,7 +330,7 @@ router.post('/', async (req, res) => {
 			console.log(req.body.id);
 			console.log('-----------------------------');
 			// check that the shop domain belongs to a user
-			const user = await db.User.findOne({ 'shopify.domain': shop });
+			const user = await db.User.findOne({ 'shopify.domain': shop.toLowerCase() });
 			console.log('User Found:', !!user);
 			if (user) {
 				// CHECK if the incoming delivery is a local delivery
