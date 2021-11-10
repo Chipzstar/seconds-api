@@ -302,6 +302,7 @@ async function sendEmails(team, job) {
 						address: job.jobSpecification.packages[0].dropoffLocation.fullAddress,
 						customer: `${job.jobSpecification.packages[0].dropoffLocation.firstName} ${job.jobSpecification.packages[0].dropoffLocation.lastName}`,
 						provider: job.selectedConfiguration.providerId,
+						reference: job.selectedConfiguration.jobReference,
 						price: job.selectedConfiguration.deliveryFee,
 						created_at: moment(job.createdAt).format("DD/MM/YYYY HH:mm:ss"),
 						eta: job.jobSpecification.packages[0].pickupStartTime ? moment().to(moment(job.jobSpecification.packages[0].pickupStartTime)) : "N/A",
