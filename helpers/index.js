@@ -92,6 +92,8 @@ async function calculateJobDistance(origin, destination, mode) {
 		).data;
 		console.log(distanceMatrix.rows[0].elements[0])
 		let distance = Number(distanceMatrix.rows[0].elements[0].distance.text.split(' ')[0]);
+		let unit = distanceMatrix.rows[0].elements[0].distance.text.split(' ')[1]
+		if (unit === "ft") distance = 4
 		console.log('================================================');
 		console.log('JOB DISTANCE');
 		console.log(distance + ' miles');
