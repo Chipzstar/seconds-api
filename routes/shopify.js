@@ -88,6 +88,36 @@ function convertWeightToVehicleCode(total_weight) {
 	return { vehicleName, vehicleCode };
 }
 
+async function sendEmails(team, job) {
+	try {
+		console.log(job)
+		let allSent = await Promise.all(
+			team.map(async ({name, email}) =>
+				await sendEmail({
+					email: email,
+					name: name,
+					subject: 'New delivery job',
+					templateId: 'd-aace035dda44493e8cc507c367da3a03',
+					templateData: {
+						address: job.jobSpecification.packages[0].dropoffLocation.fullAddress,
+						customer: `${job.jobSpecification.packages[0].dropoffLocation.firstName} ${job.jobSpecification.packages[0].dropoffLocation.lastName}`,
+						provider: job.selectedConfiguration.providerId,
+						reference: job.selectedConfiguration.jobReference,
+						price: job.selectedConfiguration.deliveryFee,
+						created_at: moment(job.createdAt).format("DD/MM/YYYY HH:mm:ss"),
+						eta: job.jobSpecification.packages[0].pickupStartTime ? moment().to(moment(job.jobSpecification.packages[0].pickupStartTime)) : "N/A",
+						unsubscribe: "https://useseconds.com"
+					}
+				})
+			)
+		);
+		console.log(allSent)
+		return allSent
+	} catch (err) {
+		console.error(err.response.body);
+	}
+}
+
 async function createNewJob(order, user) {
 	try {
 		console.log('************************************');
@@ -285,36 +315,6 @@ async function createNewJob(order, user) {
 	} catch (err) {
 		console.error(err);
 		return err;
-	}
-}
-
-async function sendEmails(team, job) {
-	try {
-		console.log(job)
-		let allSent = await Promise.all(
-			team.map(async ({name, email}) =>
-				await sendEmail({
-					email: email,
-					name: name,
-					subject: 'New delivery job',
-					templateId: 'd-aace035dda44493e8cc507c367da3a03',
-					templateData: {
-						address: job.jobSpecification.packages[0].dropoffLocation.fullAddress,
-						customer: `${job.jobSpecification.packages[0].dropoffLocation.firstName} ${job.jobSpecification.packages[0].dropoffLocation.lastName}`,
-						provider: job.selectedConfiguration.providerId,
-						reference: job.selectedConfiguration.jobReference,
-						price: job.selectedConfiguration.deliveryFee,
-						created_at: moment(job.createdAt).format("DD/MM/YYYY HH:mm:ss"),
-						eta: job.jobSpecification.packages[0].pickupStartTime ? moment().to(moment(job.jobSpecification.packages[0].pickupStartTime)) : "N/A",
-						unsubscribe: "https://useseconds.com"
-					}
-				})
-			)
-		);
-		console.log(allSent)
-		return allSent
-	} catch (err) {
-		console.error(err.response.body);
 	}
 }
 

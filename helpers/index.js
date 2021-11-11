@@ -90,6 +90,7 @@ async function calculateJobDistance(origin, destination, mode) {
 				responseType: 'json',
 			})
 		).data;
+		console.log(distanceMatrix.rows[0].elements[0])
 		let distance = Number(distanceMatrix.rows[0].elements[0].distance.text.split(' ')[0]);
 		console.log('================================================');
 		console.log('JOB DISTANCE');
