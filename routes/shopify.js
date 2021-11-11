@@ -88,7 +88,7 @@ function convertWeightToVehicleCode(total_weight) {
 	return { vehicleName, vehicleCode };
 }
 
-async function sendEmails(team, job) {
+async function sendNewJobEmails(team, job) {
 	try {
 		console.log(job)
 		let allSent = await Promise.all(
@@ -308,11 +308,17 @@ async function createNewJob(order, user) {
 		// Append the selected provider job to the jobs database
 		const createdJob = await db.Job.create({ ...job, clientId, paymentIntentId });
 		console.log(createdJob);
-		await sendEmails(user.team, job);
+		await sendNewJobEmails(user.team, job);
 		// Add the delivery to the users list of jobs
 		await db.User.updateOne({ email: email }, { $push: { jobs: createdJob._id } }, { new: true });
 		return true;
 	} catch (err) {
+		await sendEmail({
+			email: "chipzstar.dev@gmail.com",
+			name: "Chisom Oguibe",
+			subject: `Failed Shopify order #${order.id}`,
+			message: `Job could not be created. Reason: ${err.message}`
+	})
 		console.error(err);
 		return err;
 	}
