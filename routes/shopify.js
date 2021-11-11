@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const db = require('../models');
+const router = express.Router();
 const { Client } = require('@googlemaps/google-maps-services-js');
 const {
 	genJobReference,
@@ -19,7 +20,6 @@ const { DELIVERY_METHODS } = require('../constants/shopify');
 const { v4: uuidv4 } = require('uuid');
 const sendEmail = require('../services/email');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const router = express.Router();
 const orderId = require('order-id')(process.env.UID_SECRET_KEY)
 
 const client = new Client();
@@ -197,7 +197,7 @@ async function createNewJob(order, user) {
 				vehicleSpecs.travelMode
 			);
 		// check delivery hours
-		let canDeliver = checkDeliveryHours(moment().format(), deliveryHours);
+		let canDeliver = checkDeliveryHours(payload.packagePickupStartTime, deliveryHours);
 		if (!canDeliver) {
 			const nextDayDeliveryTime = setNextDayDeliveryTime(deliveryHours);
 			payload.packageDeliveryType = DELIVERY_TYPES.NEXT_DAY.name;

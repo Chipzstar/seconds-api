@@ -175,7 +175,7 @@ function setNextDayDeliveryTime(deliveryHours) {
 		const open = { h: deliveryHours[nextDay].open['h'], m: deliveryHours[nextDay].open['m'] };
 		console.log(open);
 		console.log('===================================================================');
-		return moment(open).add(interval, 'days').format();
+		return moment(open).add(interval, 'days').add(15, "minutes").format();
 	} else {
 		throw new Error('Store has no delivery hours available!');
 	}
