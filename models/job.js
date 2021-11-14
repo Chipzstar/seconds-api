@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const packageSchema = require("./package");
+const deliverySchema = require("./deliveries");
 
 const jobSchema = new mongoose.Schema({
 	clientId: {
@@ -7,7 +7,8 @@ const jobSchema = new mongoose.Schema({
 		required: true
 	},
 	paymentIntentId: {
-		type: String
+		type: String,
+		default: null
 	},
 	jobSpecification: {
 		id: {
@@ -18,13 +19,33 @@ const jobSchema = new mongoose.Schema({
 			type: String,
 			default: null
 		},
-		deliveryType: String,
 		orderNumber: {
 			type: String,
 			unique: true,
 			required: true,
 		},
-		packages: [packageSchema]
+		deliveryType: String,
+		pickupStartTime: {
+			type: Date,
+			required: false
+		},
+		pickupEndTime: {
+			type: Date,
+			required: false
+		},
+		pickupLocation: {
+			fullAddress: "",
+			streetAddress: "",
+			city: "",
+			postcode: "",
+			firstName: "",
+			lastName: "",
+			email: "",
+			phoneNumber: "",
+			businessName: "",
+			instructions: ""
+		},
+		deliveries: [deliverySchema]
 	},
 	selectedConfiguration: {
 		createdAt: Date,

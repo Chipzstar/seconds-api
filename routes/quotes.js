@@ -20,6 +20,8 @@ const router = express.Router();
  */
 router.post('/', async (req, res) => {
 	try {
+		console.table(req.body)
+		console.table(req.body.drops[0])
 		const user = await getClientDetails(req.headers[AUTHORIZATION_KEY]);
 		console.log('Strategy: ', user.selectionStrategy);
 		// check that the vehicleType is valid and return the vehicle's specifications
@@ -28,14 +30,14 @@ router.post('/', async (req, res) => {
 		// calculate job distance
 		const jobDistance = await calculateJobDistance(
 			req.body.pickupAddress,
-			req.body.dropoffAddress,
+			req.body.drops[0].dropoffAddress,
 			vehicleSpecs.travelMode
 		);
 		// check if distance is less than or equal to the vehicle's max pickup to dropoff distance
 		if (jobDistance > vehicleSpecs.maxDistance)
 			vehicleSpecs = await checkAlternativeVehicles(
 				req.body.pickupAddress,
-				req.body.dropoffAddress,
+				req.body.drops[0].dropoffAddress,
 				jobDistance,
 				vehicleSpecs.travelMode
 			);

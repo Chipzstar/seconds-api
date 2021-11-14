@@ -309,8 +309,6 @@ async function createNewJob(order, user) {
 		const createdJob = await db.Job.create({ ...job, clientId, paymentIntentId });
 		console.log(createdJob);
 		await sendNewJobEmails(user.team, job);
-		// Add the delivery to the users list of jobs
-		await db.User.updateOne({ email: email }, { $push: { jobs: createdJob._id } }, { new: true });
 		return true;
 	} catch (err) {
 		await sendEmail({
