@@ -1,7 +1,7 @@
-const db = require("../models");
-const moment = require("moment");
-const { STATUS, COMMISSION } = require("../constants");
-const {JOB_STATUS, DELIVERY_STATUS} = require("../constants/stuart");
+const db = require('../models');
+const moment = require('moment');
+const { STATUS, COMMISSION } = require('../constants');
+const { JOB_STATUS, DELIVERY_STATUS } = require('../constants/stuart');
 const { confirmCharge } = require('./index');
 
 /**
@@ -12,87 +12,119 @@ const { confirmCharge } = require('./index');
 function translateStuartStatus(value) {
 	switch (value) {
 		case JOB_STATUS.NEW:
-			return STATUS.NEW
+			return STATUS.NEW;
 		case DELIVERY_STATUS.PENDING:
-			return STATUS.PENDING
+			return STATUS.PENDING;
 		case JOB_STATUS.PENDING:
-			return STATUS.PENDING
+			return STATUS.PENDING;
 		case JOB_STATUS.IN_PROGRESS:
-			return STATUS.DISPATCHING
+			return STATUS.DISPATCHING;
 		case DELIVERY_STATUS.ALMOST_PICKING:
-			return STATUS.DISPATCHING
+			return STATUS.DISPATCHING;
 		case DELIVERY_STATUS.PICKING:
-			return STATUS.DISPATCHING
+			return STATUS.DISPATCHING;
 		case DELIVERY_STATUS.WAITING_AT_PICKUP:
-			return STATUS.DISPATCHING
+			return STATUS.DISPATCHING;
 		case DELIVERY_STATUS.DELIVERING:
-			return STATUS.EN_ROUTE
+			return STATUS.EN_ROUTE;
 		case DELIVERY_STATUS.ALMOST_DELIVERING:
-			return STATUS.EN_ROUTE
+			return STATUS.EN_ROUTE;
 		case DELIVERY_STATUS.WAITING_AT_DROPOFF:
-			return STATUS.EN_ROUTE
+			return STATUS.EN_ROUTE;
 		case DELIVERY_STATUS.DELIVERED:
-			return STATUS.COMPLETED
+			return STATUS.COMPLETED;
 		case JOB_STATUS.COMPLETED:
-			return STATUS.COMPLETED
+			return STATUS.COMPLETED;
 		case DELIVERY_STATUS.CANCELLED:
-			return STATUS.CANCELLED
+			return STATUS.CANCELLED;
 		case JOB_STATUS.CANCELLED:
-			return STATUS.CANCELLED
+			return STATUS.CANCELLED;
 		default:
-			return value
+			return value;
 	}
 }
 
-async function update(data, type) {
+async function updateJob(data) {
 	try {
-		console.log(data)
-		const STATUS = data.status;
-		const REFERENCE = type === "job" ? data.jobReference : data.clientReference;
-		const {etaToOrigin, etaToDestination} = type === "job" ? data.currentDelivery : data;
-		console.log({STATUS, REFERENCE})
+		const jobStatus = data.status;
+		const jobId = data.id;
+		const {
+			id: deliveryId,
+			status: deliveryStatus,
+			client_reference,
+			etaToOrigin,
+			etaToDestination,
+			driver
+		} = data.currentDelivery;
+		console.table({ jobStatus, jobId, client_reference, etaToOrigin, etaToDestination, driver });
+		const {
+			firstname,
+			lastname,
+			phone,
+			transportType: { code },
+		} = driver;
 		// update the status for the current job
 		await db.Job.findOneAndUpdate(
-			{"selectedConfiguration.jobReference": REFERENCE},
-			{"status": translateStuartStatus(STATUS)},
-			{new: true}
-		)
-		if (type === "delivery"){
-			const { firstname, lastname, phone, transportType: {code} } = data.driver;
-			await db.Job.findOneAndUpdate(
-				{"selectedConfiguration.jobReference": REFERENCE},
-				{
-					"driverInformation.name": `${firstname} ${lastname}`,
-					"driverInformation.phone": phone,
-					"driverInformation.transport": code
-				}
-			)
-		}
-		let {_doc: { _id, ...job} } = await db.Job.findOneAndUpdate(
-			{"selectedConfiguration.jobReference": REFERENCE},
+			{ 'jobSpecification.id': jobId },
 			{
-				'$set': {
-					"jobSpecification.packages.$[].pickupStartTime": moment(etaToOrigin).toISOString(),
-					"jobSpecification.packages.$[].dropoffStartTime": moment(etaToDestination).toISOString()
+				'status': translateStuartStatus(jobStatus),
+				'driverInformation.name': `${firstname} ${lastname}`,
+				'driverInformation.phone': phone,
+				'driverInformation.transport': code,
+			},
+			{ new: true }
+		);
+		const job = await db.Job.findOneAndUpdate(
+			{ 'jobSpecification.id': jobId, 'jobSpecification.deliveries.id': deliveryId },
+			{
+				$set: {
+					'jobSpecification.pickupStartTime': moment(etaToOrigin).toISOString(),
+					'jobSpecification.deliveries.$.dropoffStartTime': moment(etaToDestination).toISOString(),
+					'jobSpecification.deliveries.$.status': translateStuartStatus(deliveryStatus),
 				},
-			}, {
+			},
+			{
 				new: true,
-				sanitizeProjection: true,
-			})
-		console.log(job)
+			}
+		);
+		console.log(job.jobSpecification);
 		// add commission charge depending on payment plan
-		if (STATUS === DELIVERY_STATUS.DELIVERED) {
-			console.log("****************************************************************")
-			console.log("STUART DELIVERY COMPLETEEEEEEE!")
-			console.log("****************************************************************")
-			let { stripeCustomerId, subscriptionPlan } = await db.User.findOne({_id: job.clientId}, {});
-			confirmCharge(COMMISSION[subscriptionPlan.toUpperCase()].fee, stripeCustomerId, job.paymentIntentId )
+		if (jobStatus === JOB_STATUS.COMPLETED) {
+			console.log('****************************************************************');
+			console.log('STUART JOB COMPLETEEEEEEE!');
+			console.log('****************************************************************');
+			let { stripeCustomerId, subscriptionPlan } = await db.User.findOne({ _id: job.clientId }, {});
+			confirmCharge(COMMISSION[subscriptionPlan.toUpperCase()].fee, stripeCustomerId, job.paymentIntentId);
 		}
-		return STATUS
+		return jobStatus;
 	} catch (err) {
-		console.error(err)
-		throw err
+		console.error(err);
+		throw err;
 	}
 }
 
-module.exports = { update }
+async function updateDelivery(data) {
+	try {
+		const { status: deliveryStatus, id: deliveryId, clientReference, etaToOrigin, etaToDestination } = data;
+		console.table({ deliveryStatus, deliveryId, clientReference, etaToOrigin, etaToDestination });
+		const job = await db.Job.findOneAndUpdate(
+			{"jobSpecification.id": deliveryId, 'jobSpecification.deliveries.id': deliveryId },
+			{
+				$set: {
+					'jobSpecification.pickupStartTime': moment(etaToOrigin).toISOString(),
+					'jobSpecification.deliveries.$.dropoffStartTime': moment(etaToDestination).toISOString(),
+					'jobSpecification.deliveries.$.status': translateStuartStatus(deliveryStatus),
+				},
+			},
+			{
+				new: true
+			}
+		);
+		console.table(job.jobSpecification.deliveries.find(({ id }) => id === deliveryId));
+	} catch (e) {
+		console.error(err);
+		throw err;
+	}
+}
+
+module.exports = { updateJob, updateDelivery };

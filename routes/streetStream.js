@@ -1,66 +1,69 @@
-require("dotenv").config();
-const express = require("express");
-const {STATUS, COMMISSION } = require("../constants");
-const {JOB_STATUS} = require("../constants/streetStream");
-const db = require("../models");
+require('dotenv').config();
+const express = require('express');
+const { STATUS, COMMISSION } = require('../constants');
+const { JOB_STATUS } = require('../constants/streetStream');
+const db = require('../models');
 const { confirmCharge } = require('../helpers');
 const router = express.Router();
 
 function translateStreetStreamStatus(value) {
 	switch (value) {
 		case JOB_STATUS.OFFERS_RECEIVED:
-			return STATUS.PENDING
+			return STATUS.PENDING;
 		case JOB_STATUS.JOB_AGREED:
-			return STATUS.DISPATCHING
+			return STATUS.DISPATCHING;
 		case JOB_STATUS.IN_PROGRESS:
-			return STATUS.DISPATCHING
+			return STATUS.DISPATCHING;
 		case JOB_STATUS.ARRIVED_AT_COLLECTION:
-			return STATUS.DISPATCHING
+			return STATUS.DISPATCHING;
 		case JOB_STATUS.COLLECTED:
-			return STATUS.EN_ROUTE
+			return STATUS.EN_ROUTE;
 		case JOB_STATUS.ARRIVED_AT_DELIVERY:
-			return STATUS.EN_ROUTE
+			return STATUS.EN_ROUTE;
 		case JOB_STATUS.DELIVERED:
-			return STATUS.COMPLETED
+			return STATUS.COMPLETED;
 		case JOB_STATUS.COMPLETED_SUCCESSFULLY:
-			return STATUS.COMPLETED
+			return STATUS.COMPLETED;
 		case JOB_STATUS.ADMIN_CANCELLED:
-			return STATUS.CANCELLED
+			return STATUS.CANCELLED;
 		case JOB_STATUS.DELIVERY_ATTEMPT_FAILED:
-			return STATUS.CANCELLED
+			return STATUS.CANCELLED;
 		case JOB_STATUS.NOT_AS_DESCRIBED:
-			return STATUS.CANCELLED
+			return STATUS.CANCELLED;
 		case JOB_STATUS.NO_RESPONSE:
-			return STATUS.CANCELLED
+			return STATUS.CANCELLED;
 		default:
-			return STATUS.NEW
+			return STATUS.NEW;
 	}
 }
 
-async function update(data){
+async function update(data) {
 	try {
-		console.log(data)
-		const {status: STATUS, jobId: ID } = data
-		console.log({STATUS, ID})
+		console.log(data);
+		const { status: STATUS, jobId: ID } = data;
+		console.log({ STATUS, ID });
 		// update the status for the current job
 		let job = await db.Job.findOneAndUpdate(
-			{"jobSpecification.id": ID},
-			{"status": translateStreetStreamStatus(STATUS)},
-			{new: true}
-		)
-		if (job){
-			console.log(job)
-			return job.status
+			{ 'jobSpecification.id': ID },
+			{
+				'status': translateStreetStreamStatus(STATUS),
+				'jobSpecification.deliveries.$[].status': translateStreetStreamStatus(STATUS),
+			},
+			{ new: true }
+		);
+		if (job) {
+			console.log(job);
+			return job.status;
 		}
-		throw {status: "NO_JOB_FOUND", message: `The jobId ${ID} does not exist`}
+		throw { status: 'NO_JOB_FOUND', message: `The jobId ${ID} does not exist` };
 	} catch (err) {
-		throw err
+		throw err;
 	}
 }
 
-router.post("/", async (req, res) => {
+router.post('/', async (req, res) => {
 	try {
-		let jobStatus = await update(req.body)
+		let jobStatus = await update(req.body);
 		if (jobStatus === JOB_STATUS.COMPLETED_SUCCESSFULLY) {
 			let { clientId, paymentIntentId } = await db.Job.findOne({ 'jobSpecification.id': req.body.jobId }, {});
 			console.log('****************************************************************');
@@ -69,19 +72,19 @@ router.post("/", async (req, res) => {
 			let { stripeCustomerId, subscriptionPlan } = await db.User.findOne({ _id: clientId }, {});
 			confirmCharge(COMMISSION[subscriptionPlan.toUpperCase()].fee, stripeCustomerId, paymentIntentId);
 		}
-	    res.status(200).send({
-		    success: true,
-		    status: "NEW_JOB_STATUS",
-		    message: `Job status is now ${jobStatus}`
-	    })
+		res.status(200).send({
+			success: true,
+			status: 'NEW_JOB_STATUS',
+			message: `Job status is now ${jobStatus}`,
+		});
 	} catch (err) {
-	    console.error(err)
+		console.error(err);
 		res.status(200).json({
 			success: false,
 			status: err.status,
-			message: err.message
-		})
+			message: err.message,
+		});
 	}
-})
+});
 
 module.exports = router;

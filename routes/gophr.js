@@ -32,23 +32,24 @@ function translateGophrStatus(value) {
 async function updateStatus(data){
 	try {
 		console.log(data)
-		const {status: STATUS, external_id: REFERENCE, finished, pickup_eta, delivery_eta, courier_name } = data
-		console.log({STATUS, REFERENCE})
+		const {status: STATUS, external_id: REFERENCE, job_id: JOB_ID, finished, pickup_eta, delivery_eta, courier_name } = data
+		console.log({STATUS, JOB_ID, REFERENCE})
 		// update the status for the current job
 		await db.Job.findOneAndUpdate(
-			{"selectedConfiguration.jobReference": REFERENCE},
+			{"jobSpecification.id": JOB_ID},
 			{"status": translateGophrStatus(STATUS)},
 			{new: true}
 		)
 		let {_doc: { _id, ...job} } = await db.Job.findOneAndUpdate(
-			{"selectedConfiguration.jobReference": REFERENCE},
+			{"jobSpecification.id": JOB_ID},
 			{
 				'$set': {
-					"jobSpecification.packages.$[].pickupStartTime": moment(pickup_eta).toISOString(true),
-					"jobSpecification.packages.$[].dropoffStartTime": moment(delivery_eta).toISOString(true),
+					"jobSpecification.pickupStartTime": moment(pickup_eta).toISOString(true),
+					"jobSpecification.deliveries.$[].dropoffStartTime": moment(delivery_eta).toISOString(true),
 					"driverInformation.name": courier_name,
 					"driverInformation.phone": "N/A",
-					"driverInformation.transport": "N/A"
+					"driverInformation.transport": "N/A",
+					"jobSpecification.deliveries.$[].status": translateGophrStatus(STATUS)
 				},
 			}, {
 				new: true,
@@ -64,15 +65,15 @@ async function updateStatus(data){
 
 async function updateETA(data){
 	console.log(data)
-	const {external_id: REFERENCE, pickup_eta, delivery_eta } = data
+	const {job_id: JOB_ID, external_id: REFERENCE, pickup_eta, delivery_eta } = data
 	console.log({ REFERENCE })
 	// update the status for the current job
 	let {_doc: { _id, ...job} } = await db.Job.findOneAndUpdate(
-		{"selectedConfiguration.jobReference": REFERENCE},
+		{"jobSpecification.id": JOB_ID},
 		{
 			'$set': {
-				"jobSpecification.packages.$[].pickupStartTime": moment(pickup_eta).toISOString(true),
-				"jobSpecification.packages.$[].dropoffStartTime": moment(delivery_eta).toISOString(true),
+				"jobSpecification.pickupStartTime": moment(pickup_eta).toISOString(true),
+				"jobSpecification.deliveries.$[].dropoffStartTime": moment(delivery_eta).toISOString(true),
 			},
 		}, {
 			new: true,

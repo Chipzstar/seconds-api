@@ -1,18 +1,16 @@
 const mongoose = require("mongoose");
 
 const deliverySchema = new mongoose.Schema({
-	description: {
+	id: {
 		type: String,
-	},
-	itemsCount: {
-		type: mongoose.Schema.Types.Number,
-	},
-	value: {
-		type: mongoose.Schema.Types.Decimal128,
-		default: null
+		required: true
 	},
 	orderReference: {
-		type: String
+		type: String,
+		required: true
+	},
+	description: {
+		type: String,
 	},
 	transport: {
 		type: String,
@@ -36,7 +34,13 @@ const deliverySchema = new mongoose.Schema({
 		phoneNumber: "",
 		businessName: "",
 		instructions: ""
+	},
+	trackingURL: {
+		type: String
+	},
+	status: {
+		type: String
 	}
-})
+}, {_id: false})
 
 module.exports = deliverySchema;

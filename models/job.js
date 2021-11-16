@@ -15,6 +15,9 @@ const jobSchema = new mongoose.Schema({
 			type: String,
 			required: true,
 		},
+		jobReference: {
+			type: String,
+		},
 		shopifyId: {
 			type: String,
 			default: null
@@ -49,8 +52,6 @@ const jobSchema = new mongoose.Schema({
 	},
 	selectedConfiguration: {
 		createdAt: Date,
-		jobReference: "",
-		trackingURL: "",
 		deliveryFee: mongoose.Schema.Types.Number,
 		winnerQuote: "",
 		providerId: "",

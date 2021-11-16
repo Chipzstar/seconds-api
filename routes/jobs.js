@@ -12,13 +12,13 @@ const {
 	checkAlternativeVehicles,
 	checkDeliveryHours,
 	setNextDayDeliveryTime,
-	genOrderReference
+	genOrderReference,
+	providerCreateMultiJob
 } = require('../helpers');
 const {
 	AUTHORIZATION_KEY,
 	PROVIDER_ID,
 	STATUS,
-	VEHICLE_CODES_MAP,
 	COMMISSION,
 	DELIVERY_TYPES
 } = require('../constants');
@@ -85,15 +85,11 @@ router.post('/create', async (req, res) => {
 			packagePickupStartTime,
 			itemsCount,
 			vehicleType,
-			drops
 		} = req.body;
-		let {
-			dropoffAddress,
-			packageDescription
-		} = drops[0];
+		req.body.drops[0]['reference'] = genOrderReference()
 		//generate client reference number
 		let paymentIntent = undefined;
-		const clientRefNumber = genJobReference();
+		const jobReference = genJobReference();
 		// fetch api key
 		const apiKey = req.headers[AUTHORIZATION_KEY];
 		const selectedProvider = req.headers[PROVIDER_ID];
@@ -115,12 +111,12 @@ router.post('/create', async (req, res) => {
 		let vehicleSpecs = getVehicleSpecs(vehicleType);
 		console.log(vehicleSpecs);
 		// do job distance calculation
-		const jobDistance = await calculateJobDistance(pickupAddress, dropoffAddress, vehicleSpecs.travelMode);
+		const jobDistance = await calculateJobDistance(pickupAddress, req.body.drops[0].dropoffAddress, vehicleSpecs.travelMode);
 		// check if distance is less than or equal to the vehicle's max pickup to dropoff distance
 		if (jobDistance > vehicleSpecs.maxDistance) {
 			vehicleSpecs = await checkAlternativeVehicles(
 				pickupAddress,
-				dropoffAddress,
+				req.body.drops[0].dropoffAddress,
 				jobDistance,
 				vehicleSpecs.travelMode
 			);
@@ -185,13 +181,13 @@ router.post('/create', async (req, res) => {
 			const paymentIntentId = paymentIntent ? paymentIntent.id : undefined;
 			const {
 				id: spec_id,
-				trackingURL,
 				deliveryFee,
 				pickupAt,
-				dropoffAt
+				dropoffAt,
+				delivery,
 			} = await providerCreatesJob(
 				providerId.toLowerCase(),
-				clientRefNumber,
+				jobReference,
 				selectionStrategy,
 				req.body,
 				vehicleSpecs
@@ -205,6 +201,7 @@ router.post('/create', async (req, res) => {
 				},
 				jobSpecification: {
 					id: spec_id,
+					jobReference,
 					shopifyId: null,
 					orderNumber: orderId.generate(),
 					deliveryType: packageDeliveryType,
@@ -223,37 +220,13 @@ router.post('/create', async (req, res) => {
 						businessName: req.body.pickupBusinessName,
 						instructions: req.body.pickupInstructions
 					},
-					deliveries: [
-						{
-							orderReference: genOrderReference(),
-							itemsCount,
-							description: packageDescription,
-							dropoffStartTime: dropoffAt ? moment(dropoffAt).format() : drops[0].packageDropoffStartTime,
-							dropoffEndTime: drops[0].packageDropoffEndTime,
-							transport: VEHICLE_CODES_MAP[vehicleType].name,
-							dropoffLocation: {
-								fullAddress: drops[0].dropoffAddress,
-								streetAddress: String(drops[0].dropoffAddressLine1 + drops[0].dropoffAddressLine2).trim(),
-								city: String(drops[0].dropoffCity).trim(),
-								postcode: String(drops[0].dropoffPostcode).trim(),
-								country: 'UK',
-								phoneNumber: drops[0].dropoffPhoneNumber,
-								email: drops[0].dropoffEmailAddress,
-								firstName: drops[0].dropoffFirstName,
-								lastName: drops[0].dropoffLastName,
-								businessName: drops[0].dropoffBusinessName,
-								instructions: drops[0].dropoffInstructions
-							}
-						}
-					]
+					deliveries: [delivery]
 				},
 				selectedConfiguration: {
-					jobReference: clientRefNumber,
 					createdAt: moment().format(),
 					deliveryFee,
 					winnerQuote,
 					providerId,
-					trackingURL,
 					quotes: QUOTES
 				},
 				status: STATUS.NEW
@@ -302,6 +275,7 @@ router.post('/multi-drop', async (req, res) => {
 			drops
 		} = req.body;
 		//generate client reference number
+		const jobReference = genJobReference();
 		let paymentIntent = undefined;
 		// fetch api key
 		const apiKey = req.headers[AUTHORIZATION_KEY];
@@ -379,39 +353,16 @@ router.post('/multi-drop', async (req, res) => {
 			const paymentIntentId = paymentIntent ? paymentIntent.id : undefined;
 			const {
 				id: spec_id,
-				trackingURL,
 				deliveryFee,
 				pickupAt,
-				dropoffAt
-			} = await providerCreatesJob(
-				'stuart',
+				deliveries
+			} = await providerCreateMultiJob(
 				null,
+				jobReference,
 				selectionStrategy,
 				req.body,
 				vehicleSpecs
 			);
-			let deliveries = req.body.drops.map(drop => (
-				{
-					orderReference: drop.reference,
-					itemsCount,
-					description: drop.packageDescription,
-					dropoffStartTime: dropoffAt ? moment(dropoffAt).format() : drop.packageDropoffStartTime,
-					dropoffEndTime: drop.packageDropoffEndTime,
-					transport: VEHICLE_CODES_MAP[vehicleType].name,
-					dropoffLocation: {
-						fullAddress: drop.dropoffAddress,
-						streetAddress: String(drop.dropoffAddressLine1 + drop.dropoffAddressLine2).trim(),
-						city: String(drop.dropoffCity).trim(),
-						postcode: String(drop.dropoffPostcode).trim(),
-						country: 'UK',
-						phoneNumber: drop.dropoffPhoneNumber,
-						email: drop.dropoffEmailAddress,
-						firstName: drop.dropoffFirstName,
-						lastName: drop.dropoffLastName,
-						businessName: drop.dropoffBusinessName,
-						instructions: drop.dropoffInstructions
-					}
-				}));
 			let job = {
 				createdAt: moment().format(),
 				driverInformation: {
@@ -423,6 +374,7 @@ router.post('/multi-drop', async (req, res) => {
 					id: spec_id,
 					shopifyId: null,
 					orderNumber: orderId.generate(),
+					jobReference,
 					deliveryType: packageDeliveryType,
 					pickupStartTime: pickupAt ? moment(pickupAt).format() : req.body.packagePickupStartTime,
 					pickupEndTime: req.body.packagePickupEndTime,
@@ -442,12 +394,10 @@ router.post('/multi-drop', async (req, res) => {
 					deliveries,
 				},
 				selectedConfiguration: {
-					jobReference: genJobReference(),
 					createdAt: moment().format(),
 					deliveryFee,
 					winnerQuote:'',
 					providerId: 'stuart',
-					trackingURL,
 					quotes: []
 				},
 				status: STATUS.NEW
