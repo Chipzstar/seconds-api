@@ -204,7 +204,7 @@ async function createNewJob(order, user) {
 			const nextDayDeliveryTime = setNextDayDeliveryTime(deliveryHours);
 			payload.packageDeliveryType = DELIVERY_TYPES.NEXT_DAY.name;
 			payload.packagePickupStartTime = nextDayDeliveryTime;
-			payload.packageDropoffStartTime = moment(nextDayDeliveryTime).add(25, 'minutes').format();
+			payload.drops[0].packageDropoffStartTime = moment(nextDayDeliveryTime).add(25, 'minutes').format();
 		}
 		const QUOTES = await getResultantQuotes(payload, vehicleSpecs);
 		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
