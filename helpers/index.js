@@ -111,6 +111,19 @@ async function calculateJobDistance(origin, destination, mode) {
 	}
 }
 
+function checkMultiDropPrice(numDrops){
+	switch (numDrops){
+		case numDrops >= 5 && numDrops <= 9:
+			return 7
+		case numDrops >= 10 && numDrops <= 19:
+			return 6
+		case numDrops >= 20 && numDrops <= 30:
+			return 5
+		default:
+			return 7
+	}
+}
+
 function getVehicleSpecs(vehicleCode) {
 	if (VEHICLE_CODES.includes(vehicleCode)) {
 		return VEHICLE_CODES_MAP[vehicleCode];
@@ -347,7 +360,7 @@ async function getStuartQuote(reference, params, vehicleSpecs) {
 			id: `quote_${nanoid(15)}`,
 			createdAt: moment().format(),
 			expireTime: moment().add(5, 'minutes').format(),
-			priceExVAT: amount,
+			priceExVAT: amount * 1.2,
 			currency,
 			dropoffEta: packagePickupStartTime
 				? moment(packagePickupStartTime).add(data.eta, 'seconds').format()
@@ -426,7 +439,7 @@ async function getGophrQuote(params, vehicleSpecs) {
 				id: `quote_${nanoid(15)}`,
 				createdAt: moment().format(),
 				expireTime: moment().add(5, 'minutes').format(),
-				priceExVAT: price_net,
+				priceExVAT: price_net * 1.2,
 				currency: 'GBP',
 				dropoffEta: moment(delivery_eta).format(),
 				providerId: PROVIDERS.GOPHR,
@@ -487,7 +500,7 @@ async function getStreetStreamQuote(params, vehicleSpecs) {
 			id: `quote_${nanoid(15)}`,
 			createdAt: moment().format(),
 			expireTime: moment().add(5, 'minutes').format(),
-			priceExVAT: data['estimatedCostVatExclusive'],
+			priceExVAT: data['estimatedCostVatExclusive'] * 1.2,
 			currency: 'GBP',
 			dropoffEta: null,
 			providerId: PROVIDERS.STREET_STREAM,
@@ -1290,4 +1303,5 @@ module.exports = {
 	providerCreateMultiJob,
 	confirmCharge,
 	setNextDayDeliveryTime,
+	checkMultiDropPrice
 };

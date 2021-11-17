@@ -13,6 +13,7 @@ const {
 	checkAlternativeVehicles,
 	checkDeliveryHours,
 	setNextDayDeliveryTime,
+	genOrderReference,
 } = require('../helpers');
 const { DELIVERY_TYPES, VEHICLE_CODES_MAP, VEHICLE_CODES, STATUS, COMMISSION } = require('../constants');
 const moment = require('moment');
@@ -20,7 +21,7 @@ const { DELIVERY_METHODS } = require('../constants/shopify');
 const { v4: uuidv4 } = require('uuid');
 const sendEmail = require('../services/email');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const orderId = require('order-id')(process.env.UID_SECRET_KEY)
+const orderId = require('order-id')(process.env.UID_SECRET_KEY);
 
 const client = new Client();
 
@@ -90,31 +91,33 @@ function convertWeightToVehicleCode(total_weight) {
 
 async function sendNewJobEmails(team, job) {
 	try {
-		console.log(job)
 		let allSent = await Promise.all(
-			team.map(async ({name, email}) =>
-				await sendEmail({
-					email: email,
-					name: name,
-					subject: 'New delivery job',
-					templateId: 'd-aace035dda44493e8cc507c367da3a03',
-					templateData: {
-						address: job.jobSpecification.packages[0].dropoffLocation.fullAddress,
-						customer: `${job.jobSpecification.packages[0].dropoffLocation.firstName} ${job.jobSpecification.packages[0].dropoffLocation.lastName}`,
-						provider: job.selectedConfiguration.providerId,
-						reference: job.selectedConfiguration.jobReference,
-						price: job.selectedConfiguration.deliveryFee,
-						created_at: moment(job.createdAt).format("DD/MM/YYYY HH:mm:ss"),
-						eta: job.jobSpecification.packages[0].pickupStartTime ? moment().to(moment(job.jobSpecification.packages[0].pickupStartTime)) : "N/A",
-						unsubscribe: "https://useseconds.com"
-					}
-				})
+			team.map(
+				async ({ name, email }) =>
+					await sendEmail({
+						email: email,
+						name: name,
+						subject: 'New delivery job',
+						templateId: 'd-aace035dda44493e8cc507c367da3a03',
+						templateData: {
+							address: job.jobSpecification.deliveries[0].dropoffLocation.fullAddress,
+							customer: `${job.jobSpecification.deliveries[0].dropoffLocation.firstName} ${job.jobSpecification.deliveries[0].dropoffLocation.lastName}`,
+							provider: job.selectedConfiguration.providerId,
+							reference: job.jobSpecification.jobReference,
+							price: job.selectedConfiguration.deliveryFee,
+							created_at: moment(job.createdAt).format('DD/MM/YYYY HH:mm:ss'),
+							eta: job.jobSpecification.pickupStartTime
+								? moment().to(moment(job.jobSpecification.pickupStartTime))
+								: 'N/A',
+							unsubscribe: 'https://useseconds.com',
+						},
+					})
 			)
 		);
-		console.log(allSent)
-		return allSent
+		console.log(allSent);
+		return allSent;
 	} catch (err) {
-		console.error(err.response.body);
+		console.error(err.response ? err.response.body : err);
 	}
 }
 
@@ -135,39 +138,38 @@ async function createNewJob(order, user) {
 		);
 		const payload = {
 			pickupAddress: user.fullAddress,
-			pickupFormattedAddress: {
-				street: user.address['street'],
-				city: user.address['city'],
-				postcode: user.address['postcode'],
-				countryCode: user.address['countryCode'],
-			},
+			pickupAddressLine1: user.address['street'],
+			pickupCity: user.address['city'],
+			pickupPostcode: user.address['postcode'],
 			pickupPhoneNumber: user.phone,
 			pickupEmailAddress: user.email,
 			pickupBusinessName: user.company,
 			pickupFirstName: user.firstname,
 			pickupLastName: user.lastname,
 			pickupInstructions: order['note'] ? order['note'] : '',
-			dropoffAddress: fullAddress,
-			dropoffFormattedAddress: {
-				street: formattedAddress.street,
-				city: formattedAddress.city,
-				postcode: formattedAddress.postcode,
-				countryCode: 'GB',
-			},
-			dropoffPhoneNumber: order['shipping_lines'][0].phone,
-			dropoffEmailAddress: order.email ? order.email : order.customer.email,
-			dropoffBusinessName: order.shipping_address.company,
-			dropoffFirstName: order.customer.first_name,
-			dropoffLastName: order.customer.last_name,
-			dropoffInstructions: order.customer['note'] ? order.customer['note'] : '',
-			packagePickupStartTime: moment().add(45, "minutes").format(),
-			packagePickupEndTime: moment().add(60, "minutes").format(),
-			packageDropoffStartTime: moment().add(90, "minutes").format(),
-			packageDropoffEndTime: moment().add(105, "minutes").format(),
+			packagePickupStartTime: moment().add(45, 'minutes').format(),
+			packagePickupEndTime: moment().add(60, 'minutes').format(),
 			packageDeliveryType: DELIVERY_TYPES.ON_DEMAND.name,
 			packageDescription,
 			itemsCount,
 			vehicleType,
+			drops: [
+				{
+					dropoffAddress: fullAddress,
+					dropoffAddressLine1: formattedAddress.street,
+					dropoffCity: formattedAddress.city,
+					dropoffPostcode: formattedAddress.postcode,
+					dropoffPhoneNumber: order['shipping_lines'][0].phone,
+					dropoffEmailAddress: order.email ? order.email : order.customer.email,
+					dropoffBusinessName: order.shipping_address.company,
+					dropoffFirstName: order.customer.first_name,
+					dropoffLastName: order.customer.last_name,
+					dropoffInstructions: order.customer['note'] ? order.customer['note'] : '',
+					packageDropoffStartTime: moment().add(90, 'minutes').format(),
+					packageDropoffEndTime: moment().add(105, 'minutes').format(),
+					reference: genOrderReference(),
+				},
+			],
 		};
 		console.log('-----------------------------------------------------------------');
 		console.log('Payload');
@@ -185,14 +187,14 @@ async function createNewJob(order, user) {
 		// calculate job distance
 		const jobDistance = await calculateJobDistance(
 			payload.pickupAddress,
-			payload.dropoffAddress,
+			payload.drops[0].dropoffAddress,
 			vehicleSpecs.travelMode
 		);
 		// check if distance is less than or equal to the vehicle's max pickup to dropoff distance
 		if (jobDistance > vehicleSpecs.maxDistance)
 			vehicleSpecs = await checkAlternativeVehicles(
 				payload.pickupAddress,
-				payload.dropoffAddress,
+				payload.drops[0].dropoffAddress,
 				jobDistance,
 				vehicleSpecs.travelMode
 			);
@@ -239,8 +241,8 @@ async function createNewJob(order, user) {
 		const paymentIntentId = paymentIntent ? paymentIntent.id : undefined;
 		const {
 			id: spec_id,
-			trackingURL,
 			deliveryFee,
+			delivery,
 		} = await providerCreatesJob(
 			providerId.toLowerCase(),
 			clientRefNumber,
@@ -253,54 +255,32 @@ async function createNewJob(order, user) {
 			createdAt: moment().format(),
 			jobSpecification: {
 				id: spec_id,
+				jobReference: clientRefNumber,
 				shopifyId: order.id,
 				orderNumber: orderId.generate(),
 				deliveryType: payload.packageDeliveryType,
-				packages: [
-					{
-						description: packageDescription,
-						dropoffLocation: {
-							fullAddress: payload.dropoffAddress,
-							street_address: payload.dropoffFormattedAddress.street,
-							city: payload.dropoffFormattedAddress.city,
-							postcode: payload.dropoffFormattedAddress.postcode,
-							country: 'UK',
-							phoneNumber: payload.dropoffPhoneNumber,
-							email: payload.dropoffEmailAddress,
-							firstName: payload.dropoffFirstName,
-							lastName: payload.dropoffLastName,
-							businessName: payload.dropoffBusinessName,
-							instructions: payload.dropoffInstructions,
-						},
-						dropoffStartTime: payload.packageDropoffStartTime,
-						dropoffEndTime: payload.packageDropoffEndTime,
-						itemsCount,
-						pickupStartTime: payload.packagePickupStartTime,
-						pickupEndTime: payload.packagePickupEndTime,
-						pickupLocation: {
-							fullAddress: payload.pickupAddress,
-							street_address: payload.pickupFormattedAddress.street,
-							city: payload.pickupFormattedAddress.city,
-							postcode: payload.pickupFormattedAddress.postcode,
-							country: 'UK',
-							phoneNumber: payload.pickupPhoneNumber,
-							email: payload.pickupEmailAddress,
-							firstName: payload.pickupFirstName,
-							lastName: payload.pickupLastName,
-							businessName: payload.pickupBusinessName,
-							instructions: payload.pickupInstructions,
-						},
-						transport: VEHICLE_CODES_MAP[payload.vehicleType].name,
-					},
-				],
+				pickupStartTime: payload.packagePickupStartTime,
+				pickupEndTime: payload.packagePickupEndTime,
+				pickupLocation: {
+					fullAddress: payload.pickupAddress,
+					street_address: payload.pickupAddressLine1,
+					city: payload.pickupCity,
+					postcode: payload.pickupPostcode,
+					country: 'UK',
+					phoneNumber: payload.pickupPhoneNumber,
+					email: payload.pickupEmailAddress,
+					firstName: payload.pickupFirstName,
+					lastName: payload.pickupLastName,
+					businessName: payload.pickupBusinessName,
+					instructions: payload.pickupInstructions,
+				},
+				deliveries: [delivery],
 			},
 			selectedConfiguration: {
-				jobReference: clientRefNumber,
 				createdAt: moment().format(),
 				deliveryFee,
 				winnerQuote,
 				providerId,
-				trackingURL,
 				quotes: QUOTES,
 			},
 			status: STATUS.NEW,
@@ -312,11 +292,12 @@ async function createNewJob(order, user) {
 		return true;
 	} catch (err) {
 		await sendEmail({
-			email: "chipzstar.dev@gmail.com",
-			name: "Chisom Oguibe",
+			email: 'chipzstar.dev@gmail.com',
+			name: 'Chisom Oguibe',
 			subject: `Failed Shopify order #${order.id}`,
-			message: `Job could not be created. Reason: ${err.message}`
-	})
+			text: `Job could not be created. Reason: ${err.message}`,
+			html: `<p>Job could not be created. Reason: ${err.message}</p>`
+		});
 		console.error(err);
 		return err;
 	}

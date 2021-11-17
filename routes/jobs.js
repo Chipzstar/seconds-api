@@ -13,15 +13,10 @@ const {
 	checkDeliveryHours,
 	setNextDayDeliveryTime,
 	genOrderReference,
-	providerCreateMultiJob
+	providerCreateMultiJob,
+	checkMultiDropPrice,
 } = require('../helpers');
-const {
-	AUTHORIZATION_KEY,
-	PROVIDER_ID,
-	STATUS,
-	COMMISSION,
-	DELIVERY_TYPES
-} = require('../constants');
+const { AUTHORIZATION_KEY, PROVIDER_ID, STATUS, COMMISSION, DELIVERY_TYPES } = require('../constants');
 const moment = require('moment');
 const mongoose = require('mongoose');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
@@ -50,20 +45,20 @@ router.get('/', async (req, res) => {
 			} else {
 				res.status(404).json({
 					code: 404,
-					message: 'No user found with that email address'
+					message: 'No user found with that email address',
 				});
 			}
 		} else {
 			res.status(400).json({
 				code: 400,
-				message: '\'email\' parameter missing. Please append your email address as a query parameter'
+				message: "'email' parameter missing. Please append your email address as a query parameter",
 			});
 		}
 	} catch (err) {
 		console.error(err);
 		res.status(400).json({
 			err,
-			message: err.message
+			message: err.message,
 		});
 	}
 });
@@ -79,14 +74,8 @@ router.post('/create', async (req, res) => {
 	try {
 		console.table(req.body);
 		console.table(req.body.drops[0]);
-		let {
-			pickupAddress,
-			packageDeliveryType,
-			packagePickupStartTime,
-			itemsCount,
-			vehicleType,
-		} = req.body;
-		req.body.drops[0]['reference'] = genOrderReference()
+		let { pickupAddress, packageDeliveryType, packagePickupStartTime, itemsCount, vehicleType } = req.body;
+		req.body.drops[0]['reference'] = genOrderReference();
 		//generate client reference number
 		let paymentIntent = undefined;
 		const jobReference = genJobReference();
@@ -105,13 +94,17 @@ router.post('/create', async (req, res) => {
 			paymentMethodId,
 			subscriptionId,
 			subscriptionPlan,
-			deliveryHours
+			deliveryHours,
 		} = await getClientDetails(apiKey);
 		// check that the vehicleType is valid and return the vehicle's specifications
 		let vehicleSpecs = getVehicleSpecs(vehicleType);
 		console.log(vehicleSpecs);
 		// do job distance calculation
-		const jobDistance = await calculateJobDistance(pickupAddress, req.body.drops[0].dropoffAddress, vehicleSpecs.travelMode);
+		const jobDistance = await calculateJobDistance(
+			pickupAddress,
+			req.body.drops[0].dropoffAddress,
+			vehicleSpecs.travelMode
+		);
 		// check if distance is less than or equal to the vehicle's max pickup to dropoff distance
 		if (jobDistance > vehicleSpecs.maxDistance) {
 			vehicleSpecs = await checkAlternativeVehicles(
@@ -168,10 +161,10 @@ router.post('/create', async (req, res) => {
 						currency: 'GBP',
 						setup_future_usage: 'off_session',
 						payment_method: paymentMethodId,
-						payment_method_types: ['card']
+						payment_method_types: ['card'],
 					},
 					{
-						idempotencyKey
+						idempotencyKey,
 					}
 				);
 				console.log('-------------------------------------------');
@@ -197,7 +190,7 @@ router.post('/create', async (req, res) => {
 				driverInformation: {
 					name: 'Searching',
 					phone: 'Searching',
-					transport: 'Searching'
+					transport: 'Searching',
 				},
 				jobSpecification: {
 					id: spec_id,
@@ -218,18 +211,18 @@ router.post('/create', async (req, res) => {
 						firstName: req.body.pickupFirstName,
 						lastName: req.body.pickupLastName,
 						businessName: req.body.pickupBusinessName,
-						instructions: req.body.pickupInstructions
+						instructions: req.body.pickupInstructions,
 					},
-					deliveries: [delivery]
+					deliveries: [delivery],
 				},
 				selectedConfiguration: {
 					createdAt: moment().format(),
 					deliveryFee,
 					winnerQuote,
 					providerId,
-					quotes: QUOTES
+					quotes: QUOTES,
 				},
-				status: STATUS.NEW
+				status: STATUS.NEW,
 			};
 			console.log('======================================================================================');
 			console.log('JOB', job);
@@ -238,27 +231,27 @@ router.post('/create', async (req, res) => {
 			const createdJob = await db.Job.create({ ...job, clientId, paymentIntentId });
 			return res.status(200).json({
 				jobId: createdJob._id,
-				...job
+				...job,
 			});
 		} else {
 			console.error('No subscription detected!');
 			return res.status(402).json({
 				error: {
 					code: 402,
-					message: 'Please purchase a subscription plan before making an order. Thank you! 😊'
-				}
+					message: 'Please purchase a subscription plan before making an order. Thank you! 😊',
+				},
 			});
 		}
 	} catch (err) {
 		err.response ? console.error('ERROR:', err.response.data) : console.log('ERROR:', err);
 		if (err.message) {
 			return res.status(err.code).json({
-				error: err
+				error: err,
 			});
 		}
 		return res.status(500).json({
 			code: 500,
-			message: 'Unknown error occurred!'
+			message: 'Unknown error occurred!',
 		});
 	}
 });
@@ -266,14 +259,7 @@ router.post('/create', async (req, res) => {
 router.post('/multi-drop', async (req, res) => {
 	try {
 		console.table(req.body);
-		let {
-			pickupAddress,
-			packageDeliveryType,
-			packagePickupStartTime,
-			itemsCount,
-			vehicleType,
-			drops
-		} = req.body;
+		let { pickupAddress, packageDeliveryType, packagePickupStartTime, itemsCount, vehicleType, drops } = req.body;
 		//generate client reference number
 		const jobReference = genJobReference();
 		let paymentIntent = undefined;
@@ -287,15 +273,15 @@ router.post('/multi-drop', async (req, res) => {
 			paymentMethodId,
 			subscriptionId,
 			subscriptionPlan,
-			deliveryHours
+			deliveryHours,
 		} = await getClientDetails(apiKey);
 		// check that the vehicleType is valid and return the vehicle's specifications
 		let vehicleSpecs = getVehicleSpecs(vehicleType);
 		console.log(vehicleSpecs);
 		// do job distance calculation
 		for (let drop of drops) {
-			const index = drops.indexOf(drop)
-			console.table(drop)
+			const index = drops.indexOf(drop);
+			console.table(drop);
 			const jobDistance = await calculateJobDistance(pickupAddress, drop.dropoffAddress, vehicleSpecs.travelMode);
 			// check if distance is less than or equal to the vehicle's max pickup to dropoff distance
 			if (jobDistance > vehicleSpecs.maxDistance) {
@@ -306,7 +292,7 @@ router.post('/multi-drop', async (req, res) => {
 					vehicleSpecs.travelMode
 				);
 			}
-			req.body.drops[index]['reference'] = genOrderReference()
+			req.body.drops[index]['reference'] = genOrderReference();
 		}
 		// Check if a pickupStartTime was passed through, if not set it to 45 minutes ahead of current time
 		if (!packagePickupStartTime) packagePickupStartTime = moment().add(45, 'minutes').format();
@@ -317,58 +303,58 @@ router.post('/multi-drop', async (req, res) => {
 			const nextDayDeliveryTime = setNextDayDeliveryTime(deliveryHours);
 			req.body.packageDeliveryType = DELIVERY_TYPES.NEXT_DAY.name;
 			req.body.packagePickupStartTime = nextDayDeliveryTime;
-			drops.forEach((drop, index) => req.body.drops[index].packageDropoffStartTime = moment(nextDayDeliveryTime).add(interval * (index + 1), 'minutes').format());
+			drops.forEach(
+				(drop, index) =>
+					(req.body.drops[index].packageDropoffStartTime = moment(nextDayDeliveryTime)
+						.add(interval * (index + 1), 'minutes')
+						.format())
+			);
 		}
 		// check if user has a subscription active
 		console.log('SUBSCRIPTION ID:', !!subscriptionId);
 		if (subscriptionId && subscriptionPlan) {
 			let idempotencyKey = uuidv4();
 			// check the payment plan and lookup the associated commission fee
-			let { fee, limit } = COMMISSION[subscriptionPlan.toUpperCase()];
+			let { fee: commission, limit } = COMMISSION[subscriptionPlan.toUpperCase()];
 			console.log('--------------------------------');
-			console.log('COMMISSION FEE:', fee);
+			console.log('COMMISSION FEE:', commission);
 			// check whether the client number of orders has exceeded the limit
 			const numOrders = await db.Job.where({ clientId: clientId, status: 'COMPLETED' }).countDocuments();
 			console.log('NUM COMPLETED ORDERS:', numOrders);
 			console.log('--------------------------------');
 			// if so create the payment intent for the new order
-			if (numOrders >= limit) {
-				paymentIntent = await stripe.paymentIntents.create(
-					{
-						amount: fee * 100,
-						customer: stripeCustomerId,
-						currency: 'GBP',
-						setup_future_usage: 'off_session',
-						payment_method: paymentMethodId,
-						payment_method_types: ['card']
-					},
-					{
-						idempotencyKey
-					}
-				);
-				console.log('-------------------------------------------');
-				console.log('Payment Intent Created!', paymentIntent);
-				console.log('-------------------------------------------');
-			}
+			let multiDropFee = checkMultiDropPrice(req.body.drops.length);
+			if (numOrders >= limit) multiDropFee = multiDropFee + commission;
+			paymentIntent = await stripe.paymentIntents.create(
+				{
+					amount: multiDropFee * 100,
+					customer: stripeCustomerId,
+					currency: 'GBP',
+					setup_future_usage: 'off_session',
+					payment_method: paymentMethodId,
+					payment_method_types: ['card'],
+				},
+				{
+					idempotencyKey,
+				}
+			);
+			console.log('-------------------------------------------');
+			console.log('Payment Intent Created!', paymentIntent);
+			console.log('-------------------------------------------');
+
 			const paymentIntentId = paymentIntent ? paymentIntent.id : undefined;
 			const {
 				id: spec_id,
 				deliveryFee,
 				pickupAt,
-				deliveries
-			} = await providerCreateMultiJob(
-				null,
-				jobReference,
-				selectionStrategy,
-				req.body,
-				vehicleSpecs
-			);
+				deliveries,
+			} = await providerCreateMultiJob(null, jobReference, selectionStrategy, req.body, vehicleSpecs);
 			let job = {
 				createdAt: moment().format(),
 				driverInformation: {
 					name: 'Searching',
 					phone: 'Searching',
-					transport: 'Searching'
+					transport: 'Searching',
 				},
 				jobSpecification: {
 					id: spec_id,
@@ -389,18 +375,18 @@ router.post('/multi-drop', async (req, res) => {
 						firstName: req.body.pickupFirstName,
 						lastName: req.body.pickupLastName,
 						businessName: req.body.pickupBusinessName,
-						instructions: req.body.pickupInstructions
+						instructions: req.body.pickupInstructions,
 					},
 					deliveries,
 				},
 				selectedConfiguration: {
 					createdAt: moment().format(),
 					deliveryFee,
-					winnerQuote:'',
+					winnerQuote: '',
 					providerId: 'stuart',
-					quotes: []
+					quotes: [],
 				},
-				status: STATUS.NEW
+				status: STATUS.NEW,
 			};
 			console.log('======================================================================================');
 			console.log('JOB', job);
@@ -409,27 +395,27 @@ router.post('/multi-drop', async (req, res) => {
 			const createdJob = await db.Job.create({ ...job, clientId, paymentIntentId });
 			return res.status(200).json({
 				jobId: createdJob._id,
-				...job
+				...job,
 			});
 		} else {
 			console.error('No subscription detected!');
 			return res.status(402).json({
 				error: {
 					code: 402,
-					message: 'Please purchase a subscription plan before making an order. Thank you! 😊'
-				}
+					message: 'Please purchase a subscription plan before making an order. Thank you! 😊',
+				},
 			});
 		}
 	} catch (err) {
 		err.response ? console.error('ERROR:', err.response.data) : console.log('ERROR:', err);
 		if (err.message) {
 			return res.status(err.code).json({
-				error: err
+				error: err,
 			});
 		}
 		return res.status(500).json({
 			code: 500,
-			message: 'Unknown error occurred!'
+			message: 'Unknown error occurred!',
 		});
 	}
 });
@@ -449,19 +435,19 @@ router.get('/:job_id', async (req, res) => {
 			let { _id, ...job } = foundJob['_doc'];
 			return res.status(200).json({
 				jobId: job_id,
-				...job
+				...job,
 			});
 		} else {
 			return res.status(404).json({
 				code: 404,
 				description: `No job found with ID: ${req.params['job_id']}`,
-				message: 'Not Found'
+				message: 'Not Found',
 			});
 		}
 	} catch (err) {
 		console.log(err);
 		return res.status(500).json({
-			...err
+			...err,
 		});
 	}
 });
@@ -475,20 +461,20 @@ router.post('/:job_id', async (req, res) => {
 			return res.status(400).json({
 				code: 400,
 				description: 'Your payload has no properties to update the job',
-				message: 'Missing Payload!'
+				message: 'Missing Payload!',
 			});
 		}
 		await db.Job.findByIdAndUpdate(job_id, { status: status }, { new: true });
 		let jobs = await db.Job.find({}, {}, { new: true });
 		return res.status(200).json({
 			updatedJobs: jobs,
-			message: 'Job status updated!'
+			message: 'Job status updated!',
 		});
 	} catch (e) {
 		return res.status(404).json({
 			code: 404,
 			description: `No job found with ID: ${job_id}`,
-			message: 'Not Found'
+			message: 'Not Found',
 		});
 	}
 });
@@ -504,7 +490,7 @@ router.patch('/:job_id', async (req, res) => {
 		return res.status(400).json({
 			code: 400,
 			description: 'Your payload has no properties to update the job',
-			message: 'Missing Payload!'
+			message: 'Missing Payload!',
 		});
 	}
 	const { packageDescription: description, pickupInstructions, dropoffInstructions } = req.body;
@@ -513,42 +499,42 @@ router.patch('/:job_id', async (req, res) => {
 		let jobId = req.params['job_id'];
 		if (mongoose.Types.ObjectId.isValid(jobId)) {
 			let {
-				_doc: { _id, ...updatedJob }
+				_doc: { _id, ...updatedJob },
 			} = await db.Job.findOneAndUpdate(
 				{ _id: jobId },
 				{
 					$set: {
 						'jobSpecification.packages.$[].description': description,
 						'jobSpecification.packages.$[].pickupLocation.instructions': pickupInstructions,
-						'jobSpecification.packages.$[].dropoffLocation.instructions': dropoffInstructions
-					}
+						'jobSpecification.packages.$[].dropoffLocation.instructions': dropoffInstructions,
+					},
 				},
 				{
 					new: true,
-					sanitizeProjection: true
+					sanitizeProjection: true,
 				}
 			);
 			return updatedJob
 				? res.status(200).json({
-					jobId: _id,
-					...updatedJob
-				})
+						jobId: _id,
+						...updatedJob,
+				  })
 				: res.status(404).json({
-					code: 404,
-					description: `No job found with ID: ${jobId}`,
-					message: 'Not Found'
-				});
+						code: 404,
+						description: `No job found with ID: ${jobId}`,
+						message: 'Not Found',
+				  });
 		} else {
 			res.status(404).json({
 				code: 404,
 				description: `No job found with ID: ${jobId}`,
-				message: 'Not Found'
+				message: 'Not Found',
 			});
 		}
 	} catch (e) {
 		console.error(e);
 		return res.status(500).json({
-			...e
+			...e,
 		});
 	}
 });
@@ -567,19 +553,19 @@ router.delete('/:job_id', async (req, res) => {
 		if (foundJob) {
 			return res.status(200).json({
 				jobId,
-				cancelled: true
+				cancelled: true,
 			});
 		} else {
 			return res.status(404).json({
 				code: 404,
 				description: `No job found with ID: ${jobId}`,
-				message: 'Not Found'
+				message: 'Not Found',
 			});
 		}
 	} catch (err) {
 		console.error(err);
 		return res.status(500).json({
-			...err
+			...err,
 		});
 	}
 });

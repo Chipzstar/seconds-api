@@ -5,17 +5,19 @@
 
 const sgMail = require('@sendgrid/mail');
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY)
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const sendEmail = async options => {
 	const msg = {
 		from: 'Seconds Technologies <ola@useseconds.com>',
 		to: `${options.name} <${options.email}>`,
 		subject: options.subject,
-		templateId: options.templateId,
-		dynamicTemplateData: options.templateData,
-	}
-	await sgMail.send(msg)
-}
+		...(options.text && { text: options.text }),
+		...(options.html && { html: options.html }),
+		...(options.templateId && { templateId: options.templateId }),
+		...(options.templateData && { dynamicTemplateData: options.templateData })
+	};
+	await sgMail.send(msg);
+};
 
 module.exports = sendEmail;
