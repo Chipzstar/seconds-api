@@ -22,6 +22,8 @@ const {validateApiKey} = require("./middleware/auth");
 // defining the Express index
 const app = express();
 const db = require('./models/index');
+const { updateHerokuConfigVar } = require('./helpers/heroku');
+const orderId = require('order-id')(process.env.UID_SECRET_KEY);
 
 app.set('port', process.env.PORT || port);
 

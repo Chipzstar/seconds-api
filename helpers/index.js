@@ -19,8 +19,53 @@ const {
 const { STRATEGIES } = require('../constants/streetStream');
 const { ERROR_CODES: STUART_ERROR_CODES } = require('../constants/stuart');
 const { ERROR_CODES: GOPHR_ERROR_CODES } = require('../constants/gophr');
+const rax = require('retry-axios');
+const { updateHerokuConfigVar } = require('./heroku');
+const { getStuartAuthToken } = require('./stuart');
 
+// google maps api client
 const client = new Client();
+// axios instance setup
+const stuartAxios = axios.create();
+stuartAxios.defaults.headers.common['Authorization'] = `Bearer ${process.env.STUART_API_KEY}`
+/*stuartAxios.defaults.raxConfig = {
+	retry: 3,
+	backoffType: 'exponential',
+	retryDelay: 500,
+	statusCodesToRetry: [[401]],
+	shouldRetry: err => {
+		const cfg = rax.getConfig(err);
+		if (cfg.currentRetryAttempt >= cfg.retry) return false; // ensure max retries is always respected
+		// Always retry this status text, regardless of code or request type
+		if (err.response.data.message === 'The access token was revoked') return true;
+		// Handle the request based on your other config options, e.g. `statusCodesToRetry`
+		return rax.shouldRetryRequest(err);
+	},
+	onRetryAttempt: err => console.log("MESSAGE:", err.response.data.message, err.config.headers.Authorization),
+	instance: stuartAxios
+};*/
+
+stuartAxios.interceptors.response.use(
+	response => {
+		return response;
+	},
+	error => {
+		console.log(error.response)
+		if(error.response && error.response.status === 401 && error.response.data.message === "The access token was revoked") {
+			return getStuartAuthToken()
+				.then(token => {
+					updateHerokuConfigVar("STUART_API_KEY", token)
+					error.config.headers['Authorization'] = `Bearer ${token}`
+					return stuartAxios.request(error.config);
+				})
+				.catch(err => Promise.reject(err));
+		}
+		return Promise.reject(error)
+	}
+);
+// attach stuart axios to retry-axios
+// rax.attach(stuartAxios);
+
 
 function genOrderReference() {
 	const rand = crypto.randomBytes(16);
@@ -350,11 +395,10 @@ async function getStuartQuote(reference, params, vehicleSpecs) {
 		console.log('--------------------------');
 		console.log({ ...payload.job });
 		console.log('--------------------------');
-		const config = { headers: { Authorization: `Bearer ${process.env.STUART_API_KEY}` } };
 		const priceURL = `${process.env.STUART_ENV}/v2/jobs/pricing`;
 		const etaURL = `${process.env.STUART_ENV}/v2/jobs/eta`;
-		let { amount, currency } = (await axios.post(priceURL, payload, config)).data;
-		let data = (await axios.post(etaURL, payload, config)).data;
+		let { amount, currency } = (await stuartAxios.post(priceURL, payload)).data;
+		let data = (await stuartAxios.post(etaURL, payload)).data;
 		const quote = {
 			...quoteSchema,
 			id: `quote_${nanoid(15)}`,
@@ -637,8 +681,7 @@ async function stuartJobRequest(ref, params, vehicleSpecs) {
 			},
 		};
 		const URL = `${process.env.STUART_ENV}/v2/jobs`;
-		const config = { headers: { Authorization: `Bearer ${process.env.STUART_API_KEY}` } };
-		let data = (await axios.post(URL, payload, config)).data;
+		let data = (await stuartAxios.post(URL, payload)).data;
 		const deliveryInfo = data['deliveries'][0];
 		console.log('----------------------------');
 		console.log(deliveryInfo);
@@ -748,8 +791,7 @@ async function stuartMultiJobRequest(ref, params, vehicleSpecs) {
 			},
 		};
 		const URL = `${process.env.STUART_ENV}/v2/jobs`;
-		const config = { headers: { Authorization: `Bearer ${process.env.STUART_API_KEY}` } };
-		let data = (await axios.post(URL, payload, config)).data;
+		let data = (await stuartAxios.post(URL, payload)).data;
 		console.log('----------------------------');
 		console.log(data);
 		console.log('----------------------------');
@@ -1021,7 +1063,7 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 				businessName: drops[0].dropoffBusinessName ? drops[0].dropoffBusinessName : '',
 				instructions: drops[0].dropoffInstructions ? drops[0].dropoffInstructions : '',
 			},
-			trackingURL: "",
+			trackingURL: '',
 			status: STATUS.PENDING,
 		};
 		return {
@@ -1303,5 +1345,5 @@ module.exports = {
 	providerCreateMultiJob,
 	confirmCharge,
 	setNextDayDeliveryTime,
-	checkMultiDropPrice
+	checkMultiDropPrice,
 };

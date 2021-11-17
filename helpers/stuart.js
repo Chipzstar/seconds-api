@@ -3,6 +3,21 @@ const moment = require('moment');
 const { STATUS, COMMISSION } = require('../constants');
 const { JOB_STATUS, DELIVERY_STATUS } = require('../constants/stuart');
 const { confirmCharge } = require('./index');
+const axios = require('axios');
+
+async function getStuartAuthToken() {
+	const URL = `${process.env.STUART_ENV}/oauth/token`;
+	const params = new URLSearchParams();
+	params.append('client_id', process.env.STUART_CLIENT_ID);
+	params.append('client_secret', process.env.STUART_CLIENT_SECRET);
+	params.append('scope', 'api');
+	params.append('grant_type', 'client_credentials');
+
+	const config = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
+	const { access_token } = (await axios.post(URL, params, config)).data;
+	console.log('NEW STUART TOKEN:', access_token);
+	return access_token;
+}
 
 /**
  * Maps the current job status of a STUART delivery with the SECONDS delivery status
@@ -127,4 +142,4 @@ async function updateDelivery(data) {
 	}
 }
 
-module.exports = { updateJob, updateDelivery };
+module.exports = { updateJob, updateDelivery, getStuartAuthToken };
