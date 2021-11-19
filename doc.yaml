@@ -179,6 +179,74 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/UpdateRequirements'
+    multiDropJobRequest:
+      description: Request body for multiple dropoffs
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DeliveryRequirements'
+          example:
+            pickupAddress: '250 Reede Rd, Dagenham RM10 8EH'
+            pickupAddressLine1: '250 Reede Road'
+            pickupAddressLine2: ''
+            pickupCity: 'Dagenham'
+            pickupPostcode: 'RM10 8EH'
+            pickupPhoneNumber: '+447507210809'
+            pickupEmailAddress: 'chisom.oguibe@googlemail.com'
+            pickupBusinessName: 'Humandroid'
+            pickupFirstName: 'Chisom'
+            pickupLastName: 'Oguibe'
+            pickupInstructions: 'N/A'
+            packageDeliveryType: 'scheduled'
+            packagePickupStartTime: '2021-09-30T15:15:14+0000'
+            packagePickupEndTime: '2021-09-30T15:21:14+0000'
+            packageDescription: 'Xbox One S Console'
+            drops:
+              - dropoffAddress: '35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS'
+                dropoffAddressLine1: '42 Linton Road'
+                dropoffAddressLine2: '35 Forresters Apartments'
+                dropoffCity: 'Barking'
+                dropoffPostcode: 'IG11 8FS'
+                dropoffPhoneNumber: '+447523958055'
+                dropoffEmailAddress: 'olaoladapo7@gmail.com'
+                dropoffBusinessName: 'Seconds'
+                dropoffFirstName: 'Ola'
+                dropoffLastName: 'Oladapo'
+                dropoffInstructions: 'Leave in the front porch, if not available'
+                packageDropoffStartTime: '2021-09-30T15:45:14+0000'
+                packageDropoffEndTime: '2021-09-30T16:00:14+0000'
+              - dropoffAddress: '22 St Pauls Rd, Barking IG11 7AF'
+                dropoffAddressLine1: '22 St Pauls Rd'
+                dropoffAddressLine2: ''
+                dropoffCity: 'Barking'
+                dropoffPostcode: 'IG11 7AF'
+                dropoffPhoneNumber: '+447523958055'
+                dropoffEmailAddress: 'olaoladapo7@gmail.com'
+                dropoffBusinessName: 'Seconds'
+                dropoffFirstName: 'Ola'
+                dropoffLastName: 'Oladapo'
+                dropoffInstructions: 'Leave in the front porch, if not available'
+                packageDropoffStartTime: '2021-09-30T15:45:14+0000'
+                packageDropoffEndTime: '2021-09-30T16:00:14+0000'
+              - dropoffAddress: '134 Dawson Ave, Barking IG11 9QQ'
+                dropoffAddressLine1: '134 Dawson Ave'
+                dropoffAddressLine2: ''
+                dropoffCity: 'Barking'
+                dropoffPostcode: 'IG11 9QQ'
+                dropoffPhoneNumber: '+447523958055'
+                dropoffEmailAddress: 'olaoladapo7@gmail.com'
+                dropoffBusinessName: 'Seconds'
+                dropoffFirstName: 'Ola'
+                dropoffLastName: 'Oladapo'
+                dropoffInstructions: 'Leave in the front porch, if not available'
+                packageDropoffStartTime: '2021-09-30T15:45:14+0000'
+                packageDropoffEndTime: '2021-09-30T16:00:14+0000'
+            packageSizeX: 10
+            packageSizeY: 10
+            packageSizeZ: 30
+            packageWeight: 20
+            vehicleType: "BIC"
+            itemsCount: 1
   responses:
     createJobResponse:
       description: The created job
@@ -221,6 +289,127 @@ components:
                     streetAddress: '42 Linton Road'
                     city: 'Barking'
                     postcode: 'IG11 8FS'
+                    country: 'UK'
+                    phoneNumber: '+447523958055'
+                    email: 'olaoladapo7@gmail.com'
+                    firstName: 'Ola'
+                    lastName: 'Oladapo'
+                    businessName: 'Weezy'
+                    instructions: 'Leave in the front porch, if not available'
+                  dropoffStartTime: '2021-09-10T15:45:14+0000'
+                  dropoffEndTime: '2021-09-10T16:00:14+0000'
+                  transport: 'Bicycle'
+                  trackingURL: 'https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b'
+                  status: 'PENDING'
+            selectedConfiguration:
+              createdAt: '2021-06-22T18:16:54.025917'
+              deliveryFee: 14.9
+              winnerQuote: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
+              providerId: 'stuart'
+              quotes:
+                - createdTime: '2021-06-22T18:16:56'
+                  currency: GBP
+                  dropoffEta: '2021-09-22T19:52:56'
+                  expireTime: '2021-09-22T18:21:56'
+                  id: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
+                  priceExVAT: 13.04
+                  providerId: 'stuart'
+                - createdTime: '2021-06-22T18:16:56'
+                  currency: GBP
+                  dropoffEta: '2021-09-22T19:52:56'
+                  expireTime: '2021-09-22T18:21:56'
+                  id: 'quote_4scqrEA@bItf21cewaxc'
+                  priceExVAT: 12.80
+                  providerId: 'gophr'
+                - createdTime: '2021-06-22T18:16:56'
+                  currency: GBP
+                  dropoffEta: '2021-09-22T19:52:56'
+                  expireTime: '2021-09-22T18:21:56'
+                  id: 'quote_4scqthaB61oasna7c1at'
+                  priceExVAT: 14.15
+                  providerId: 'street_stream'
+            status: 'NEW'
+    multiDropJobResponse:
+      description: The created multi drop job
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Job'
+          example:
+            createdAt: '2021-09-27T13:06:59.560Z'
+            jobId: 6151c1f38a9660a0241d2e06
+            driverInformation:
+              name: 'Searching'
+              phone: 'Searching'
+              transport: 'Searching'
+            jobSpecification:
+              id: 100172991
+              shopifyId: null
+              jobReference: 'SECONDS-JOB#6WYXPNKCB6E6XZDJ'
+              orderNumber: '9812-2561-9025'
+              deliveryType: 'on-demand'
+              pickupStartTime: '2021-09-10T15:15:14+0000'
+              pickupEndTime: '2021-09-10T15:21:14+0000'
+              pickupLocation:
+                fullAddress: '250 Reede Rd, Dagenham RM10 8EH'
+                city: 'Dagenham'
+                postcode: 'RM10 8EH'
+                country: 'UK'
+                phoneNumber: '+447507210809'
+                email: 'chisom.oguibe@googlemail.com'
+                firstName: 'Chisom'
+                lastName: 'Oguibe'
+                businessName: 'Seconds Technologies'
+                instructions: 'N/A'
+              deliveries:
+                - id: 1820123
+                  orderReference: 'SECONDS-ORDER#USF1P26J78DFAO78'
+                  description: 'Xbox One S Console'
+                  dropoffLocation:
+                    fullAddress: '35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS'
+                    streetAddress: '42 Linton Road'
+                    city: 'Barking'
+                    postcode: 'IG11 8FS'
+                    country: 'UK'
+                    phoneNumber: '+447523958055'
+                    email: 'olaoladapo7@gmail.com'
+                    firstName: 'Ola'
+                    lastName: 'Oladapo'
+                    businessName: 'Weezy'
+                    instructions: 'Leave in the front porch, if not available'
+                  dropoffStartTime: '2021-09-10T15:45:14+0000'
+                  dropoffEndTime: '2021-09-10T16:00:14+0000'
+                  transport: 'Bicycle'
+                  trackingURL: 'https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b'
+                  status: 'PENDING'
+                - id: 1820123
+                  orderReference: 'SECONDS-ORDER#USF1P26J78DFAO78'
+                  description: 'Xbox One S Console'
+                  dropoffLocation:
+                    fullAddress: '22 St Pauls Rd, Barking IG11 7AF'
+                    streetAddress: '22 St Pauls Rd'
+                    city: 'Barking'
+                    postcode: 'IG11 7AF'
+                    country: 'UK'
+                    phoneNumber: '+447523958055'
+                    email: 'olaoladapo7@gmail.com'
+                    firstName: 'Ola'
+                    lastName: 'Oladapo'
+                    businessName: 'Weezy'
+                    instructions: 'Leave in the front porch, if not available'
+                  dropoffStartTime: '2021-09-10T15:45:14+0000'
+                  dropoffEndTime: '2021-09-10T16:00:14+0000'
+                  transport: 'Bicycle'
+                  trackingURL: 'https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b'
+                  status: 'PENDING'
+                - id: 1820123
+                  orderReference: 'SECONDS-ORDER#USF1P26J78DFAO78'
+                  description: 'Xbox One S Console'
+                  dropoffLocation:
+                    fullAddress: '134 Dawson Ave, Barking IG11 9QQ'
+                    streetAddress: '134 Dawson Ave'
+                    city: 'Barking'
+                    postcode: 'IG11 9QQ'
                     country: 'UK'
                     phoneNumber: '+447523958055'
                     email: 'olaoladapo7@gmail.com'
@@ -356,7 +545,7 @@ components:
               phone: '07595217501'
               transport: 'bike'
             jobSpecification:
-              id: 100172991
+              id: '100172991'
               shopifyId: null
               orderNumber: 30
               jobReference: 'SECONDS-JOB#6WYXPNKCB6E6XZDJ'
@@ -769,10 +958,10 @@ paths:
       summary: API endpoint for creating a multi drop job.
       description: Create a delivery job with multiple dropoffs. A maximum of 8 dropoffs are allowed
       requestBody:
-        $ref: '#/components/requestBodies/createJobRequest'
+        $ref: '#/components/requestBodies/multiDropJobRequest'
       responses:
         '200':
-          $ref: '#/components/responses/createJobResponse'
+          $ref: '#/components/responses/multiDropJobResponse'
         '401':
           $ref: '#/components/responses/401Unauthorized'
         '403':
