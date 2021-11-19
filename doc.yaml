@@ -138,35 +138,35 @@ components:
             $ref: '#/components/schemas/DeliveryRequirements'
           example:
             pickupAddress: '250 Reede Rd, Dagenham RM10 8EH'
-            pickupFormattedAddress:
-              street: '250 Reede Road'
-              city: 'Dagenham'
-              postcode: 'RM10 8EH'
-              countryCode: 'GB'
+            pickupAddressLine1: '250 Reede Road'
+            pickupAddressLine2: ''
+            pickupCity: 'Dagenham'
+            pickupPostcode: 'RM10 8EH'
             pickupPhoneNumber: '+447507210809'
             pickupEmailAddress: 'chisom.oguibe@googlemail.com'
             pickupBusinessName: 'Humandroid'
             pickupFirstName: 'Chisom'
             pickupLastName: 'Oguibe'
             pickupInstructions: 'N/A'
-            dropoffAddress: '35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS'
-            dropoffFormattedAddress:
-              street: '42 Linton Road'
-              city: 'Barking'
-              postcode: 'IG11 8FS'
-              countryCode: 'GB'
-            dropoffPhoneNumber: '+447523958055'
-            dropoffEmailAddress: 'olaoladapo7@gmail.com'
-            dropoffBusinessName: 'Seconds'
-            dropoffFirstName: 'Ola'
-            dropoffLastName: 'Oladapo'
-            dropoffInstructions: 'Leave in the front porch, if not available'
             packageDeliveryType: 'scheduled'
-            packageDropoffStartTime: '2021-09-30T15:45:14+0000'
-            packageDropoffEndTime: '2021-09-30T16:00:14+0000'
             packagePickupStartTime: '2021-09-30T15:15:14+0000'
             packagePickupEndTime: '2021-09-30T15:21:14+0000'
             packageDescription: 'Xbox One S Console'
+            drops:
+              -
+                dropoffAddress: '35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS'
+                dropoffAddressLine1: '42 Linton Road'
+                dropoffAddressLine2: '35 Forresters Apartments'
+                dropoffCity: 'Barking'
+                dropoffPostcode: 'IG11 8FS'
+                dropoffPhoneNumber: '+447523958055'
+                dropoffEmailAddress: 'olaoladapo7@gmail.com'
+                dropoffBusinessName: 'Seconds'
+                dropoffFirstName: 'Ola'
+                dropoffLastName: 'Oladapo'
+                dropoffInstructions: 'Leave in the front porch, if not available'
+                packageDropoffStartTime: '2021-09-30T15:45:14+0000'
+                packageDropoffEndTime: '2021-09-30T16:00:14+0000'
             packageSizeX: 10
             packageSizeY: 10
             packageSizeZ: 30
@@ -196,13 +196,29 @@ components:
             jobSpecification:
               id: 100172991
               shopifyId: null
-              orderNumber: 30
+              jobReference: 'SECONDS-JOB#6WYXPNKCB6E6XZDJ'
+              orderNumber: '9812-2561-9025'
               deliveryType: 'on-demand'
-              packages:
-                - description: 'Xbox One S Console'
+              pickupStartTime: '2021-09-10T15:15:14+0000'
+              pickupEndTime: '2021-09-10T15:21:14+0000'
+              pickupLocation:
+                fullAddress: '250 Reede Rd, Dagenham RM10 8EH'
+                city: 'Dagenham'
+                postcode: 'RM10 8EH'
+                country: 'UK'
+                phoneNumber: '+447507210809'
+                email: 'chisom.oguibe@googlemail.com'
+                firstName: 'Chisom'
+                lastName: 'Oguibe'
+                businessName: 'Seconds Technologies'
+                instructions: 'N/A'
+              deliveries:
+                - id: 1820123
+                  orderReference: 'SECONDS-ORDER#USF1P26J78DFAO78'
+                  description: 'Xbox One S Console'
                   dropoffLocation:
                     fullAddress: '35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS'
-                    street_address: '42 Linton Road'
+                    streetAddress: '42 Linton Road'
                     city: 'Barking'
                     postcode: 'IG11 8FS'
                     country: 'UK'
@@ -214,26 +230,12 @@ components:
                     instructions: 'Leave in the front porch, if not available'
                   dropoffStartTime: '2021-09-10T15:45:14+0000'
                   dropoffEndTime: '2021-09-10T16:00:14+0000'
-                  pickupStartTime: '2021-09-10T15:15:14+0000'
-                  pickupEndTime: '2021-09-10T15:21:14+0000'
-                  pickupLocation:
-                    fullAddress: '250 Reede Rd, Dagenham RM10 8EH'
-                    city: 'Dagenham'
-                    postcode: 'RM10 8EH'
-                    country: 'UK'
-                    phoneNumber: '+447507210809'
-                    email: 'chisom.oguibe@googlemail.com'
-                    firstName: 'Chisom'
-                    lastName: 'Oguibe'
-                    businessName: 'Seconds Technologies'
-                    instructions: 'N/A'
                   transport: 'Bicycle'
-                  itemsCount: 1
+                  trackingURL: 'https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b'
+                  status: 'PENDING'
             selectedConfiguration:
               createdAt: '2021-06-22T18:16:54.025917'
-              jobReference: '6WYXPNKCB6E6XZDJ'
               deliveryFee: 14.9
-              trackingURL: 'https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b'
               winnerQuote: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
               providerId: 'stuart'
               quotes:
@@ -249,9 +251,16 @@ components:
                   dropoffEta: '2021-09-22T19:52:56'
                   expireTime: '2021-09-22T18:21:56'
                   id: 'quote_4scqrEA@bItf21cewaxc'
-                  priceExVAT: 13.04
+                  priceExVAT: 12.80
                   providerId: 'gophr'
-            status: CREATED
+                - createdTime: '2021-06-22T18:16:56'
+                  currency: GBP
+                  dropoffEta: '2021-09-22T19:52:56'
+                  expireTime: '2021-09-22T18:21:56'
+                  id: 'quote_4scqthaB61oasna7c1at'
+                  priceExVAT: 14.15
+                  providerId: 'street_stream'
+            status: 'NEW'
     requestedJobResponse:
       description: The requested job
       content:
@@ -269,12 +278,28 @@ components:
               id: 100172991
               shopifyId: null
               orderNumber: 30
+              jobReference: 'SECONDS-JOB#6WYXPNKCB6E6XZDJ'
               deliveryType: 'on-demand'
-              packages:
-                - description: 'Xbox One S Console'
+              pickupStartTime: '2021-09-30T15:15:14+0000'
+              pickupEndTime: '2021-09-30T15:21:14+0000'
+              pickupLocation:
+                fullAddress: '250 Reede Rd, Dagenham RM10 8EH'
+                city: 'Dagenham'
+                postcode: 'RM10 8EH'
+                country: 'UK'
+                phoneNumber: '+447507210809'
+                email: 'chisom.oguibe@googlemail.com'
+                firstName: 'Chisom'
+                lastName: 'Oguibe'
+                businessName: 'Seconds Technologies'
+                instructions: 'N/A'
+              deliveries:
+                - id: 1820123
+                  orderReference: 'SECONDS-Order#USF1P26J78DFAO78'
+                  description: 'Xbox One S Console'
                   dropoffLocation:
                     fullAddress: '35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS'
-                    street_address: '42 Linton Road'
+                    streetAddress: '42 Linton Road'
                     city: 'Barking'
                     postcode: 'IG11 8FS'
                     country: 'UK'
@@ -286,26 +311,12 @@ components:
                     instructions: 'Leave in the front porch, if not available'
                   dropoffStartTime: '2021-09-30T15:45:14+0000'
                   dropoffEndTime: '2021-09-30T16:00:14+0000'
-                  pickupStartTime: '2021-09-30T15:15:14+0000'
-                  pickupEndTime: '2021-09-30T15:21:14+0000'
-                  pickupLocation:
-                    fullAddress: '250 Reede Rd, Dagenham RM10 8EH'
-                    city: 'Dagenham'
-                    postcode: 'RM10 8EH'
-                    country: 'UK'
-                    phoneNumber: '+447507210809'
-                    email: 'chisom.oguibe@googlemail.com'
-                    firstName: 'Chisom'
-                    lastName: 'Oguibe'
-                    businessName: 'Seconds Technologies'
-                    instructions: 'N/A'
                   transport: 'Bicycle'
-                  itemsCount: 1
+                  trackingURL: 'https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b'
+                  status: 'PENDING'
             selectedConfiguration:
               createdAt: '2021-06-22T18:16:54.025917'
-              jobReference: '6WYXPNKCB6E6XZDJ'
               deliveryFee: 14.9
-              trackingURL: 'https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b'
               winnerQuote: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
               providerId: 'stuart'
               quotes:
@@ -321,9 +332,16 @@ components:
                   dropoffEta: '2021-09-22T19:52:56'
                   expireTime: '2021-09-22T18:21:56'
                   id: 'quote_4scqrEA@bItf21cewaxc'
-                  priceExVAT: 13.04
+                  priceExVAT: 12.80
                   providerId: 'gophr'
-            status: CREATED
+                - createdTime: '2021-06-22T18:16:56'
+                  currency: GBP
+                  dropoffEta: '2021-09-22T19:52:56'
+                  expireTime: '2021-09-22T18:21:56'
+                  id: 'quote_4scqthaB61oasna7c1at'
+                  priceExVAT: 14.15
+                  providerId: 'street_stream'
+            status: 'NEW'
     updatedJobResponse:
       description: The updated job
       content:
@@ -341,12 +359,28 @@ components:
               id: 100172991
               shopifyId: null
               orderNumber: 30
+              jobReference: 'SECONDS-JOB#6WYXPNKCB6E6XZDJ'
               deliveryType: 'on-demand'
-              packages:
-                - description: 'Xbox One S Console'
+              pickupStartTime: '2021-09-10T15:15:14+0000'
+              pickupEndTime: '2021-09-10T15:21:14+0000'
+              pickupLocation:
+                fullAddress: '250 Reede Rd, Dagenham RM10 8EH'
+                city: 'Dagenham'
+                postcode: 'RM10 8EH'
+                country: 'UK'
+                phoneNumber: '+447507210809'
+                email: 'chisom.oguibe@googlemail.com'
+                firstName: 'Chisom'
+                lastName: 'Oguibe'
+                businessName: 'Seconds Technologies'
+                instructions: 'N/A'
+              deliveries:
+                - id: 1820123
+                  orderReference: 'SECONDS-Order#USF1P26J78DFAO78'
+                  description: 'Xbox One S Console'
                   dropoffLocation:
                     fullAddress: '35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS'
-                    street_address: '42 Linton Road'
+                    streetAddress: '42 Linton Road'
                     city: 'Barking'
                     postcode: 'IG11 8FS'
                     country: 'UK'
@@ -358,26 +392,12 @@ components:
                     instructions: 'Enter reception area'
                   dropoffStartTime: '2021-09-10T15:45:14+0000'
                   dropoffEndTime: '2021-09-10T16:00:14+0000'
-                  pickupStartTime: '2021-09-10T15:15:14+0000'
-                  pickupEndTime: '2021-09-10T15:21:14+0000'
-                  pickupLocation:
-                    fullAddress: '250 Reede Rd, Dagenham RM10 8EH'
-                    city: 'Dagenham'
-                    postcode: 'RM10 8EH'
-                    country: 'UK'
-                    phoneNumber: '+447507210809'
-                    email: 'chisom.oguibe@googlemail.com'
-                    firstName: 'Chisom'
-                    lastName: 'Oguibe'
-                    businessName: 'Seconds Technologies'
-                    instructions: 'N/A'
-                  itemsCount: 1
                   transport: 'Bicycle'
+                  trackingURL: 'https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b'
+                  status: 'DISPATCHING'
             selectedConfiguration:
               createdAt: '2021-06-22T18:16:54.025917'
-              jobReference: '6WYXPNKCB6E6XZDJ'
               deliveryFee: 14.9
-              trackingURL: 'https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b'
               winnerQuote: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
               providerId: 'stuart'
               quotes:
@@ -393,9 +413,16 @@ components:
                   dropoffEta: '2021-09-22T19:52:56'
                   expireTime: '2021-09-22T18:21:56'
                   id: 'quote_4scqrEA@bItf21cewaxc'
-                  priceExVAT: 13.04
+                  priceExVAT: 12.80
                   providerId: 'gophr'
-            status: DISPATCHING
+                - createdTime: '2021-06-22T18:16:56'
+                  currency: GBP
+                  dropoffEta: '2021-09-22T19:52:56'
+                  expireTime: '2021-09-22T18:21:56'
+                  id: 'quote_4scqthaB61oasna7c1at'
+                  priceExVAT: 14.15
+                  providerId: 'street_stream'
+            status: 'DISPATCHING'
     deletedJobResponse:
       description: Confirmation of cancelled job
       content:
@@ -436,6 +463,13 @@ components:
                 expireTime: '2021-10-03T15:39:33.719Z'
                 priceExVAT: 11.03
                 providerId: gophr
+              - id: quote_0f_QsVEzKhXPy5Z
+                createdAt: '2021-10-03T15:34:33.719Z'
+                currency: GBP
+                dropoffEta: '2021-10-04T16:39:13.000Z'
+                expireTime: '2021-10-03T15:39:33.719Z'
+                priceExVAT: 13.18
+                providerId: street_stream
             bestQuote:
               id: quote_9zzEuIPvkXMSHP5
               createdAt: '2021-10-03T15:34:33.339Z'
@@ -484,7 +518,7 @@ paths:
     post:
       tags:
         - Token
-      security: []
+      security: [ ]
       description: Retrieve your api key using your account credentials
       summary: API endpoint to fetch a user's API key
       requestBody:
@@ -565,16 +599,34 @@ paths:
               example:
                 - createdAt: '2021-09-27T13:06:59.560Z'
                   jobId: 6151c1f38a9660a0241d2e06
+                  driverInformation:
+                    name: 'Searching'
+                    phone: 'Searching'
+                    transport: 'Searching'
                   jobSpecification:
                     id: 100172991
                     shopifyId: null
                     orderNumber: 30
+                    jobReference: '6WYXPNKCB6E6XZDJ'
                     deliveryType: 'on-demand'
-                    packages:
+                    pickupStartTime: '2021-09-30T15:15:14+0000'
+                    pickupEndTime: '2021-09-30T15:21:14+0000'
+                    pickupLocation:
+                      fullAddress: '250 Reede Rd, Dagenham RM10 8EH'
+                      city: 'Dagenham'
+                      postcode: 'RM10 8EH'
+                      country: 'UK'
+                      phoneNumber: '+447507210809'
+                      email: 'chisom.oguibe@googlemail.com'
+                      firstName: 'Chisom'
+                      lastName: 'Oguibe'
+                      businessName: 'Seconds Technologies'
+                      instructions: 'N/A'
+                    deliveries:
                       - description: 'Xbox One S Console'
                         dropoffLocation:
                           fullAddress: '35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS'
-                          street_address: '42 Linton Road'
+                          streetAddress: '42 Linton Road'
                           city: 'Barking'
                           postcode: 'IG11 8FS'
                           country: 'UK'
@@ -586,26 +638,11 @@ paths:
                           instructions: 'Leave in the front porch, if not available'
                         dropoffStartTime: '2021-09-30T15:45:14+0000'
                         dropoffEndTime: '2021-09-30T16:00:14+0000'
-                        pickupStartTime: '2021-09-30T15:15:14+0000'
-                        pickupEndTime: '2021-09-30T15:21:14+0000'
-                        pickupLocation:
-                          fullAddress: '250 Reede Rd, Dagenham RM10 8EH'
-                          city: 'Dagenham'
-                          postcode: 'RM10 8EH'
-                          country: 'UK'
-                          phoneNumber: '+447507210809'
-                          email: 'chisom.oguibe@googlemail.com'
-                          firstName: 'Chisom'
-                          lastName: 'Oguibe'
-                          businessName: 'Seconds Technologies'
-                          instructions: 'N/A'
                         transport: 'Motorbike'
-                        itemsCount: 1
+                        trackingURL: 'https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b'
                   selectedConfiguration:
                     createdAt: '2021-06-22T18:16:54.025917'
-                    jobReference: '6WYXPNKCB6E6XZDJ'
                     deliveryFee: 14.9
-                    trackingURL: 'https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b'
                     winnerQuote: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
                     providerId: 'stuart'
                     quotes:
@@ -626,16 +663,34 @@ paths:
                   status: CREATED
                 - createdAt: '2021-09-27T13:06:59.560Z'
                   jobId: 6151c1f38a9660a0241d2e06
+                  driverInformation:
+                    name: 'Searching'
+                    phone: 'Searching'
+                    transport: 'Searching'
                   jobSpecification:
                     id: 100172991
                     shopifyId: null
                     orderNumber: 30
+                    jobReference: "6WYXPNKCB6E6XZDJ"
                     deliveryType: 'on-demand'
-                    packages:
+                    pickupStartTime: '2021-09-10T15:15:14+0000'
+                    pickupEndTime: '2021-09-10T15:21:14+0000'
+                    pickupLocation:
+                      fullAddress: '250 Reede Rd, Dagenham RM10 8EH'
+                      city: 'Dagenham'
+                      postcode: 'RM10 8EH'
+                      country: 'UK'
+                      phoneNumber: '+447507210809'
+                      email: 'chisom.oguibe@googlemail.com'
+                      firstName: 'Chisom'
+                      lastName: 'Oguibe'
+                      businessName: 'Seconds Technologies'
+                      instructions: 'N/A'
+                    deliveries:
                       - description: 'Xbox One S Console'
                         dropoffLocation:
                           fullAddress: '35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS'
-                          street_address: '42 Linton Road'
+                          streetAddress: '42 Linton Road'
                           city: 'Barking'
                           postcode: 'IG11 8FS'
                           country: 'UK'
@@ -647,26 +702,11 @@ paths:
                           instructions: 'Enter reception area'
                         dropoffStartTime: '2021-09-10T15:45:14+0000'
                         dropoffEndTime: '2021-09-10T16:00:14+0000'
-                        pickupStartTime: '2021-09-10T15:15:14+0000'
-                        pickupEndTime: '2021-09-10T15:21:14+0000'
-                        pickupLocation:
-                          fullAddress: '250 Reede Rd, Dagenham RM10 8EH'
-                          city: 'Dagenham'
-                          postcode: 'RM10 8EH'
-                          country: 'UK'
-                          phoneNumber: '+447507210809'
-                          email: 'chisom.oguibe@googlemail.com'
-                          firstName: 'Chisom'
-                          lastName: 'Oguibe'
-                          businessName: 'Seconds Technologies'
-                          instructions: 'N/A'
-                        itemsCount: 1
+                        trackingURL: 'https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b'
                         transport: 'Bicycle'
                   selectedConfiguration:
                     createdAt: '2021-06-22T18:16:54.025917'
-                    jobReference: "6WYXPNKCB6E6XZDJ"
                     deliveryFee: 14.9
-                    trackingURL: 'https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b'
                     winnerQuote: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
                     providerId: 'stuart'
                     quotes:
@@ -713,6 +753,21 @@ paths:
         - Jobs
       description: Creates a new delivery job. Delivery jobs are assigned with a status to indicate the stage of the delivery process
       summary: API endpoint for creating new delivery jobs.
+      requestBody:
+        $ref: '#/components/requestBodies/createJobRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/createJobResponse'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+  /api/v1/jobs/multi-drop:
+    post:
+      tags:
+        - Jobs
+      summary: API endpoint for creating a multi drop job.
+      description: Create a delivery job with multiple dropoffs. A maximum of 8 dropoffs are allowed
       requestBody:
         $ref: '#/components/requestBodies/createJobRequest'
       responses:

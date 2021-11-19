@@ -35,17 +35,73 @@
 		  "type": "string",
 		  "default": null
 		},
+		"jobReference": {
+		  "type": "string"
+		},
 		"deliveryType": {
 		  "type": "string"
 		},
 		"orderNumber": {
 		  "type": "string"
 		},
-		"packages": {
+		"pickupStartTime": {
+		  "type": "string",
+		  "format": "date-time"
+		},
+		"pickupEndTime": {
+		  "type": "string",
+		  "format": "date-time"
+		},
+		"pickupLocation": {
+		  "type": "object",
+		  "properties": {
+			"fullAddress": {
+			  "type": "string"
+			},
+			"streetAddress": {
+			  "type": "string"
+			},
+			"city": {
+			  "type": "string"
+			},
+			"postcode": {
+			  "type": "string"
+			},
+			"country": {
+			  "type": "string"
+			},
+			"phoneNumber": {
+			  "type": "string"
+			},
+			"email": {
+			  "type": "string",
+			  "format": "nullable"
+			},
+			"firstName": {
+			  "type": "string"
+			},
+			"lastName": {
+			  "type": "string"
+			},
+			"businessName": {
+			  "type": "string"
+			},
+			"instructions": {
+			  "type": "string"
+			}
+		  }
+		},
+		"deliveries": {
 		  "type": "array",
 		  "items": {
 			"type": "object",
 			"properties": {
+			  "id": {
+				"type": "string"
+			  },
+			  "orderReference": {
+				"type": "string"
+			  },
 			  "description": {
 				"type": "string"
 			  },
@@ -96,59 +152,14 @@
 				"type": "string",
 				"format": "date-time"
 			  },
-			  "pickupStartTime": {
-				"type": "string",
-				"format": "date-time"
-			  },
-			  "pickupEndTime": {
-				"type": "string",
-				"format": "date-time"
-			  },
-			  "pickupLocation": {
-				"type": "object",
-				"properties": {
-				  "fullAddress": {
-					"type": "string"
-				  },
-				  "streetAddress": {
-					"type": "string"
-				  },
-				  "city": {
-					"type": "string"
-				  },
-				  "postcode": {
-					"type": "string"
-				  },
-				  "country": {
-					"type": "string"
-				  },
-				  "phoneNumber": {
-					"type": "string"
-				  },
-				  "email": {
-					"type": "string",
-					"format": "nullable"
-				  },
-				  "firstName": {
-					"type": "string"
-				  },
-				  "lastName": {
-					"type": "string"
-				  },
-				  "businessName": {
-					"type": "string"
-				  },
-				  "instructions": {
-					"type": "string"
-				  }
-				}
-			  },
 			  "transport": {
 				"type": "string"
 			  },
-			  "itemsCount": {
-				"type": "integer",
-				"format": "int32"
+			  "trackingURL": {
+				"type": "string"
+			  },
+			  "status": {
+				"type": "string"
 			  }
 			}
 		  }
@@ -158,9 +169,6 @@
 	"selectedConfiguration": {
 	  "type": "object",
 	  "properties": {
-		"jobReference": {
-		  "type": "string"
-		},
 		"createdAt": {
 		  "type": "string"
 		},
@@ -170,9 +178,6 @@
 		"deliveryFee": {
 		  "type": "number",
 		  "format": "double"
-		},
-		"trackingURL": {
-		  "type": "string"
 		},
 		"providerId": {
 		  "type": "string",

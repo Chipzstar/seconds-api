@@ -1,25 +1,31 @@
 {
   "type": "object",
+  "required": [
+	"pickupAddress",
+	"pickupAddressLine1",
+	"pickupCity",
+	"pickupPostcode",
+	"pickupPhoneNumber",
+	"vehicleType"
+  ],
   "properties": {
+	"packageDeliveryType": {
+	  "type": "string"
+	},
 	"pickupAddress": {
 	  "type": "string"
 	},
-	"pickupFormattedAddress": {
-	  "type": "object",
-	  "properties": {
-		"street": {
-		  "type": "string"
-		},
-		"city": {
-		  "type": "string"
-		},
-		"postcode": {
-		  "type": "string"
-		},
-		"countryCode": {
-		  "type": "string"
-		}
-	  }
+	"pickupAddressLine1": {
+	  "type": "string"
+	},
+	"pickupAddressLine2": {
+	  "type": "string"
+	},
+	"pickupCity": {
+	  "type": "string"
+	},
+	"pickupPostcode": {
+	  "type": "string"
 	},
 	"pickupPhoneNumber": {
 	  "type": "string"
@@ -39,45 +45,71 @@
 	"pickupInstructions": {
 	  "type": "string"
 	},
-	"dropoffAddress": {
-	  "type": "string"
+	"packagePickupStartTime": {
+	  "type": "string",
+	  "format": "date-time"
 	},
-	"dropoffFormattedAddress": {
-	  "type": "object",
-	  "properties": {
-		"street": {
-		  "type": "string"
-		},
-		"city": {
-		  "type": "string"
-		},
-		"postcode": {
-		  "type": "string"
-		},
-		"countryCode": {
-		  "type": "string"
+	"packagePickupEndTime": {
+	  "type": "string",
+	  "format": "date-time"
+	},
+	"drops": {
+	  "type": "array",
+	  "items": {
+		"type": "object",
+		"required": [
+		  "dropoffAddress",
+		  "dropoffAddressLine1",
+		  "dropoffCity",
+		  "dropoffPostcode",
+		  "dropoffPhoneNumber"
+		],
+		"properties": {
+		  "dropoffAddress": {
+			"type": "string"
+		  },
+		  "dropoffAddressLine1": {
+			"type": "string"
+		  },
+		  "dropoffAddressLine2": {
+			"type": "string"
+		  },
+		  "dropoffCity": {
+			"type": "string"
+		  },
+		  "dropoffPostcode": {
+			"type": "string"
+		  },
+		  "dropoffPhoneNumber": {
+			"type": "string"
+		  },
+		  "dropoffEmailAddress": {
+			"type": "string"
+		  },
+		  "dropoffBusinessName": {
+			"type": "string"
+		  },
+		  "dropoffFirstName": {
+			"type": "string"
+		  },
+		  "dropoffLastName": {
+			"type": "string"
+		  },
+		  "dropoffInstructions": {
+			"type": "string"
+		  },
+		  "packageDropoffStartTime": {
+			"type": "string",
+			"format": "date-time"
+		  },
+		  "packageDropoffEndTime": {
+			"type": "string",
+			"format": "date-time"
+		  }
 		}
 	  }
 	},
-	"dropoffPhoneNumber": {
-	  "type": "string"
-	},
-	"dropoffEmailAddress": {
-	  "type": "string"
-	},
-	"dropoffBusinessName": {
-	  "type": "string"
-	},
-	"dropoffFirstName": {
-	  "type": "string"
-	},
-	"dropoffLastName": {
-	  "type": "string"
-	},
-	"dropoffInstructions": {
-	  "type": "string"
-	},
-	"packageDeliveryType": {
+	"packageDescription": {
 	  "type": "string"
 	},
 	"packageSizeX": {
@@ -92,26 +124,7 @@
 	"packageWeight": {
 	  "type": "number"
 	},
-	"packageDropoffStartTime": {
-	  "type": "string",
-	  "format": "date-time"
-	},
-	"packageDropoffEndTime": {
-	  "type": "string",
-	  "format": "date-time"
-	},
-	"packagePickupStartTime": {
-	  "type": "string",
-	  "format": "date-time"
-	},
-	"packagePickupEndTime": {
-	  "type": "string",
-	  "format": "date-time"
-	},
-	"packageDescription": {
-	  "type": "string"
-	},
-	"vehicleTye": {
+	"vehicleType": {
 	  "type": "string"
 	},
 	"itemsCount": {
