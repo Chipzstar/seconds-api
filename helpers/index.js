@@ -404,7 +404,7 @@ async function getStuartQuote(reference, params, vehicleSpecs) {
 			id: `quote_${nanoid(15)}`,
 			createdAt: moment().format(),
 			expireTime: moment().add(5, 'minutes').format(),
-			priceExVAT: amount,
+			priceExVAT: amount * 1.2,
 			currency,
 			dropoffEta: packagePickupStartTime
 				? moment(packagePickupStartTime).add(data.eta, 'seconds').format()
@@ -483,7 +483,7 @@ async function getGophrQuote(params, vehicleSpecs) {
 				id: `quote_${nanoid(15)}`,
 				createdAt: moment().format(),
 				expireTime: moment().add(5, 'minutes').format(),
-				priceExVAT: price_net,
+				priceExVAT: price_net * 1.2,
 				currency: 'GBP',
 				dropoffEta: moment(delivery_eta).format(),
 				providerId: PROVIDERS.GOPHR,
@@ -544,7 +544,7 @@ async function getStreetStreamQuote(params, vehicleSpecs) {
 			id: `quote_${nanoid(15)}`,
 			createdAt: moment().format(),
 			expireTime: moment().add(5, 'minutes').format(),
-			priceExVAT: data['estimatedCostVatExclusive'],
+			priceExVAT: data['estimatedCostVatExclusive'] * 1.2,
 			currency: 'GBP',
 			dropoffEta: null,
 			providerId: PROVIDERS.STREET_STREAM,
