@@ -90,6 +90,8 @@ function convertWeightToVehicleCode(total_weight) {
 }
 
 async function sendNewJobEmails(team, job) {
+	console.log("TEAM")
+	team.forEach(member => console.table(member))
 	try {
 		let allSent = await Promise.all(
 			team.map(
@@ -147,8 +149,8 @@ async function createNewJob(order, user) {
 			pickupFirstName: user.firstname,
 			pickupLastName: user.lastname,
 			pickupInstructions: order['note'] ? order['note'] : '',
-			packagePickupStartTime: moment().add(45, 'minutes').format(),
-			packagePickupEndTime: moment().add(60, 'minutes').format(),
+			packagePickupStartTime: moment("2021-11-23T16:20:00").add(45, 'minutes').format(),
+			packagePickupEndTime: moment("2021-11-23T16:20:00").add(60, 'minutes').format(),
 			packageDeliveryType: DELIVERY_TYPES.ON_DEMAND.name,
 			packageDescription,
 			itemsCount,
@@ -208,6 +210,9 @@ async function createNewJob(order, user) {
 			payload.drops[0].packageDropoffStartTime = moment(nextDayDeliveryTime).add(25, 'minutes').format();
 			payload.drops[0].packageDropoffEndTime= moment(nextDayDeliveryTime).add(40, 'minutes').format();
 		}
+		console.log('-----------------------------------------------------------------');
+		console.log(payload.packagePickupStartTime);
+		console.log('-----------------------------------------------------------------');
 		const QUOTES = await getResultantQuotes(payload, vehicleSpecs);
 		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
 		const providerId = bestQuote.providerId;
