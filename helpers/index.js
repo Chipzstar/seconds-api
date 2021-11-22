@@ -451,7 +451,7 @@ async function getStuartQuote(reference, params, vehicleSpecs) {
 
 async function getGophrQuote(params, vehicleSpecs) {
 	const { pickupAddressLine1, pickupCity, pickupPostcode, packagePickupStartTime, drops } = params;
-	const { dropoffAddressLine1, dropoffCity, dropoffPostcode, packageDropoffStartTime, packageDropoffEndTime } = drops[0];
+	const { dropoffAddressLine1, dropoffCity, dropoffPostcode, packageDropoffStartTime } = drops[0];
 	// get gophr vehicle/package specs
 	try {
 		const { x: size_x, y: size_y, z: size_z, weight, gophrVehicleType } = vehicleSpecs;
