@@ -90,7 +90,7 @@ exports.VEHICLE_CODES_MAP = {
 		y: 50, // in cm
 		z: 50, // in cm
 		weight: 65, // in kg
-		stuartPackageType: 'medium',
+		stuartPackageType: null,
 		gophrVehicleType: 15,
 		streetPackageType: 'PT1012',
 		streetVehicleType: 'CARGO_BIKE',
@@ -104,7 +104,7 @@ exports.VEHICLE_CODES_MAP = {
 		z: 90, // in cm
 		weight: 70, // in kg
 		gophrVehicleType: 40,
-		stuartPackageType: 'xlarge',
+		stuartPackageType: null,
 		streetPackageType: 'PT1010',
 		streetVehicleType: 'MEDIUM_VAN_MESSENGER',
 		travelMode: 'driving',

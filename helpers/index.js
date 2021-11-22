@@ -262,8 +262,10 @@ async function getResultantQuotes(requestBody, vehicleSpecs) {
 		const QUOTES = [];
 		// QUOTE AGGREGATION
 		// send delivery request to integrated providers
-		let stuartQuote = await getStuartQuote(genJobReference(), requestBody, vehicleSpecs);
-		QUOTES.push(stuartQuote);
+		if (vehicleSpecs.stuartPackageType) {
+			let stuartQuote = await getStuartQuote(genJobReference(), requestBody, vehicleSpecs);
+			QUOTES.push(stuartQuote);
+		}
 		let gophrQuote = await getGophrQuote(requestBody, vehicleSpecs);
 		QUOTES.push(gophrQuote);
 		let streetStreamQuote = await getStreetStreamQuote(requestBody, vehicleSpecs);
