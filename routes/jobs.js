@@ -115,9 +115,9 @@ router.post('/create', async (req, res) => {
 			);
 		}
 		// Check if a pickupStartTime was passed through, if not set it to 45 minutes ahead of current time
-		if (!packagePickupStartTime) packagePickupStartTime = moment().add(45, 'minutes').format();
+		if (!packagePickupStartTime) req.body.packagePickupStartTime = moment().add(45, 'minutes').format();
 		// CHECK DELIVERY HOURS
-		let canDeliver = checkDeliveryHours(packagePickupStartTime, deliveryHours);
+		let canDeliver = checkDeliveryHours(req.body.packagePickupStartTime, deliveryHours);
 		if (!canDeliver) {
 			const nextDayDeliveryTime = setNextDayDeliveryTime(deliveryHours);
 			req.body.packageDeliveryType = "NEXT_DAY";
