@@ -191,7 +191,7 @@ async function checkAlternativeVehicles(pickup, dropoff, jobDistance, travelMode
 			}
 		}
 		return Promise.reject({
-			message: 'Job distance exceeds the maximum limit. The maximum distance for delivery jobs is 12 miles',
+			message: `Job distance between ${pickup} and ${dropoff} exceeds the maximum limit. The maximum distance for delivery jobs is 12 miles`,
 			code: 400,
 		});
 	} catch (err) {
