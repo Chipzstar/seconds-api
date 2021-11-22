@@ -1,5 +1,6 @@
 exports.quoteSchema = {
 	id: "",
+	transport: "",
 	createdAt: "",
 	expireTime: "",
 	dropoffEta: "",

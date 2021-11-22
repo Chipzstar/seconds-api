@@ -12,7 +12,7 @@ exports.DELIVERY_TYPES = {
 	},
 	NEXT_DAY: {
 		name: 'next-day',
-		ecofleet: null
+		ecofleet: 'next day'
 	},
 	MULTI_DROP: {
 		name: 'multi-drop',
@@ -53,6 +53,7 @@ exports.VEHICLE_CODES_MAP = {
 		weight: 8, // in kg
 		stuartPackageType: 'xsmall',
 		gophrVehicleType: 10,
+		ecofleetVehicle: false,
 		streetPackageType: 'PT1006',
 		streetVehicleType: 'BICYCLE',
 		travelMode: 'bicycling',
@@ -66,6 +67,7 @@ exports.VEHICLE_CODES_MAP = {
 		weight: 12, // in kg
 		stuartPackageType: 'small',
 		gophrVehicleType: 20,
+		ecofleetVehicle: false,
 		streetPackageType: 'PT1008',
 		streetVehicleType: 'MOTORBIKE',
 		travelMode: 'driving',
@@ -79,6 +81,7 @@ exports.VEHICLE_CODES_MAP = {
 		weight: 25,
 		stuartPackageType: 'large',
 		gophrVehicleType: 30,
+		ecofleetVehicle: false,
 		streetPackageType: 'PT1009',
 		streetVehicleType: 'CAR_AND_PARCEL_MESSENGER',
 		travelMode: 'driving',
@@ -92,6 +95,7 @@ exports.VEHICLE_CODES_MAP = {
 		weight: 65, // in kg
 		stuartPackageType: null,
 		gophrVehicleType: 15,
+		ecofleetVehicle: true,
 		streetPackageType: 'PT1012',
 		streetVehicleType: 'CARGO_BIKE',
 		travelMode: 'driving',
@@ -106,6 +110,7 @@ exports.VEHICLE_CODES_MAP = {
 		gophrVehicleType: 40,
 		stuartPackageType: null,
 		streetPackageType: 'PT1010',
+		ecofleetVehicle: false,
 		streetVehicleType: 'MEDIUM_VAN_MESSENGER',
 		travelMode: 'driving',
 		maxDistance: 12 // in miles

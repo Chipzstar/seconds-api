@@ -120,7 +120,7 @@ router.post('/create', async (req, res) => {
 		let canDeliver = checkDeliveryHours(packagePickupStartTime, deliveryHours);
 		if (!canDeliver) {
 			const nextDayDeliveryTime = setNextDayDeliveryTime(deliveryHours);
-			req.body.packageDeliveryType = DELIVERY_TYPES.NEXT_DAY.name;
+			req.body.packageDeliveryType = "NEXT_DAY";
 			req.body.packagePickupStartTime = nextDayDeliveryTime;
 			req.body.drops[0].packageDropoffStartTime = moment(nextDayDeliveryTime).add(30, 'minutes').format();
 		}
@@ -197,12 +197,12 @@ router.post('/create', async (req, res) => {
 					jobReference,
 					shopifyId: null,
 					orderNumber: orderId.generate(),
-					deliveryType: packageDeliveryType,
+					deliveryType: DELIVERY_TYPES[packageDeliveryType].name,
 					pickupStartTime: pickupAt ? moment(pickupAt).format() : req.body.packagePickupStartTime,
 					pickupEndTime: req.body.packagePickupEndTime,
 					pickupLocation: {
 						fullAddress: req.body.pickupAddress,
-						streetAddress: String(req.body.pickupAddressLine1 + req.body.pickupAddressLine2).trim(),
+						streetAddress: String(req.body.pickupAddressLine1).trim(),
 						city: String(req.body.pickupCity).trim(),
 						postcode: String(req.body.pickupPostcode).trim(),
 						country: 'UK',

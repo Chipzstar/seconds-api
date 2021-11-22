@@ -9,27 +9,27 @@ const userSchema = new mongoose.Schema({
 	email: {
 		type: String,
 		required: true,
-		unique: true,
+		unique: true
 	},
 	firstname: {
 		type: String,
-		required: true,
+		required: true
 	},
 	lastname: {
 		type: String,
-		required: true,
+		required: true
 	},
 	company: {
 		type: String,
-		required: true,
+		required: true
 	},
 	phone: {
 		type: String,
-		required: true,
+		required: true
 	},
 	fullAddress: {
 		type: String,
-		required: true,
+		required: true
 	},
 	team: {
 		type: Array,
@@ -38,40 +38,40 @@ const userSchema = new mongoose.Schema({
 	address: {
 		street: {
 			type: String,
-			default: '',
+			default: ''
 		},
 		city: {
 			type: String,
-			default: '',
+			default: ''
 		},
 		postcode: {
 			type: String,
-			default: '',
+			default: ''
 		},
 		countryCode: {
 			type: String,
-			default: 'GB',
-		},
+			default: 'GB'
+		}
 	},
 	password: {
 		type: String,
-		required: true,
+		required: true
 	},
 	passwordResetToken: {
-		type: String,
+		type: String
 	},
 	passwordResetExpires: {
-		type: Date,
+		type: Date
 	},
 	profileImage: {
 		filename: {
 			type: String,
-			default: '',
+			default: ''
 		},
 		location: {
 			type: String,
-			default: '',
-		},
+			default: ''
+		}
 	},
 	shopify: {
 		products: [],
@@ -80,35 +80,35 @@ const userSchema = new mongoose.Schema({
 		country: String,
 		domain: String,
 		baseURL: String,
-		accessToken: String,
+		accessToken: String
 	},
 	createdAt: {
 		type: Date,
-		default: Date.now(),
+		default: Date.now()
 	},
 	apiKey: {
 		type: String,
-		default: '',
+		default: ''
 	},
 	stripeCustomerId: {
 		type: String,
-		default: '',
+		default: ''
 	},
 	paymentMethodId: {
 		type: String,
-		default: '',
+		default: ''
 	},
 	subscriptionId: {
 		type: String,
-		default: '',
+		default: ''
 	},
 	subscriptionPlan: {
 		type: String,
-		default: '',
+		default: ''
 	},
 	selectionStrategy: {
 		type: String,
-		default: 'eta',
+		default: 'eta'
 	},
 	deliveryHours: {
 		type: deliveryHoursSchema,
@@ -194,6 +194,9 @@ const userSchema = new mongoose.Schema({
 		}
 	},
 	jobs: [{ type: Schema.Types.ObjectId, ref: 'Job' }],
+	weeklyInvoiceId: {
+		type: String
+	}
 });
 
 userSchema.pre('save', async function (next) {

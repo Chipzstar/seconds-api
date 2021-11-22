@@ -275,18 +275,20 @@ async function getResultantQuotes(requestBody, vehicleSpecs) {
 		QUOTES.push(gophrQuote);
 		let streetStreamQuote = await getStreetStreamQuote(requestBody, vehicleSpecs);
 		QUOTES.push(streetStreamQuote);
-		let ecoFleetQuote = {
-			...quoteSchema,
-			id: `quote_${nanoid(15)}`,
-			createdAt: moment().format(),
-			expireTime: moment().add(5, 'minutes').format(),
-			dropoffEta: null,
-			transport: vehicleSpecs.name,
-			priceExVAT: Infinity,
-			currency: 'GBP',
-			providerId: 'ecofleet',
-		};
-		QUOTES.push(ecoFleetQuote);
+		if (vehicleSpecs.ecofleetVehicle) {
+			let ecoFleetQuote = {
+				...quoteSchema,
+				id: `quote_${nanoid(15)}`,
+				createdAt: moment().format(),
+				expireTime: moment().add(5, 'minutes').format(),
+				dropoffEta: null,
+				transport: vehicleSpecs.name,
+				priceExVAT: Infinity,
+				currency: 'GBP',
+				providerId: 'ecofleet',
+			};
+			QUOTES.push(ecoFleetQuote);
+		}
 		return QUOTES;
 	} catch (err) {
 		throw err;
@@ -306,7 +308,7 @@ async function providerCreatesJob(provider, ref, strategy, request, vehicleSpecs
 			return await streetStreamJobRequest(ref, strategy, request, vehicleSpecs);
 		case PROVIDERS.ECOFLEET:
 			console.log('Creating ECOFLEET Job');
-			return await ecofleetJobRequest(ref, request);
+			return await ecofleetJobRequest(ref, request, vehicleSpecs);
 		// default case if no valid providerId was chosen
 		default:
 			console.log('Creating a STUART Job');
@@ -903,7 +905,7 @@ async function gophrJobRequest(ref, params, vehicleSpecs) {
 			...(packageDropoffStartTime && {
 				earliest_delivery_time: moment(packageDropoffStartTime).toISOString(true),
 			}),
-			job_priority: packageDeliveryType === DELIVERY_TYPES.ON_DEMAND ? 2 : 1,
+			job_priority: DELIVERY_TYPES[packageDeliveryType].name === DELIVERY_TYPES.ON_DEMAND.name ? 2 : 1,
 			...(packagePickupEndTime && { pickup_deadline: moment(packagePickupEndTime).toISOString(true) }),
 			...(packageDropoffEndTime && { dropoff_deadline: moment(packageDropoffEndTime).toISOString(true) }),
 			delivery_address1: `${dropoffAddressLine1}`,
@@ -1171,7 +1173,7 @@ async function streetStreamMultiJobRequest(ref, strategy, params, vehicleSpecs) 
 	}
 }
 
-async function ecofleetJobRequest(refNumber, params) {
+async function ecofleetJobRequest(refNumber, params, vehicleSpecs) {
 	const {
 		pickupAddressLine1,
 		pickupAddressLine2,
@@ -1234,7 +1236,7 @@ async function ecofleetJobRequest(refNumber, params) {
 		],
 		parcel: {
 			weight: VEHICLE_CODES_MAP[vehicleType].weight,
-			type: packageDescription ? packageDescription : '[]',
+			type: packageDescription ? packageDescription : "",
 		},
 		schedule: {
 			type: DELIVERY_TYPES[packageDeliveryType].ecofleet,
@@ -1248,12 +1250,35 @@ async function ecofleetJobRequest(refNumber, params) {
 		const createJobURL = `${process.env.ECOFLEET_ENV}/api/v1/order`;
 		const data = (await axios.post(createJobURL, payload, config)).data;
 		console.log(data);
+		let delivery = {
+			id: data.id,
+			orderReference: drops[0].reference,
+			description: packageDescription ? packageDescription : '',
+			dropoffStartTime: drops[0].packageDropoffStartTime,
+			dropoffEndTime: drops[0].packageDropoffEndTime,
+			transport: vehicleSpecs.name,
+			dropoffLocation: {
+				fullAddress: dropoffAddress,
+				streetAddress: dropoffAddressLine1 + dropoffAddressLine2,
+				city: dropoffCity,
+				postcode: dropoffPostcode,
+				country: 'UK',
+				phoneNumber: dropoffPhoneNumber,
+				email: dropoffEmailAddress ? dropoffEmailAddress : '',
+				firstName: dropoffFirstName,
+				lastName: dropoffLastName,
+				businessName: dropoffBusinessName ? dropoffBusinessName : '',
+				instructions: dropoffInstructions ? dropoffInstructions : '',
+			},
+			trackingURL: data.tasks[0]['tracking_link'],
+			status: STATUS.PENDING,
+		};
 		return {
 			id: data.id,
 			trackingURL: null,
 			deliveryFee: data['amount'],
 			pickupAt: packagePickupStartTime ? moment(packagePickupStartTime).format() : undefined,
-			dropoffAt: packageDropoffStartTime ? moment(packageDropoffStartTime).format() : undefined,
+			delivery
 		};
 	} catch (err) {
 		throw err;
