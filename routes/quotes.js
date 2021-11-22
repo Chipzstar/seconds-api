@@ -41,6 +41,11 @@ router.post('/', async (req, res) => {
 				jobDistance,
 				vehicleSpecs.travelMode
 			);
+		// Check if a pickupStartTime was passed through, if not set it to 45 minutes ahead of current time
+		if (!req.body.packagePickupStartTime) {
+			req.body.packagePickupStartTime = moment().add(45, 'minutes').format();
+			req.body.drops[0].packageDropoffStartTime = moment().add(75, 'minutes').format();
+		}
 		const quotes = await getResultantQuotes(req.body, vehicleSpecs);
 		const bestQuote = chooseBestProvider(user.selectionStrategy, quotes);
 		return res.status(200).json({
