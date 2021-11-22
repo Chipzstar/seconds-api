@@ -201,18 +201,19 @@ async function checkAlternativeVehicles(pickup, dropoff, jobDistance, travelMode
 
 function checkDeliveryHours(pickupTime, deliveryHours) {
 	console.log('===================================================================');
-	const today = String(moment().day());
+	const today = String(moment(pickupTime).day());
 	console.log('Current Day:', today);
 	// get open / close times for the current day of the week
 	const open = moment({ h: deliveryHours[today].open['h'], m: deliveryHours[today].open['m'] });
 	const close = moment({ h: deliveryHours[today].close['h'], m: deliveryHours[today].close['m'] });
+	const canDeliver = deliveryHours[today].canDeliver;
 	// check time of creation is within the delivery hours
 	let timeFromOpen = moment.duration(moment(pickupTime).diff(open)).asHours();
 	let timeFromClose = moment.duration(moment(pickupTime).diff(close)).asHours();
 	console.log('DURATION:', { open: open.format('HH:mm'), timeFromOpen });
 	console.log('DURATION:', { close: close.format('HH:mm'), timeFromClose });
 	console.log('===================================================================');
-	return timeFromClose <= -0.5 && timeFromOpen >= 0;
+	return canDeliver && timeFromClose <= -0.5 && timeFromOpen >= 0;
 }
 
 function setNextDayDeliveryTime(deliveryHours) {
@@ -229,11 +230,15 @@ function setNextDayDeliveryTime(deliveryHours) {
 	if (isValid) {
 		// if a day does not allow deliveries OR if the time of the order request is AHEAD of the current day's opening time (only when nextDay = "Today")
 		// iterate over to the next day
+		console.log("Is past today's opening hours:", moment().diff(moment(deliveryHours[nextDay].open).add(interval, 'days'), 'minutes') > 0)
+		console.log("CAN DELIVER:", deliveryHours[nextDay].canDeliver)
 		while (
 			!deliveryHours[nextDay].canDeliver ||
 			moment().diff(moment(deliveryHours[nextDay].open).add(interval, 'days'), 'minutes') > 0
 		) {
 			nextDay === max ? (nextDay = 0) : (nextDay = nextDay + 1);
+			console.log("Next Day:", nextDay)
+			console.log("CAN DELIVER:", deliveryHours[nextDay].canDeliver)
 			interval = interval + 1;
 		}
 		// return the pickup time for the next day delivery
@@ -276,6 +281,7 @@ async function getResultantQuotes(requestBody, vehicleSpecs) {
 			createdAt: moment().format(),
 			expireTime: moment().add(5, 'minutes').format(),
 			dropoffEta: null,
+			transport: vehicleSpecs.name,
 			priceExVAT: Infinity,
 			currency: 'GBP',
 			providerId: 'ecofleet',
@@ -406,6 +412,7 @@ async function getStuartQuote(reference, params, vehicleSpecs) {
 			id: `quote_${nanoid(15)}`,
 			createdAt: moment().format(),
 			expireTime: moment().add(5, 'minutes').format(),
+			transport: vehicleSpecs.name,
 			priceExVAT: amount * 1.2,
 			currency,
 			dropoffEta: packagePickupStartTime
@@ -484,6 +491,7 @@ async function getGophrQuote(params, vehicleSpecs) {
 				...quoteSchema,
 				id: `quote_${nanoid(15)}`,
 				createdAt: moment().format(),
+				transport: vehicleSpecs.name,
 				expireTime: moment().add(5, 'minutes').format(),
 				priceExVAT: price_net * 1.2,
 				currency: 'GBP',
@@ -547,6 +555,7 @@ async function getStreetStreamQuote(params, vehicleSpecs) {
 			createdAt: moment().format(),
 			expireTime: moment().add(5, 'minutes').format(),
 			priceExVAT: data['estimatedCostVatExclusive'] * 1.2,
+			transport: vehicleSpecs.name,
 			currency: 'GBP',
 			dropoffEta: null,
 			providerId: PROVIDERS.STREET_STREAM,
@@ -1164,34 +1173,46 @@ async function streetStreamMultiJobRequest(ref, strategy, params, vehicleSpecs) 
 
 async function ecofleetJobRequest(refNumber, params) {
 	const {
-		pickupFormattedAddress,
+		pickupAddressLine1,
+		pickupAddressLine2,
+		pickupCity,
+		pickupPostcode,
 		pickupPhoneNumber,
 		pickupEmailAddress,
 		pickupBusinessName,
 		pickupFirstName,
 		pickupLastName,
 		pickupInstructions,
-		dropoffFormattedAddress,
+		packageDeliveryType,
+		packagePickupStartTime,
+		packageDescription,
+		vehicleType,
+		drops,
+	} = params;
+
+	const {
+		dropoffAddress,
+		dropoffAddressLine1,
+		dropoffAddressLine2,
+		dropoffCity,
+		dropoffPostcode,
 		dropoffPhoneNumber,
 		dropoffEmailAddress,
 		dropoffBusinessName,
 		dropoffFirstName,
 		dropoffLastName,
 		dropoffInstructions,
-		packageDeliveryType,
-		packageDropoffStartTime,
-		packagePickupStartTime,
-		packageDescription,
-		vehicleType,
-	} = params;
+		packageDropoffStartTime
+	} = drops[0]
 
 	const payload = {
 		pickup: {
 			name: `${pickupFirstName} ${pickupLastName}`,
 			company_name: pickupBusinessName,
-			address_line1: pickupFormattedAddress.street,
-			city: pickupFormattedAddress.city,
-			postal: pickupFormattedAddress.postcode,
+			address_line1: pickupAddressLine1,
+			...(pickupAddressLine2 && { address_line2: pickupAddressLine2}),
+			city: pickupCity,
+			postal: pickupPostcode,
 			country: 'England',
 			phone: pickupPhoneNumber,
 			email: pickupEmailAddress,
@@ -1201,9 +1222,10 @@ async function ecofleetJobRequest(refNumber, params) {
 			{
 				name: `${dropoffFirstName} ${dropoffLastName}`,
 				company_name: dropoffBusinessName,
-				address_line1: dropoffFormattedAddress.street,
-				city: dropoffFormattedAddress.city,
-				postal: dropoffFormattedAddress.postcode,
+				address_line1: dropoffAddressLine1,
+				...(dropoffAddressLine2 && { address_line2: dropoffAddressLine2}),
+				city: dropoffCity,
+				postal: dropoffPostcode,
 				country: 'England',
 				phone: dropoffPhoneNumber,
 				email: dropoffEmailAddress,
@@ -1229,7 +1251,7 @@ async function ecofleetJobRequest(refNumber, params) {
 		return {
 			id: data.id,
 			trackingURL: null,
-			deliveryFee: data['rate_card']['minimum_cost'],
+			deliveryFee: data['amount'],
 			pickupAt: packagePickupStartTime ? moment(packagePickupStartTime).format() : undefined,
 			dropoffAt: packageDropoffStartTime ? moment(packageDropoffStartTime).format() : undefined,
 		};
