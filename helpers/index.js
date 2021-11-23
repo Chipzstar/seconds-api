@@ -908,7 +908,7 @@ async function gophrJobRequest(ref, params, vehicleSpecs) {
 			}),
 			job_priority: DELIVERY_TYPES[packageDeliveryType].name === DELIVERY_TYPES.ON_DEMAND.name ? 2 : 1,
 			...(packagePickupEndTime && { pickup_deadline: moment(packagePickupEndTime).toISOString(true) }),
-			...(packageDropoffEndTime && { dropoff_deadline: moment(packageDropoffEndTime).toISOString(true) }),
+			...(packageDropoffEndTime && { delivery_deadline: moment(packageDropoffEndTime).toISOString(true) }),
 			delivery_address1: `${dropoffAddressLine1}`,
 			...(dropoffAddressLine2 && { delivery_address2: `${dropoffAddressLine2}` }),
 			...(dropoffCity && { delivery_city: `${dropoffCity}` }),
