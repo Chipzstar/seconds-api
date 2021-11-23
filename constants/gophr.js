@@ -6,7 +6,7 @@ exports.JOB_STATUS = {
 	EN_ROUTE: "en_route".toUpperCase(),
 	AT_DELIVERY: "at_delivery".toUpperCase(),
 	COMPLETED: "delivered".toUpperCase(),
-	CANCELED: "canceled".toUpperCase()
+	CANCELLED: "canceled".toUpperCase()
 }
 
 exports.ERROR_CODES = {
