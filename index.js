@@ -23,6 +23,7 @@ const {validateApiKey} = require("./middleware/auth");
 const app = express();
 const db = require('./models/index');
 const { updateHerokuConfigVar } = require('./helpers/heroku');
+const sendEmail = require('./services/email');
 const orderId = require('order-id')(process.env.UID_SECRET_KEY);
 
 app.set('port', process.env.PORT || port);
@@ -46,7 +47,7 @@ app.get('/', (req, res) => {
 });
 
 // used by New Relic for keeping the api alive
-app.use('/ping', (req, res) => {
+app.head('/ping', (req, res) => {
 	const message = `Pinged at ${new Date().toUTCString()}`
 	console.log(`${req.ip} - ${message}`)
 	res.status(200).json({
@@ -67,6 +68,33 @@ app.use('/api/v1/street-stream', streetStreamRoutes);
 
 //WEBHOOKS
 app.use('/api/v1/shopify', shopifyRoutes)
+
+app.post('/api/v1/mail', async (req, res) => {
+	try {
+		const { name, email, subject, text, html, templateId, templateData } = req.body;
+		let options = {
+			name,
+			email,
+			subject,
+			...(text && { text: text }),
+			...(html && { html: html }),
+			...(templateId && { templateId: templateId }),
+			...(templateData && { dynamicTemplateData: templateData })
+		}
+		const response = await sendEmail(options)
+		console.log(response)
+		res.status(200).json({
+			status: "success",
+			message: "Email sent successfully!"
+		})
+	} catch (e) {
+		console.error(e)
+		res.status(400).json({
+			status: e.status,
+			message: e.message
+		})
+	}
+})
 
 // starting the server
 app.listen(port, () => {
