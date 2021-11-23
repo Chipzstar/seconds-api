@@ -121,7 +121,7 @@ exports.COMMISSION = {
 	GROWTH: {
 		name: "growth",
 		fee: 0.49,
-		limit: 20
+		limit: 5
 	},
 	ENTERPRISE: {
 		name: "enterprise",
