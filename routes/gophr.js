@@ -86,7 +86,7 @@ async function updateETA(data){
 router.post("/", async (req, res) => {
 	try {
 		// GOPHR
-		const {api_key, webhook_type, external_id } = req.body;
+		const {api_key, webhook_type, job_id } = req.body;
 		if (api_key === String(process.env.GOPHR_API_KEY)) {
 			if (webhook_type === WEBHOOK_TYPES.STATUS) {
 				let { jobStatus, isFinished } = await updateStatus(req.body);
@@ -94,7 +94,7 @@ router.post("/", async (req, res) => {
 				console.log('NEW STATUS:', jobStatus);
 				console.log('--------------------------------');
 				if (isFinished) {
-					let { clientId, commissionCharge } = await db.Job.findOne({"selectedConfiguration.jobReference": external_id}, {})
+					let { clientId, commissionCharge } = await db.Job.findOne({"selectedConfiguration.id": job_id}, {})
 					console.log("****************************************************************")
 					console.log("GOPHR DELIVERY COMPLETEEEEEEE!")
 					console.log("****************************************************************")
