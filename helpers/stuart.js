@@ -126,6 +126,7 @@ async function updateDelivery(data) {
 			{'jobSpecification.deliveries.id': deliveryId },
 			{
 				$set: {
+					'status': translateStuartStatus(deliveryStatus),
 					'jobSpecification.pickupStartTime': moment(etaToOrigin).toISOString(),
 					'jobSpecification.deliveries.$.dropoffStartTime': moment(etaToDestination).toISOString(),
 					'jobSpecification.deliveries.$.status': translateStuartStatus(deliveryStatus),
@@ -136,6 +137,7 @@ async function updateDelivery(data) {
 			}
 		);
 		console.table(job.jobSpecification.deliveries.find(({ id }) => id === deliveryId));
+		return deliveryStatus
 	} catch (err) {
 		console.error(err);
 		throw err;
