@@ -100,6 +100,7 @@ function chooseBestProvider(strategy, quotes) {
 	let bestEtaIndex;
 	let bestPrice = Infinity;
 	let bestEta = Infinity;
+	console.log(quotes)
 	quotes.forEach(({ priceExVAT, dropoffEta, providerId }, index) => {
 		console.log('------------------------');
 		console.log(providerId);
