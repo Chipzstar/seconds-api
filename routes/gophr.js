@@ -94,12 +94,12 @@ router.post("/", async (req, res) => {
 				console.log('NEW STATUS:', jobStatus);
 				console.log('--------------------------------');
 				if (isFinished) {
-					let { clientId, paymentIntentId } = await db.Job.findOne({"selectedConfiguration.jobReference": external_id}, {})
+					let { clientId, commissionCharge } = await db.Job.findOne({"selectedConfiguration.jobReference": external_id}, {})
 					console.log("****************************************************************")
 					console.log("GOPHR DELIVERY COMPLETEEEEEEE!")
 					console.log("****************************************************************")
-					let { stripeCustomerId, subscriptionPlan } = await db.User.findOne({_id: clientId}, {});
-					confirmCharge(COMMISSION[subscriptionPlan.toUpperCase()].fee, stripeCustomerId, paymentIntentId)
+					let { stripeCustomerId, stripeCommissionId } = await db.User.findOne({ _id: clientId }, {});
+					confirmCharge(stripeCustomerId, stripeCommissionId, commissionCharge);
 				}
 			} else if (webhook_type === WEBHOOK_TYPES.ETA) {
 				let jobETA = await updateETA(req.body);

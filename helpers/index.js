@@ -1373,7 +1373,7 @@ async function confirmCharge(customerId, commissionId, commissionCharge) {
 		console.log('CUSTOMER_ID:', customerId);
 		console.log('COMMISSION_ID:', commissionId);
 		console.log('*********************************');
-		if (customerId && commissionCharge) {
+		if (commissionId && commissionCharge) {
 			const {
 				items: { data }
 			} = await stripe.subscriptions.retrieve(commissionId);

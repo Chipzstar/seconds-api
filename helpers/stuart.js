@@ -1,6 +1,6 @@
 const db = require('../models');
 const moment = require('moment');
-const { STATUS, COMMISSION } = require('../constants');
+const { STATUS } = require('../constants');
 const { JOB_STATUS, DELIVERY_STATUS } = require('../constants/stuart');
 const { confirmCharge } = require('./index');
 const axios = require('axios');
