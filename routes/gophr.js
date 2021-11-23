@@ -94,7 +94,7 @@ router.post("/", async (req, res) => {
 				console.log('NEW STATUS:', jobStatus);
 				console.log('--------------------------------');
 				if (isFinished) {
-					let { clientId, commissionCharge } = await db.Job.findOne({"selectedConfiguration.id": job_id}, {})
+					let { clientId, commissionCharge } = await db.Job.findOne({"jobSpecification.id": job_id}, {})
 					console.log("****************************************************************")
 					console.log("GOPHR DELIVERY COMPLETEEEEEEE!")
 					console.log("****************************************************************")
