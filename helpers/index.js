@@ -14,7 +14,7 @@ const {
 	VEHICLE_CODES_MAP,
 	DELIVERY_TYPES,
 	VEHICLE_CODES,
-	STATUS,
+	STATUS
 } = require('../constants');
 const { STRATEGIES } = require('../constants/streetStream');
 const { ERROR_CODES: STUART_ERROR_CODES } = require('../constants/stuart');
@@ -27,7 +27,7 @@ const { getStuartAuthToken } = require('./stuart');
 const client = new Client();
 // axios instance setup
 const stuartAxios = axios.create();
-stuartAxios.defaults.headers.common['Authorization'] = `Bearer ${process.env.STUART_API_KEY}`
+stuartAxios.defaults.headers.common['Authorization'] = `Bearer ${process.env.STUART_API_KEY}`;
 /*stuartAxios.defaults.raxConfig = {
 	retry: 3,
 	backoffType: 'exponential',
@@ -50,22 +50,25 @@ stuartAxios.interceptors.response.use(
 		return response;
 	},
 	error => {
-		console.log(error.response)
-		if(error.response && error.response.status === 401 && error.response.data.message === "The access token was revoked") {
+		console.log(error.response);
+		if (
+			error.response &&
+			error.response.status === 401 &&
+			error.response.data.message === 'The access token was revoked'
+		) {
 			return getStuartAuthToken()
 				.then(token => {
-					updateHerokuConfigVar("STUART_API_KEY", token)
-					error.config.headers['Authorization'] = `Bearer ${token}`
+					updateHerokuConfigVar('STUART_API_KEY', token);
+					error.config.headers['Authorization'] = `Bearer ${token}`;
 					return stuartAxios.request(error.config);
 				})
 				.catch(err => Promise.reject(err));
 		}
-		return Promise.reject(error)
+		return Promise.reject(error);
 	}
 );
 // attach stuart axios to retry-axios
 // rax.attach(stuartAxios);
-
 
 function genOrderReference() {
 	const rand = crypto.randomBytes(16);
@@ -100,7 +103,7 @@ function chooseBestProvider(strategy, quotes) {
 	let bestEtaIndex;
 	let bestPrice = Infinity;
 	let bestEta = Infinity;
-	console.log(quotes)
+	console.log(quotes);
 	quotes.forEach(({ priceExVAT, dropoffEta, providerId }, index) => {
 		console.log('------------------------');
 		console.log(providerId);
@@ -138,9 +141,9 @@ async function calculateJobDistance(origin, destination, mode) {
 					destinations: [destination],
 					key: process.env.GOOGLE_MAPS_API_KEY,
 					units: 'imperial',
-					mode,
+					mode
 				},
-				responseType: 'json',
+				responseType: 'json'
 			})
 		).data;
 		console.log(distanceMatrix.rows[0].elements[0]);
@@ -157,16 +160,16 @@ async function calculateJobDistance(origin, destination, mode) {
 	}
 }
 
-function checkMultiDropPrice(numDrops){
-	switch (numDrops){
+function checkMultiDropPrice(numDrops) {
+	switch (numDrops) {
 		case numDrops >= 5 && numDrops <= 9:
-			return 7
+			return 7;
 		case numDrops >= 10 && numDrops <= 19:
-			return 6
+			return 6;
 		case numDrops >= 20 && numDrops <= 30:
-			return 5
+			return 5;
 		default:
-			return 7
+			return 7;
 	}
 }
 
@@ -193,7 +196,7 @@ async function checkAlternativeVehicles(pickup, dropoff, jobDistance, travelMode
 		}
 		return Promise.reject({
 			message: `Job distance between ${pickup} and ${dropoff} exceeds the maximum limit. The maximum distance for delivery jobs is 12 miles`,
-			code: 400,
+			code: 400
 		});
 	} catch (err) {
 		console.log(err);
@@ -231,15 +234,18 @@ function setNextDayDeliveryTime(deliveryHours) {
 	if (isValid) {
 		// if a day does not allow deliveries OR if the time of the order request is AHEAD of the current day's opening time (only when nextDay = "Today")
 		// iterate over to the next day
-		console.log("Is past today's opening hours:", moment().diff(moment(deliveryHours[nextDay].open).add(interval, 'days'), 'minutes') > 0)
-		console.log("CAN DELIVER:", deliveryHours[nextDay].canDeliver)
+		console.log(
+			"Is past today's opening hours:",
+			moment().diff(moment(deliveryHours[nextDay].open).add(interval, 'days'), 'minutes') > 0
+		);
+		console.log('CAN DELIVER:', deliveryHours[nextDay].canDeliver);
 		while (
 			!deliveryHours[nextDay].canDeliver ||
 			moment().diff(moment(deliveryHours[nextDay].open).add(interval, 'days'), 'minutes') > 0
 		) {
 			nextDay === max ? (nextDay = 0) : (nextDay = nextDay + 1);
-			console.log("Next Day:", nextDay)
-			console.log("CAN DELIVER:", deliveryHours[nextDay].canDeliver)
+			console.log('Next Day:', nextDay);
+			console.log('CAN DELIVER:', deliveryHours[nextDay].canDeliver);
 			interval = interval + 1;
 		}
 		// return the pickup time for the next day delivery
@@ -257,7 +263,7 @@ async function authStreetStream() {
 	const payload = {
 		email: 'secondsdelivery@gmail.com',
 		authType: 'CUSTOMER',
-		password: process.env.STREET_STREAM_PASSWORD,
+		password: process.env.STREET_STREAM_PASSWORD
 	};
 	let res = (await axios.post(authURL, payload)).headers;
 	return res.authorization.split(' ')[1];
@@ -286,7 +292,7 @@ async function getResultantQuotes(requestBody, vehicleSpecs) {
 				transport: vehicleSpecs.name,
 				priceExVAT: Infinity,
 				currency: 'GBP',
-				providerId: 'ecofleet',
+				providerId: 'ecofleet'
 			};
 			QUOTES.push(ecoFleetQuote);
 		}
@@ -350,7 +356,7 @@ async function getStuartQuote(reference, params, vehicleSpecs) {
 		pickupLastName,
 		pickupInstructions,
 		packagePickupStartTime,
-		drops,
+		drops
 	} = params;
 	const {
 		dropoffAddress,
@@ -361,7 +367,7 @@ async function getStuartQuote(reference, params, vehicleSpecs) {
 		dropoffLastName,
 		dropoffInstructions,
 		packageDropoffStartTime,
-		packageDropoffEndTime,
+		packageDropoffEndTime
 	} = drops[0];
 	try {
 		const payload = {
@@ -378,9 +384,9 @@ async function getStuartQuote(reference, params, vehicleSpecs) {
 							lastname: pickupLastName,
 							phone: pickupPhoneNumber,
 							email: pickupEmailAddress,
-							company: pickupBusinessName,
-						},
-					},
+							company: pickupBusinessName
+						}
+					}
 				],
 				dropoffs: [
 					{
@@ -394,13 +400,13 @@ async function getStuartQuote(reference, params, vehicleSpecs) {
 							lastname: dropoffLastName,
 							phone: dropoffPhoneNumber,
 							email: dropoffEmailAddress,
-							company: dropoffBusinessName,
+							company: dropoffBusinessName
 						},
 						...(packageDropoffStartTime && { end_customer_time_window_start: packageDropoffStartTime }),
-						...(packageDropoffEndTime && { end_customer_time_window_end: packageDropoffEndTime }),
-					},
-				],
-			},
+						...(packageDropoffEndTime && { end_customer_time_window_end: packageDropoffEndTime })
+					}
+				]
+			}
 		};
 		console.log('PAYLOAD');
 		console.log('--------------------------');
@@ -421,7 +427,7 @@ async function getStuartQuote(reference, params, vehicleSpecs) {
 			dropoffEta: packagePickupStartTime
 				? moment(packagePickupStartTime).add(data.eta, 'seconds').format()
 				: moment().add(data.eta, 'seconds').format(),
-			providerId: PROVIDERS.STUART,
+			providerId: PROVIDERS.STUART
 		};
 		console.log('STUART QUOTE');
 		console.log('----------------------------');
@@ -469,13 +475,15 @@ async function getGophrQuote(params, vehicleSpecs) {
 			vehicle_type: gophrVehicleType,
 			...(packagePickupStartTime && { earliest_pickup_time: moment(packagePickupStartTime).toISOString(true) }),
 			...(packageDropoffStartTime && {
-				earliest_delivery_time: moment(packageDropoffStartTime).toISOString(true),
+				earliest_delivery_time: moment(packageDropoffStartTime).toISOString(true)
 			}),
-			...(packageDropoffStartTime && { delivery_deadline: moment(packageDropoffStartTime).add(1, "hour").toISOString(true)}),
+			...(packageDropoffStartTime && {
+				delivery_deadline: moment(packageDropoffStartTime).add(1, 'hour').toISOString(true)
+			}),
 			delivery_address1: dropoffAddressLine1,
 			delivery_city: dropoffCity,
 			delivery_postcode: dropoffPostcode,
-			delivery_country_code: 'GB',
+			delivery_country_code: 'GB'
 		});
 		console.log('PAYLOAD');
 		console.log('--------------------------');
@@ -500,7 +508,7 @@ async function getGophrQuote(params, vehicleSpecs) {
 				priceExVAT: price_net * 1.2,
 				currency: 'GBP',
 				dropoffEta: moment(delivery_eta).format(),
-				providerId: PROVIDERS.GOPHR,
+				providerId: PROVIDERS.GOPHR
 			};
 			console.log('GOPHR QUOTE');
 			console.log('----------------------------');
@@ -544,8 +552,8 @@ async function getStreetStreamQuote(params, vehicleSpecs) {
 			params: {
 				startPostcode: pickupPostcode,
 				endPostcode: dropoffPostcode,
-				packageTypeId: vehicleSpecs.streetPackageType,
-			},
+				packageTypeId: vehicleSpecs.streetPackageType
+			}
 		};
 		const quoteURL = `${process.env.STREET_STREAM_ENV}/api/estimate`;
 		let data = (await axios.get(quoteURL, config)).data;
@@ -562,7 +570,7 @@ async function getStreetStreamQuote(params, vehicleSpecs) {
 			transport: vehicleSpecs.name,
 			currency: 'GBP',
 			dropoffEta: null,
-			providerId: PROVIDERS.STREET_STREAM,
+			providerId: PROVIDERS.STREET_STREAM
 		};
 		console.log('STREET STREAM QUOTE');
 		console.log('----------------------------');
@@ -581,11 +589,11 @@ async function getAddisonLeeQuote(params, vehicleSpecs) {
 		const payload = {
 			services: [
 				{
-					code: 'standard_car',
+					code: 'standard_car'
 				},
 				{
-					code: 'large_car',
-				},
+					code: 'large_car'
+				}
 			],
 			locations: [
 				{
@@ -596,7 +604,7 @@ async function getAddisonLeeQuote(params, vehicleSpecs) {
 					notes: pickupInstructions,
 					town: pickupFormattedAddress.city,
 					postcode: pickupFormattedAddress.postcode,
-					country: pickupFormattedAddress.countryCode,
+					country: pickupFormattedAddress.countryCode
 				},
 				{
 					street_address: dropoffFormattedAddress.street,
@@ -606,9 +614,9 @@ async function getAddisonLeeQuote(params, vehicleSpecs) {
 					notes: dropoffInstructions,
 					town: dropoffFormattedAddress.city,
 					postcode: dropoffFormattedAddress.postcode,
-					country: dropoffFormattedAddress.countryCode,
-				},
-			],
+					country: dropoffFormattedAddress.countryCode
+				}
+			]
 		};
 		const etaURL = `${process.env.ADDISON_LEE_ENV}/api-quickbook/v3/api/quote/time`;
 		const priceURL = `${process.env.ADDISON_LEE_ENV}/api-quickbook/v3/api/quote/price`;
@@ -626,7 +634,7 @@ async function getAddisonLeeQuote(params, vehicleSpecs) {
 			priceExVAT: price,
 			currency: 'GBP',
 			dropoffEta: eta,
-			providerId: PROVIDERS.ADDISON_LEE,
+			providerId: PROVIDERS.ADDISON_LEE
 		};
 		console.log('ADDISON LEE QUOTE');
 		console.log('----------------------------');
@@ -648,7 +656,7 @@ async function stuartJobRequest(ref, params, vehicleSpecs) {
 		pickupLastName,
 		pickupInstructions,
 		packagePickupStartTime,
-		drops,
+		drops
 	} = params;
 	console.table(params.drops[0]);
 	try {
@@ -666,9 +674,9 @@ async function stuartJobRequest(ref, params, vehicleSpecs) {
 							lastname: pickupLastName,
 							phone: pickupPhoneNumber,
 							email: pickupEmailAddress,
-							company: pickupBusinessName,
-						},
-					},
+							company: pickupBusinessName
+						}
+					}
 				],
 				dropoffs: [
 					{
@@ -683,17 +691,17 @@ async function stuartJobRequest(ref, params, vehicleSpecs) {
 							lastname: drops[0].dropoffLastName,
 							phone: drops[0].dropoffPhoneNumber,
 							email: drops[0].dropoffEmailAddress,
-							company: drops[0].dropoffBusinessName,
+							company: drops[0].dropoffBusinessName
 						},
 						...(drops[0].packageDropoffStartTime && {
-							end_customer_time_window_start: drops[0].packageDropoffStartTime,
+							end_customer_time_window_start: drops[0].packageDropoffStartTime
 						}),
 						...(drops[0].packageDropoffEndTime && {
-							end_customer_time_window_end: drops[0].packageDropoffEndTime,
-						}),
-					},
-				],
-			},
+							end_customer_time_window_end: drops[0].packageDropoffEndTime
+						})
+					}
+				]
+			}
 		};
 		const URL = `${process.env.STUART_ENV}/v2/jobs`;
 		let data = (await stuartAxios.post(URL, payload)).data;
@@ -721,17 +729,17 @@ async function stuartJobRequest(ref, params, vehicleSpecs) {
 				firstName: deliveryInfo['dropoff']['contact']['firstname'],
 				lastName: deliveryInfo['dropoff']['contact']['lastname'],
 				businessName: deliveryInfo['dropoff']['contact']['business_name'],
-				instructions: deliveryInfo['dropoff']['comment'],
+				instructions: deliveryInfo['dropoff']['comment']
 			},
 			trackingURL: deliveryInfo['tracking_url'],
-			status: STATUS.PENDING,
+			status: STATUS.PENDING
 		};
 		return {
 			id: String(data.id),
 			deliveryFee: data['pricing']['price_tax_included'],
 			pickupAt: data['pickup_at'],
 			dropoffAt: data['dropoff_at'],
-			delivery,
+			delivery
 		};
 	} catch (err) {
 		throw err;
@@ -748,7 +756,7 @@ async function stuartMultiJobRequest(ref, params, vehicleSpecs) {
 		pickupLastName,
 		pickupInstructions,
 		packagePickupStartTime,
-		drops,
+		drops
 	} = params;
 	const dropoffs = drops.map(
 		({
@@ -762,7 +770,7 @@ async function stuartMultiJobRequest(ref, params, vehicleSpecs) {
 			packageDropoffStartTime,
 			packageDropoffEndTime,
 			packageDescription,
-			reference,
+			reference
 		}) => {
 			return {
 				...dropoffSchema,
@@ -776,10 +784,10 @@ async function stuartMultiJobRequest(ref, params, vehicleSpecs) {
 					lastname: dropoffLastName,
 					phone: dropoffPhoneNumber,
 					email: dropoffEmailAddress,
-					company: dropoffBusinessName,
+					company: dropoffBusinessName
 				},
 				...(packageDropoffStartTime && { end_customer_time_window_start: packageDropoffStartTime }),
-				...(packageDropoffEndTime && { end_customer_time_window_end: packageDropoffEndTime }),
+				...(packageDropoffEndTime && { end_customer_time_window_end: packageDropoffEndTime })
 			};
 		}
 	);
@@ -798,12 +806,12 @@ async function stuartMultiJobRequest(ref, params, vehicleSpecs) {
 							lastname: pickupLastName,
 							phone: pickupPhoneNumber,
 							email: pickupEmailAddress,
-							company: pickupBusinessName,
-						},
-					},
+							company: pickupBusinessName
+						}
+					}
 				],
-				dropoffs,
-			},
+				dropoffs
+			}
 		};
 		const URL = `${process.env.STUART_ENV}/v2/jobs`;
 		let data = (await stuartAxios.post(URL, payload)).data;
@@ -828,16 +836,16 @@ async function stuartMultiJobRequest(ref, params, vehicleSpecs) {
 				firstName: delivery['dropoff']['contact']['firstname'],
 				lastName: delivery['dropoff']['contact']['lastname'],
 				businessName: delivery['dropoff']['contact']['business_name'],
-				instructions: delivery['dropoff']['comment'],
+				instructions: delivery['dropoff']['comment']
 			},
 			trackingURL: delivery['tracking_url'],
-			status: STATUS.PENDING,
+			status: STATUS.PENDING
 		}));
 		return {
 			id: String(data.id),
 			deliveryFee: data['pricing']['price_tax_included'],
 			pickupAt: data['pickup_at'],
-			deliveries,
+			deliveries
 		};
 	} catch (err) {
 		throw err;
@@ -860,7 +868,7 @@ async function gophrJobRequest(ref, params, vehicleSpecs) {
 		packagePickupStartTime,
 		packagePickupEndTime,
 		packageDescription,
-		drops,
+		drops
 	} = params;
 	const {
 		dropoffAddress,
@@ -876,7 +884,7 @@ async function gophrJobRequest(ref, params, vehicleSpecs) {
 		dropoffInstructions,
 		packageDropoffStartTime,
 		packageDropoffEndTime,
-		reference,
+		reference
 	} = drops[0];
 	try {
 		const { x: size_x, y: size_y, z: size_z, weight, gophrVehicleType } = vehicleSpecs;
@@ -905,7 +913,7 @@ async function gophrJobRequest(ref, params, vehicleSpecs) {
 			vehicle_type: gophrVehicleType,
 			...(packagePickupStartTime && { earliest_pickup_time: moment(packagePickupStartTime).toISOString(true) }),
 			...(packageDropoffStartTime && {
-				earliest_delivery_time: moment(packageDropoffStartTime).toISOString(true),
+				earliest_delivery_time: moment(packageDropoffStartTime).toISOString(true)
 			}),
 			job_priority: DELIVERY_TYPES[packageDeliveryType].name === DELIVERY_TYPES.ON_DEMAND.name ? 2 : 1,
 			...(packagePickupEndTime && { pickup_deadline: moment(packagePickupEndTime).toISOString(true) }),
@@ -915,7 +923,7 @@ async function gophrJobRequest(ref, params, vehicleSpecs) {
 			...(dropoffCity && { delivery_city: `${dropoffCity}` }),
 			delivery_postcode: `${dropoffPostcode}`,
 			delivery_country_code: 'GB',
-			delivery_tips_how_to_find: `${dropoffInstructions}`,
+			delivery_tips_how_to_find: `${dropoffInstructions}`
 		});
 		console.log(payload);
 		const config = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
@@ -945,10 +953,10 @@ async function gophrJobRequest(ref, params, vehicleSpecs) {
 					firstName: dropoffFirstName,
 					lastName: dropoffLastName,
 					businessName: dropoffBusinessName ? dropoffBusinessName : '',
-					instructions: dropoffInstructions ? dropoffInstructions : '',
+					instructions: dropoffInstructions ? dropoffInstructions : ''
 				},
 				trackingURL: public_tracker_url,
-				status: STATUS.PENDING,
+				status: STATUS.PENDING
 			};
 			console.log('DELIVERIES', delivery);
 			return {
@@ -956,7 +964,7 @@ async function gophrJobRequest(ref, params, vehicleSpecs) {
 				deliveryFee: price_gross,
 				pickupAt: pickup_eta,
 				dropoffAt: delivery_eta,
-				delivery,
+				delivery
 			};
 		} else {
 			// TODO - refactor into its own function
@@ -998,7 +1006,7 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 		packageDeliveryType,
 		packagePickupStartTime,
 		packagePickupEndTime,
-		drops,
+		drops
 	} = params;
 	const {
 		dropoffAddressLine1,
@@ -1011,7 +1019,7 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 		dropoffInstructions,
 		packageDropoffStartTime,
 		packageDropoffEndTime,
-		reference,
+		reference
 	} = drops[0];
 	try {
 		const payload = {
@@ -1033,7 +1041,7 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 				pickUpFrom: packagePickupStartTime ? moment(packagePickupStartTime).format() : moment().format(),
 				pickUpTo: packagePickupEndTime
 					? moment(packagePickupEndTime).format()
-					: moment().add(5, 'minutes').format(),
+					: moment().add(5, 'minutes').format()
 			},
 			dropOff: {
 				contactNumber: dropoffPhoneNumber,
@@ -1046,8 +1054,8 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 					? moment(packageDropoffEndTime).format()
 					: moment().add(5, 'minutes').format(),
 				clientTag: reference,
-				deliveryNotes: dropoffInstructions,
-			},
+				deliveryNotes: dropoffInstructions
+			}
 		};
 		const token = await authStreetStream();
 		const config = { headers: { Authorization: `Bearer ${token}` } };
@@ -1076,10 +1084,10 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 				firstName: drops[0].dropoffFirstName,
 				lastName: drops[0].dropoffLastName,
 				businessName: drops[0].dropoffBusinessName ? drops[0].dropoffBusinessName : '',
-				instructions: drops[0].dropoffInstructions ? drops[0].dropoffInstructions : '',
+				instructions: drops[0].dropoffInstructions ? drops[0].dropoffInstructions : ''
 			},
 			trackingURL: '',
-			status: STATUS.PENDING,
+			status: STATUS.PENDING
 		};
 		return {
 			id: data.id,
@@ -1089,7 +1097,7 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 			dropoffAt: packageDropoffStartTime
 				? moment(packagePickupStartTime).add(data['estimatedRouteTimeSeconds'], 'seconds').format()
 				: moment().add(25, 'minutes').add(data['estimatedRouteTimeSeconds'], 'seconds').format(),
-			delivery,
+			delivery
 		};
 	} catch (err) {
 		throw err;
@@ -1109,7 +1117,7 @@ async function streetStreamMultiJobRequest(ref, strategy, params, vehicleSpecs) 
 		packageDeliveryType,
 		packagePickupStartTime,
 		packagePickupEndTime,
-		drops,
+		drops
 	} = params;
 
 	let lastDropoffTime = moment().format();
@@ -1124,7 +1132,7 @@ async function streetStreamMultiJobRequest(ref, strategy, params, vehicleSpecs) 
 			city: drop.dropoffCity,
 			postcode: drop.dropoffPostcode,
 			clientTag: drop.reference,
-			deliveryNotes: drop.dropoffInstructions,
+			deliveryNotes: drop.dropoffInstructions
 		};
 	});
 	console.log('LAST Dropoff Time:', lastDropoffTime);
@@ -1151,9 +1159,9 @@ async function streetStreamMultiJobRequest(ref, strategy, params, vehicleSpecs) 
 				pickUpFrom: moment(packagePickupStartTime).format(),
 				pickUpTo: packagePickupEndTime
 					? moment(packagePickupEndTime).format()
-					: moment(packagePickupStartTime).add(5, 'minutes').format(),
+					: moment(packagePickupStartTime).add(5, 'minutes').format()
 			},
-			drops: dropoffs,
+			drops: dropoffs
 		};
 		const token = await authStreetStream();
 		const config = { headers: { Authorization: `Bearer ${token}` } };
@@ -1167,7 +1175,7 @@ async function streetStreamMultiJobRequest(ref, strategy, params, vehicleSpecs) 
 			pickupAt: packagePickupStartTime ? moment(packagePickupStartTime) : moment().add(25, 'minutes'),
 			dropoffAt: lastDropoffTime
 				? moment(packagePickupStartTime).add(data['estimatedRouteTimeSeconds'], 'seconds').format()
-				: moment().add(25, 'minutes').add(data['estimatedRouteTimeSeconds'], 'seconds').format(),
+				: moment().add(25, 'minutes').add(data['estimatedRouteTimeSeconds'], 'seconds').format()
 		};
 	} catch (err) {
 		console.error(err);
@@ -1191,7 +1199,7 @@ async function ecofleetJobRequest(refNumber, params, vehicleSpecs) {
 		packagePickupStartTime,
 		packageDescription,
 		vehicleType,
-		drops,
+		drops
 	} = params;
 
 	const {
@@ -1207,44 +1215,44 @@ async function ecofleetJobRequest(refNumber, params, vehicleSpecs) {
 		dropoffLastName,
 		dropoffInstructions,
 		packageDropoffStartTime
-	} = drops[0]
+	} = drops[0];
 
 	const payload = {
 		pickup: {
 			name: `${pickupFirstName} ${pickupLastName}`,
 			company_name: pickupBusinessName,
 			address_line1: pickupAddressLine1,
-			...(pickupAddressLine2 && { address_line2: pickupAddressLine2}),
+			...(pickupAddressLine2 && { address_line2: pickupAddressLine2 }),
 			city: pickupCity,
 			postal: pickupPostcode,
 			country: 'England',
 			phone: pickupPhoneNumber,
 			email: pickupEmailAddress,
-			comment: pickupInstructions,
+			comment: pickupInstructions
 		},
 		drops: [
 			{
 				name: `${dropoffFirstName} ${dropoffLastName}`,
 				company_name: dropoffBusinessName,
 				address_line1: dropoffAddressLine1,
-				...(dropoffAddressLine2 && { address_line2: dropoffAddressLine2}),
+				...(dropoffAddressLine2 && { address_line2: dropoffAddressLine2 }),
 				city: dropoffCity,
 				postal: dropoffPostcode,
 				country: 'England',
 				phone: dropoffPhoneNumber,
 				email: dropoffEmailAddress,
-				comment: dropoffInstructions,
-			},
+				comment: dropoffInstructions
+			}
 		],
 		parcel: {
 			weight: VEHICLE_CODES_MAP[vehicleType].weight,
-			type: packageDescription ? packageDescription : "",
+			type: packageDescription ? packageDescription : ''
 		},
 		schedule: {
 			type: DELIVERY_TYPES[packageDeliveryType].ecofleet,
 			...(packagePickupStartTime && { pickupWindow: moment(packagePickupStartTime).unix() }),
-			...(packageDropoffStartTime && { dropoffWindow: moment(packageDropoffStartTime).unix() }),
-		},
+			...(packageDropoffStartTime && { dropoffWindow: moment(packageDropoffStartTime).unix() })
+		}
 	};
 	console.log(payload);
 	try {
@@ -1270,10 +1278,10 @@ async function ecofleetJobRequest(refNumber, params, vehicleSpecs) {
 				firstName: dropoffFirstName,
 				lastName: dropoffLastName,
 				businessName: dropoffBusinessName ? dropoffBusinessName : '',
-				instructions: dropoffInstructions ? dropoffInstructions : '',
+				instructions: dropoffInstructions ? dropoffInstructions : ''
 			},
 			trackingURL: data.tasks[0]['tracking_link'],
-			status: STATUS.PENDING,
+			status: STATUS.PENDING
 		};
 		return {
 			id: data.id,
@@ -1300,36 +1308,36 @@ async function addisonLeeJobRequestWithQuote(quoteId, params, vehicleSpecs) {
 			contact: {
 				name: 'John Doe',
 				mobile: '07123456789',
-				email: 'john.doe@example.com',
+				email: 'john.doe@example.com'
 			},
 			passengers: [
 				{
 					name: 'Jane Doe',
 					mobile: '07262555555',
-					email: 'jane.doe@example.com',
+					email: 'jane.doe@example.com'
 				},
 				{
 					name: 'Jane Smith',
 					mobile: '07123456789',
-					email: 'jane.smith@example.com',
-				},
+					email: 'jane.smith@example.com'
+				}
 			],
 			information: [
 				{
 					type: 'Notes',
-					value: 'Special Instruction Notes',
+					value: 'Special Instruction Notes'
 				},
 				{
 					type: 'Description',
-					value: 'Addison Lee to Collect John Doe',
-				},
+					value: 'Addison Lee to Collect John Doe'
+				}
 			],
 			partner_reference: {
 				booking: {
 					id: '9d8760a1-84cb-42d5-8887-f9574e75ede7',
-					number: '345677',
-				},
-			},
+					number: '345677'
+				}
+			}
 		};
 		const etaURL = `${process.env.ADDISON_LEE_ENV}/api-quickbook/v3/api/quote/time`;
 		const priceURL = `${process.env.ADDISON_LEE_ENV}/api-quickbook/v3/api/quote/price`;
@@ -1347,7 +1355,7 @@ async function addisonLeeJobRequestWithQuote(quoteId, params, vehicleSpecs) {
 			priceExVAT: price,
 			currency: 'GBP',
 			dropoffEta: eta,
-			providerId: PROVIDERS.ADDISON_LEE,
+			providerId: PROVIDERS.ADDISON_LEE
 		};
 		console.log('ADDISON LEE QUOTE');
 		console.log('----------------------------');
@@ -1359,22 +1367,19 @@ async function addisonLeeJobRequestWithQuote(quoteId, params, vehicleSpecs) {
 	}
 }
 
-async function confirmCharge(amount, customerId, paymentIntentId) {
+async function confirmCharge(customerId, commissionId, commissionCharge) {
 	try {
 		console.log('*********************************');
-		console.log('AMOUNT:', amount);
 		console.log('CUSTOMER_ID:', customerId);
-		console.log('PAYMENT_INTENT_ID:', paymentIntentId);
+		console.log('COMMISSION_ID:', commissionId);
 		console.log('*********************************');
-		if (customerId && paymentIntentId) {
-			const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId, {
-				setup_future_usage: 'off_session',
-			});
-			console.log('----------------------------------------------');
-			console.log('PAYMENT CONFIRMED!!!!');
-			console.log(paymentIntent);
-			console.log('----------------------------------------------');
-			return 'Payment Confirmed!';
+		if (customerId && commissionCharge) {
+			const {
+				items: { data }
+			} = await stripe.subscriptions.retrieve(commissionId);
+			const subscriptionItemId = data[0].id;
+			const usageRecord = await stripe.subscriptionItems.createUsageRecord(subscriptionItemId, { quantity: 1, action: "increment", timestamp: Date.now() });
+			console.log(usageRecord)
 		}
 	} catch (e) {
 		console.error(e);
@@ -1396,5 +1401,5 @@ module.exports = {
 	providerCreateMultiJob,
 	confirmCharge,
 	setNextDayDeliveryTime,
-	checkMultiDropPrice,
+	checkMultiDropPrice
 };

@@ -194,7 +194,7 @@ const userSchema = new mongoose.Schema({
 		}
 	},
 	jobs: [{ type: Schema.Types.ObjectId, ref: 'Job' }],
-	weeklyInvoiceId: {
+	stripeCommissionId: {
 		type: String
 	}
 });

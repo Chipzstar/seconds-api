@@ -77,7 +77,7 @@ router.post('/create', async (req, res) => {
 		let { pickupAddress, packageDeliveryType, packagePickupStartTime, vehicleType } = req.body;
 		req.body.drops[0]['reference'] = genOrderReference();
 		//generate client reference number
-		let paymentIntent = undefined;
+		let commissionCharge = false;
 		const jobReference = genJobReference();
 		// fetch api key
 		const apiKey = req.headers[AUTHORIZATION_KEY];
@@ -90,8 +90,6 @@ router.post('/create', async (req, res) => {
 		const {
 			_id: clientId,
 			selectionStrategy,
-			stripeCustomerId,
-			paymentMethodId,
 			subscriptionId,
 			subscriptionPlan,
 			deliveryHours
@@ -146,7 +144,6 @@ router.post('/create', async (req, res) => {
 		// check if user has a subscription active
 		console.log('SUBSCRIPTION ID:', !!subscriptionId);
 		if (subscriptionId && subscriptionPlan) {
-			let idempotencyKey = uuidv4();
 			// check the payment plan and lookup the associated commission fee
 			let { fee, limit } = COMMISSION[subscriptionPlan.toUpperCase()];
 			console.log('--------------------------------');
@@ -155,31 +152,14 @@ router.post('/create', async (req, res) => {
 			const numOrders = await db.Job.where({ clientId: clientId, status: 'COMPLETED' }).countDocuments();
 			console.log('NUM COMPLETED ORDERS:', numOrders);
 			console.log('--------------------------------');
-			// if so create the payment intent for the new order
+			// if the order limit is exceeded, mark the job with a commission fee charge
 			if (numOrders >= limit) {
-				paymentIntent = await stripe.paymentIntents.create(
-					{
-						amount: fee * 100,
-						customer: stripeCustomerId,
-						currency: 'GBP',
-						setup_future_usage: 'off_session',
-						payment_method: paymentMethodId,
-						payment_method_types: ['card']
-					},
-					{
-						idempotencyKey
-					}
-				);
-				console.log('-------------------------------------------');
-				console.log('Payment Intent Created!', paymentIntent);
-				console.log('-------------------------------------------');
+				commissionCharge = true
 			}
-			const paymentIntentId = paymentIntent ? paymentIntent.id : undefined;
 			const {
 				id: spec_id,
 				deliveryFee,
 				pickupAt,
-				dropoffAt,
 				delivery
 			} = await providerCreatesJob(
 				providerId.toLowerCase(),
@@ -231,7 +211,7 @@ router.post('/create', async (req, res) => {
 			console.log('JOB', job);
 			console.log('======================================================================================');
 			// Append the selected provider job to the jobs database
-			const createdJob = await db.Job.create({ ...job, clientId, paymentIntentId });
+			const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
 			return res.status(200).json({
 				jobId: createdJob._id,
 				...job

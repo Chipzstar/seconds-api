@@ -177,7 +177,7 @@ async function createNewJob(order, user) {
 		console.log('Payload');
 		console.log(payload);
 		console.log('-----------------------------------------------------------------');
-		let paymentIntent = undefined;
+		let commissionCharge = false;
 		const clientRefNumber = genJobReference();
 		const { _id: clientId, email, selectionStrategy, deliveryHours } = user;
 		// get specifications for the vehicle
@@ -217,7 +217,6 @@ async function createNewJob(order, user) {
 		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
 		const providerId = bestQuote.providerId;
 		const winnerQuote = bestQuote.id;
-		let idempotencyKey = uuidv4();
 		// check the payment plan and lookup the associated commission fee
 		let { fee, limit } = COMMISSION[user.subscriptionPlan.toUpperCase()];
 		console.log('--------------------------------');
@@ -226,26 +225,10 @@ async function createNewJob(order, user) {
 		const numOrders = await db.Job.where({ clientId: clientId, status: 'COMPLETED' }).countDocuments();
 		console.log('NUM COMPLETED ORDERS:', numOrders);
 		console.log('--------------------------------');
-		// if so create the payment intent for the new order
+		// if the order limit is exceeded, mark the job with a commission fee charge
 		if (numOrders >= limit) {
-			paymentIntent = await stripe.paymentIntents.create(
-				{
-					amount: fee * 100,
-					customer: user.stripeCustomerId,
-					currency: 'GBP',
-					setup_future_usage: 'off_session',
-					payment_method: user.paymentMethodId,
-					payment_method_types: ['card'],
-				},
-				{
-					idempotencyKey,
-				}
-			);
-			console.log('-------------------------------------------');
-			console.log('Payment Intent Created!', paymentIntent);
-			console.log('-------------------------------------------');
+			commissionCharge = true
 		}
-		const paymentIntentId = paymentIntent ? paymentIntent.id : undefined;
 		const {
 			id: spec_id,
 			deliveryFee,
@@ -293,7 +276,7 @@ async function createNewJob(order, user) {
 			status: STATUS.NEW,
 		};
 		// Append the selected provider job to the jobs database
-		const createdJob = await db.Job.create({ ...job, clientId, paymentIntentId });
+		const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
 		console.log(createdJob);
 		await sendNewJobEmails(user.team, job);
 		return true;

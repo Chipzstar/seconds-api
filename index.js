@@ -22,9 +22,7 @@ const {validateApiKey} = require("./middleware/auth");
 // defining the Express index
 const app = express();
 const db = require('./models/index');
-const { updateHerokuConfigVar } = require('./helpers/heroku');
 const sendEmail = require('./services/email');
-const orderId = require('order-id')(process.env.UID_SECRET_KEY);
 
 app.set('port', process.env.PORT || port);
 
@@ -69,6 +67,7 @@ app.use('/api/v1/street-stream', streetStreamRoutes);
 //WEBHOOKS
 app.use('/api/v1/shopify', shopifyRoutes)
 
+// EMAIL
 app.post('/api/v1/mail', async (req, res) => {
 	try {
 		const { name, email, subject, text, html, templateId, templateData } = req.body;

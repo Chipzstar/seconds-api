@@ -108,8 +108,8 @@ async function updateJob(data) {
 			console.log('****************************************************************');
 			console.log('STUART JOB COMPLETEEEEEEE!');
 			console.log('****************************************************************');
-			let { stripeCustomerId, subscriptionPlan } = await db.User.findOne({ _id: job.clientId }, {});
-			confirmCharge(COMMISSION[subscriptionPlan.toUpperCase()].fee, stripeCustomerId, job.paymentIntentId);
+			let { stripeCustomerId, stripeCommissionId } = await db.User.findOne({ _id: job.clientId }, {});
+			confirmCharge(stripeCustomerId, stripeCommissionId, job.commissionCharge);
 		}
 		return jobStatus;
 	} catch (err) {
@@ -123,7 +123,7 @@ async function updateDelivery(data) {
 		const { status: deliveryStatus, id: deliveryId, clientReference, etaToOrigin, etaToDestination } = data;
 		console.table({ deliveryStatus, deliveryId, clientReference, etaToOrigin, etaToDestination });
 		const job = await db.Job.findOneAndUpdate(
-			{"jobSpecification.id": deliveryId, 'jobSpecification.deliveries.id': deliveryId },
+			{'jobSpecification.deliveries.id': deliveryId },
 			{
 				$set: {
 					'jobSpecification.pickupStartTime': moment(etaToOrigin).toISOString(),
@@ -136,7 +136,7 @@ async function updateDelivery(data) {
 			}
 		);
 		console.table(job.jobSpecification.deliveries.find(({ id }) => id === deliveryId));
-	} catch (e) {
+	} catch (err) {
 		console.error(err);
 		throw err;
 	}
