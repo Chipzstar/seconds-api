@@ -1,6 +1,6 @@
 const express = require("express");
 const {JOB_STATUS, WEBHOOK_TYPES } = require("../constants/gophr");
-const {STATUS, COMMISSION } = require("../constants");
+const { STATUS } = require("../constants");
 const db = require("../models");
 const moment = require("moment");
 const { confirmCharge } = require('../helpers');

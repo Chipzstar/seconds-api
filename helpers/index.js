@@ -1128,7 +1128,7 @@ async function streetStreamMultiJobRequest(ref, strategy, params, vehicleSpecs) 
 			contactNumber: drop.dropoffPhoneNumber,
 			contactName: `${drop.dropoffFirstName} ${drop.dropoffLastName}`,
 			addressOne: drop.dropoffAddressLine1,
-			...(drop.dropoffAddressLine2 && { addressTwo: drop.dropoffAddressLine2 }),
+			...(drop['dropoffAddressLine2'] && { addressTwo: drop['dropoffAddressLine2'] }),
 			city: drop.dropoffCity,
 			postcode: drop.dropoffPostcode,
 			clientTag: drop.reference,
@@ -1367,13 +1367,13 @@ async function addisonLeeJobRequestWithQuote(quoteId, params, vehicleSpecs) {
 	}
 }
 
-async function confirmCharge(customerId, commissionId, commissionCharge) {
+async function confirmCharge(customerId, commissionId, canCharge) {
 	try {
 		console.log('*********************************');
 		console.log('CUSTOMER_ID:', customerId);
 		console.log('COMMISSION_ID:', commissionId);
 		console.log('*********************************');
-		if (commissionId && commissionCharge) {
+		if (commissionId && canCharge) {
 			const {
 				items: { data }
 			} = await stripe.subscriptions.retrieve(commissionId);
