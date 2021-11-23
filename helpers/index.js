@@ -1378,7 +1378,7 @@ async function confirmCharge(customerId, commissionId, commissionCharge) {
 				items: { data }
 			} = await stripe.subscriptions.retrieve(commissionId);
 			const subscriptionItemId = data[0].id;
-			const usageRecord = await stripe.subscriptionItems.createUsageRecord(subscriptionItemId, { quantity: 1, action: "increment", timestamp: Date.now() });
+			const usageRecord = await stripe.subscriptionItems.createUsageRecord(subscriptionItemId, { quantity: 1, action: "increment", timestamp: Math.ceil(Date.now() / 1000) });
 			console.log(usageRecord)
 		}
 	} catch (e) {
