@@ -47,7 +47,7 @@ app.get('/', (req, res) => {
 });
 
 // used by New Relic for keeping the api alive
-app.head('/ping', (req, res) => {
+app.use('/ping', (req, res) => {
 	const message = `Pinged at ${new Date().toUTCString()}`;
 	console.log(`${req.ip} - ${message}`);
 	res.status(200).json({
