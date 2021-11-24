@@ -123,7 +123,9 @@ router.post('/create', async (req, res) => {
 			const nextDayDeliveryTime = setNextDayDeliveryTime(deliveryHours);
 			req.body.packageDeliveryType = "NEXT_DAY";
 			req.body.packagePickupStartTime = nextDayDeliveryTime;
+			req.body.packagePickupEndTime = moment(nextDayDeliveryTime).add(10, "minutes").format();
 			req.body.drops[0].packageDropoffStartTime = moment(nextDayDeliveryTime).add(30, 'minutes').format();
+			req.body.drops[0].packageDropoffEndTime = moment(nextDayDeliveryTime).add(40, 'minutes').format();
 		}
 		const QUOTES = await getResultantQuotes(req.body, vehicleSpecs);
 		// Use selection strategy to select the winner quote
