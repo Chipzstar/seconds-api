@@ -194,9 +194,11 @@ const userSchema = new mongoose.Schema({
 		}
 	},
 	jobs: [{ type: Schema.Types.ObjectId, ref: 'Job' }],
-	stripeCommissionId: {
-		type: String
-	}
+	subscriptionItems: {
+		standardMonthly: "",
+		standardCommission: "",
+		multiDropCommission: ""
+	},
 });
 
 userSchema.pre('save', async function (next) {
