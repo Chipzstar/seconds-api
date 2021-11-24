@@ -19,7 +19,6 @@ const {
 const { STRATEGIES } = require('../constants/streetStream');
 const { ERROR_CODES: STUART_ERROR_CODES } = require('../constants/stuart');
 const { ERROR_CODES: GOPHR_ERROR_CODES } = require('../constants/gophr');
-const rax = require('retry-axios');
 const { updateHerokuConfigVar } = require('./heroku');
 const { getStuartAuthToken } = require('./stuart');
 
@@ -1367,20 +1366,31 @@ async function addisonLeeJobRequestWithQuote(quoteId, params, vehicleSpecs) {
 	}
 }
 
-async function confirmCharge(customerId, commissionId, canCharge) {
+async function confirmCharge(customerId, { standardMonthly, standardCommission, multiDropCommission }, canCharge, deliveryType, quantity=1) {
 	try {
 		console.log('*********************************');
-		console.log('CUSTOMER_ID:', customerId);
-		console.log('COMMISSION_ID:', commissionId);
+		console.table({ customerId, standardMonthly, standardCommission, multiDropCommission, canCharge, deliveryType });
 		console.log('*********************************');
-		if (commissionId && canCharge) {
-			const {
-				items: { data }
-			} = await stripe.subscriptions.retrieve(commissionId);
-			const subscriptionItemId = data[0].id;
-			const usageRecord = await stripe.subscriptionItems.createUsageRecord(subscriptionItemId, { quantity: 1, action: "increment", timestamp: Math.ceil(Date.now() / 1000) });
-			console.log(usageRecord)
+		let usageRecord;
+		if (standardCommission && canCharge) {
+			if (deliveryType === DELIVERY_TYPES.MULTI_DROP.name) {
+				usageRecord = await stripe.subscriptionItems.createUsageRecord(multiDropCommission, {
+					quantity,
+					action: 'increment',
+					timestamp: Math.ceil(Date.now() / 1000)
+				});
+			} else {
+				usageRecord = await stripe.subscriptionItems.createUsageRecord(standardCommission, {
+					quantity,
+					action: 'increment',
+					timestamp: Math.ceil(Date.now() / 1000)
+				});
+			}
 		}
+		console.log("------------------------------")
+		console.log("USAGE RECORD")
+		console.table(usageRecord);
+		console.log("------------------------------")
 	} catch (e) {
 		console.error(e);
 		throw e;

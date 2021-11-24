@@ -53,7 +53,7 @@ async function update(data) {
 		);
 		if (job) {
 			console.log(job);
-			return job.status;
+			return STATUS;
 		}
 		throw { status: 'NO_JOB_FOUND', message: `The jobId ${ID} does not exist` };
 	} catch (err) {
@@ -65,12 +65,12 @@ router.post('/', async (req, res) => {
 	try {
 		let jobStatus = await update(req.body);
 		if (jobStatus === JOB_STATUS.COMPLETED_SUCCESSFULLY) {
-			let { clientId, commissionCharge } = await db.Job.findOne({ 'jobSpecification.id': req.body.jobId }, {});
+			let { clientId, commissionCharge, jobSpecification: { deliveryType, deliveries } } = await db.Job.findOne({ 'jobSpecification.id': req.body.jobId }, {});
 			console.log('****************************************************************');
 			console.log('STREET-STREAM DELIVERY COMPLETEEEEEEE!');
 			console.log('****************************************************************');
-			let { stripeCustomerId, stripeCommissionId } = await db.User.findOne({ _id: clientId }, {});
-			confirmCharge(stripeCustomerId, stripeCommissionId, commissionCharge);
+			let { stripeCustomerId, subscriptionItems } = await db.User.findOne({ _id: clientId }, {});
+			confirmCharge(stripeCustomerId, subscriptionItems, commissionCharge, deliveryType, deliveries.length);
 		}
 		res.status(200).send({
 			success: true,

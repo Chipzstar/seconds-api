@@ -108,8 +108,8 @@ async function updateJob(data) {
 			console.log('****************************************************************');
 			console.log('STUART JOB COMPLETEEEEEEE!');
 			console.log('****************************************************************');
-			let { stripeCustomerId, stripeCommissionId } = await db.User.findOne({ _id: job.clientId }, {});
-			confirmCharge(stripeCustomerId, stripeCommissionId, job.commissionCharge);
+			let { stripeCustomerId, subscriptionItems } = await db.User.findOne({ _id: job.clientId }, {});
+			confirmCharge(stripeCustomerId, subscriptionItems, job.commissionCharge, job.jobSpecification.deliveryType, job.jobSpecification.deliveries.length);
 		}
 		return jobStatus;
 	} catch (err) {

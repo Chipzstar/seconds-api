@@ -13,15 +13,12 @@ const {
 	checkDeliveryHours,
 	setNextDayDeliveryTime,
 	genOrderReference,
-	providerCreateMultiJob,
-	checkMultiDropPrice
+	providerCreateMultiJob
 } = require('../helpers');
 const { AUTHORIZATION_KEY, PROVIDER_ID, STATUS, COMMISSION, DELIVERY_TYPES } = require('../constants');
 const moment = require('moment');
 const mongoose = require('mongoose');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const router = express.Router();
-const { v4: uuidv4 } = require('uuid');
 const orderId = require('order-id')(process.env.UID_SECRET_KEY);
 
 /**
@@ -175,7 +172,7 @@ router.post('/create', async (req, res) => {
 				driverInformation: {
 					name: 'Searching',
 					phone: 'Searching',
-					transport: 'Searching'
+					transport: vehicleSpecs.name
 				},
 				jobSpecification: {
 					id: spec_id,
@@ -244,18 +241,16 @@ router.post('/create', async (req, res) => {
 router.post('/multi-drop', async (req, res) => {
 	try {
 		console.table(req.body);
-		let { pickupAddress, packageDeliveryType, packagePickupStartTime, itemsCount, vehicleType, drops } = req.body;
+		let { pickupAddress, packageDeliveryType, packagePickupStartTime, vehicleType, drops } = req.body;
 		//generate client reference number
 		const jobReference = genJobReference();
-		let paymentIntent = undefined;
+		let commissionCharge = false;
 		// fetch api key
 		const apiKey = req.headers[AUTHORIZATION_KEY];
 		// fetch user information from the api key
 		const {
 			_id: clientId,
 			selectionStrategy,
-			stripeCustomerId,
-			paymentMethodId,
 			subscriptionId,
 			subscriptionPlan,
 			deliveryHours
@@ -298,36 +293,15 @@ router.post('/multi-drop', async (req, res) => {
 		// check if user has a subscription active
 		console.log('SUBSCRIPTION ID:', !!subscriptionId);
 		if (subscriptionId && subscriptionPlan) {
-			let idempotencyKey = uuidv4();
 			// check the payment plan and lookup the associated commission fee
 			let { fee: commission, limit } = COMMISSION[subscriptionPlan.toUpperCase()];
 			console.log('--------------------------------');
-			console.log('COMMISSION FEE:', commission);
 			// check whether the client number of orders has exceeded the limit
 			const numOrders = await db.Job.where({ clientId: clientId, status: 'COMPLETED' }).countDocuments();
-			console.log('NUM COMPLETED ORDERS:', numOrders);
+			console.table({numOrders, commission, limit})
 			console.log('--------------------------------');
 			// if so create the payment intent for the new order
-			let multiDropFee = checkMultiDropPrice(req.body.drops.length);
-			if (numOrders >= limit) multiDropFee = multiDropFee + commission;
-			paymentIntent = await stripe.paymentIntents.create(
-				{
-					amount: multiDropFee * 100,
-					customer: stripeCustomerId,
-					currency: 'GBP',
-					setup_future_usage: 'off_session',
-					payment_method: paymentMethodId,
-					payment_method_types: ['card']
-				},
-				{
-					idempotencyKey
-				}
-			);
-			console.log('-------------------------------------------');
-			console.log('Payment Intent Created!', paymentIntent);
-			console.log('-------------------------------------------');
-
-			const paymentIntentId = paymentIntent ? paymentIntent.id : undefined;
+			if (numOrders >= limit) commissionCharge = true;
 			const {
 				id: spec_id,
 				deliveryFee,
@@ -377,7 +351,7 @@ router.post('/multi-drop', async (req, res) => {
 			console.log('JOB', job);
 			console.log('======================================================================================');
 			// Append the selected provider job to the jobs database
-			const createdJob = await db.Job.create({ ...job, clientId, paymentIntentId });
+			const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
 			return res.status(200).json({
 				jobId: createdJob._id,
 				...job
