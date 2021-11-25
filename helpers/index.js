@@ -1155,10 +1155,15 @@ async function streetStreamMultiJobRequest(ref, strategy, params, vehicleSpecs) 
 					: moment(packagePickupStartTime).add(5, 'minutes').format()
 			},
 			drops: dropoffs
-		};
+		}
+		console.log("---------------------------------------")
+		console.log("PAYLOAD")
+		console.log(payload)
+		console.log("---------------------------------------")
 		const multiJobURL = `${process.env.STREET_STREAM_ENV}/api/job/multidrop`;
-		const data = (await streetStreamAxios.post(multiJobURL, payload)).data;
-		console.log(data);
+		const response = (await streetStreamAxios.post(multiJobURL, payload));
+		console.log(response);
+		let data = response.data
 		let deliveries = data['drops'].map(delivery => ({
 			id: delivery.id,
 			orderReference: delivery.clientTag,
