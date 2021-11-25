@@ -21,35 +21,22 @@ const { ERROR_CODES: STUART_ERROR_CODES } = require('../constants/stuart');
 const { ERROR_CODES: GOPHR_ERROR_CODES } = require('../constants/gophr');
 const { updateHerokuConfigVar } = require('./heroku');
 const { getStuartAuthToken } = require('./stuart');
+const { authStreetStream } = require('./streetStream');
 
 // google maps api client
 const client = new Client();
-// axios instance setup
+// setup axios instances
 const stuartAxios = axios.create();
+const streetStreamAxios = axios.create();
 stuartAxios.defaults.headers.common['Authorization'] = `Bearer ${process.env.STUART_API_KEY}`;
-/*stuartAxios.defaults.raxConfig = {
-	retry: 3,
-	backoffType: 'exponential',
-	retryDelay: 500,
-	statusCodesToRetry: [[401]],
-	shouldRetry: err => {
-		const cfg = rax.getConfig(err);
-		if (cfg.currentRetryAttempt >= cfg.retry) return false; // ensure max retries is always respected
-		// Always retry this status text, regardless of code or request type
-		if (err.response.data.message === 'The access token was revoked') return true;
-		// Handle the request based on your other config options, e.g. `statusCodesToRetry`
-		return rax.shouldRetryRequest(err);
-	},
-	onRetryAttempt: err => console.log("MESSAGE:", err.response.data.message, err.config.headers.Authorization),
-	instance: stuartAxios
-};*/
+streetStreamAxios.defaults.headers.common['Authorization'] = `Bearer ${process.env.STREET_STREAM_API_KEY}`;
 
 stuartAxios.interceptors.response.use(
 	response => {
 		return response;
 	},
 	error => {
-		console.log(error.response);
+		console.log(error.response.data);
 		if (
 			error.response &&
 			error.response.status === 401 &&
@@ -66,8 +53,30 @@ stuartAxios.interceptors.response.use(
 		return Promise.reject(error);
 	}
 );
-// attach stuart axios to retry-axios
-// rax.attach(stuartAxios);
+
+/*streetStreamAxios.interceptors.request.use(
+	config => {
+		console.log(config)
+		return config
+	},
+	error => Promise.reject(error)
+);*/
+
+streetStreamAxios.interceptors.response.use(
+	response => response,
+	error => {
+		console.error(error.response.data);
+		if (error.response && error.response.status === 403) {
+			return authStreetStream()
+				.then(token => {
+					updateHerokuConfigVar('STREET_STREAM_API_KEY', token);
+					error.config.headers['Authorization'] = `Bearer ${token}`;
+					return streetStreamAxios.request(error.config);
+				})
+				.catch(err => Promise.reject(err));
+		}
+	}
+);
 
 function genOrderReference() {
 	const rand = crypto.randomBytes(16);
@@ -257,17 +266,6 @@ function setNextDayDeliveryTime(deliveryHours) {
 	}
 }
 
-async function authStreetStream() {
-	const authURL = `${process.env.STREET_STREAM_ENV}/api/tokens`;
-	const payload = {
-		email: 'secondsdelivery@gmail.com',
-		authType: 'CUSTOMER',
-		password: process.env.STREET_STREAM_PASSWORD
-	};
-	let res = (await axios.post(authURL, payload)).headers;
-	return res.authorization.split(' ')[1];
-}
-
 async function getResultantQuotes(requestBody, vehicleSpecs) {
 	try {
 		const QUOTES = [];
@@ -331,8 +329,8 @@ async function providerCreateMultiJob(provider, ref, strategy, request, vehicleS
 			console.log('Creating STREET-STREAM Job');
 			return await streetStreamMultiJobRequest(ref, strategy, request, vehicleSpecs);
 		default:
-			console.log('Creating a STUART Job');
-			return await stuartMultiJobRequest(ref, request, vehicleSpecs);
+			console.log('Creating STREET-STREAM Job');
+			return await streetStreamMultiJobRequest(ref, strategy, request, vehicleSpecs);
 	}
 }
 
@@ -545,9 +543,8 @@ async function getStreetStreamQuote(params, vehicleSpecs) {
 	const { pickupPostcode, drops } = params;
 	const { dropoffPostcode } = drops[0];
 	try {
-		const token = await authStreetStream();
 		const config = {
-			headers: { Authorization: `Bearer ${token}` },
+			headers: { Authorization: `Bearer ${process.env.STREET_STREAM_API_KEY}` },
 			params: {
 				startPostcode: pickupPostcode,
 				endPostcode: dropoffPostcode,
@@ -555,7 +552,7 @@ async function getStreetStreamQuote(params, vehicleSpecs) {
 			}
 		};
 		const quoteURL = `${process.env.STREET_STREAM_ENV}/api/estimate`;
-		let data = (await axios.get(quoteURL, config)).data;
+		let data = (await streetStreamAxios.get(quoteURL, config)).data;
 		console.log('RESPONSE');
 		console.log('****************************');
 		console.log(data);
@@ -844,7 +841,8 @@ async function stuartMultiJobRequest(ref, params, vehicleSpecs) {
 			id: String(data.id),
 			deliveryFee: data['pricing']['price_tax_included'],
 			pickupAt: data['pickup_at'],
-			deliveries
+			deliveries,
+			providerId: PROVIDERS.STUART
 		};
 	} catch (err) {
 		throw err;
@@ -1002,7 +1000,6 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 		pickupFirstName,
 		pickupLastName,
 		pickupInstructions,
-		packageDeliveryType,
 		packagePickupStartTime,
 		packagePickupEndTime,
 		drops
@@ -1056,10 +1053,8 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 				deliveryNotes: dropoffInstructions
 			}
 		};
-		const token = await authStreetStream();
-		const config = { headers: { Authorization: `Bearer ${token}` } };
 		const createJobURL = `${process.env.STREET_STREAM_ENV}/api/job/pointtopoint`;
-		const data = (await axios.post(createJobURL, payload, config)).data;
+		const data = (await streetStreamAxios.post(createJobURL, payload)).data;
 		console.log(data);
 		const delivery = {
 			id: data['dropOff'].id,
@@ -1113,7 +1108,6 @@ async function streetStreamMultiJobRequest(ref, strategy, params, vehicleSpecs) 
 		pickupFirstName,
 		pickupLastName,
 		pickupInstructions,
-		packageDeliveryType,
 		packagePickupStartTime,
 		packagePickupEndTime,
 		drops
@@ -1162,19 +1156,42 @@ async function streetStreamMultiJobRequest(ref, strategy, params, vehicleSpecs) 
 			},
 			drops: dropoffs
 		};
-		const token = await authStreetStream();
-		const config = { headers: { Authorization: `Bearer ${token}` } };
 		const multiJobURL = `${process.env.STREET_STREAM_ENV}/api/job/multidrop`;
-		const data = (await axios.post(multiJobURL, payload, config)).data;
+		const data = (await streetStreamAxios.post(multiJobURL, payload)).data;
 		console.log(data);
+		let deliveries = data['drops'].map(delivery => ({
+			id: delivery.id,
+			orderReference: delivery.clientTag,
+			description: delivery['deliveryNotes'],
+			dropoffStartTime: delivery['dropOffFrom']
+				? moment(delivery['dropOffFrom']).format()
+				: drops[0].packageDropoffStartTime,
+			dropoffEndTime: delivery['dropOffTo']
+				? moment(delivery['dropOffTo']).format()
+				: drops[0].packageDropoffEndTime,
+			transport: vehicleSpecs.name,
+			dropoffLocation: {
+				fullAddress: drops[0].dropoffAddress,
+				streetAddress: delivery['addressOne'] + delivery['addressTwo'] ? delivery['addressTwo'] : "",
+				city: delivery['city'],
+				postcode: delivery['postcode'],
+				country: 'UK',
+				phoneNumber: delivery['contactNumber'],
+				email: drops[0].dropoffEmailAddress ? drops[0].dropoffEmailAddress : '',
+				firstName: drops[0].dropoffFirstName,
+				lastName: drops[0].dropoffLastName,
+				businessName: drops[0].dropoffBusinessName ? drops[0].dropoffBusinessName : '',
+				instructions: drops[0].dropoffInstructions ? drops[0].dropoffInstructions : ''
+			},
+			trackingURL: '',
+			status: STATUS.PENDING
+		}));
 		return {
 			id: data.id,
-			trackingURL: null,
 			deliveryFee: data['jobCharge']['totalPayableWithVat'],
-			pickupAt: packagePickupStartTime ? moment(packagePickupStartTime) : moment().add(25, 'minutes'),
-			dropoffAt: lastDropoffTime
-				? moment(packagePickupStartTime).add(data['estimatedRouteTimeSeconds'], 'seconds').format()
-				: moment().add(25, 'minutes').add(data['estimatedRouteTimeSeconds'], 'seconds').format()
+			pickupAt: data['pickUp']['pickUpFrom'] ? data['pickUp']['pickUpFrom'] : packagePickupStartTime,
+			deliveries,
+			providerId: PROVIDERS.STREET_STREAM
 		};
 	} catch (err) {
 		console.error(err);
@@ -1366,10 +1383,23 @@ async function addisonLeeJobRequestWithQuote(quoteId, params, vehicleSpecs) {
 	}
 }
 
-async function confirmCharge(customerId, { standardMonthly, standardCommission, multiDropCommission }, canCharge, deliveryType, quantity=1) {
+async function confirmCharge(
+	customerId,
+	{ standardMonthly, standardCommission, multiDropCommission },
+	canCharge,
+	deliveryType,
+	quantity = 1
+) {
 	try {
 		console.log('*********************************');
-		console.table({ customerId, standardMonthly, standardCommission, multiDropCommission, canCharge, deliveryType });
+		console.table({
+			customerId,
+			standardMonthly,
+			standardCommission,
+			multiDropCommission,
+			canCharge,
+			deliveryType
+		});
 		console.log('*********************************');
 		let usageRecord;
 		if (standardCommission && canCharge) {
@@ -1387,10 +1417,10 @@ async function confirmCharge(customerId, { standardMonthly, standardCommission, 
 				});
 			}
 		}
-		console.log("------------------------------")
-		console.log("USAGE RECORD")
+		console.log('------------------------------');
+		console.log('USAGE RECORD');
 		console.table(usageRecord);
-		console.log("------------------------------")
+		console.log('------------------------------');
 	} catch (e) {
 		console.error(e);
 		throw e;

@@ -238,6 +238,13 @@ router.post('/create', async (req, res) => {
 	}
 });
 
+/**
+ * Create Multi-drop Job - creates a job with multiple dropoffs based on delivery requirements
+ * @constructor
+ * @param req - request object
+ * @param res - response object
+ * @returns {Promise<*>}
+ */
 router.post('/multi-drop', async (req, res) => {
 	try {
 		console.table(req.body);
@@ -275,9 +282,9 @@ router.post('/multi-drop', async (req, res) => {
 			req.body.drops[index]['reference'] = genOrderReference();
 		}
 		// Check if a pickupStartTime was passed through, if not set it to 45 minutes ahead of current time
-		if (!packagePickupStartTime) packagePickupStartTime = moment().add(45, 'minutes').format();
+		if (!packagePickupStartTime) req.body.packagePickupStartTime = moment().add(45, 'minutes').format();
 		// CHECK DELIVERY HOURS
-		let canDeliver = checkDeliveryHours(packagePickupStartTime, deliveryHours);
+		let canDeliver = checkDeliveryHours(req.body.packagePickupStartTime, deliveryHours);
 		if (!canDeliver) {
 			let interval = 20;
 			const nextDayDeliveryTime = setNextDayDeliveryTime(deliveryHours);
@@ -306,7 +313,8 @@ router.post('/multi-drop', async (req, res) => {
 				id: spec_id,
 				deliveryFee,
 				pickupAt,
-				deliveries
+				deliveries,
+				providerId
 			} = await providerCreateMultiJob(null, jobReference, selectionStrategy, req.body, vehicleSpecs);
 			let job = {
 				createdAt: moment().format(),
@@ -342,7 +350,7 @@ router.post('/multi-drop', async (req, res) => {
 					createdAt: moment().format(),
 					deliveryFee,
 					winnerQuote: '',
-					providerId: 'stuart',
+					providerId,
 					quotes: []
 				},
 				status: STATUS.NEW
