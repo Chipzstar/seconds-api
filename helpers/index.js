@@ -329,8 +329,8 @@ async function providerCreateMultiJob(provider, ref, strategy, request, vehicleS
 			console.log('Creating STREET-STREAM Job');
 			return await streetStreamMultiJobRequest(ref, strategy, request, vehicleSpecs);
 		default:
-			console.log('Creating STREET-STREAM Job');
-			return await streetStreamMultiJobRequest(ref, strategy, request, vehicleSpecs);
+			console.log('Creating STUART Job');
+			return await stuartMultiJobRequest(ref, request, vehicleSpecs);
 	}
 }
 

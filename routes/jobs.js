@@ -268,7 +268,6 @@ router.post('/multi-drop', async (req, res) => {
 		// do job distance calculation
 		for (let drop of drops) {
 			const index = drops.indexOf(drop);
-			console.table(drop);
 			const jobDistance = await calculateJobDistance(pickupAddress, drop.dropoffAddress, vehicleSpecs.travelMode);
 			// check if distance is less than or equal to the vehicle's max pickup to dropoff distance
 			if (jobDistance > vehicleSpecs.maxDistance) {
