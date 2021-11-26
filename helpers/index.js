@@ -1114,10 +1114,10 @@ async function streetStreamMultiJobRequest(ref, strategy, params, vehicleSpecs) 
 		drops
 	} = params;
 
-	let lastDropoffTime = moment().format();
+	let lastDropoffTime = moment().toISOString(true);
 	const dropoffs = drops.map(drop => {
 		if (moment(drop.packageDropoffStartTime).diff(lastDropoffTime) > 0)
-			lastDropoffTime = moment(drop.packageDropoffStartTime).format();
+			lastDropoffTime = moment(drop.packageDropoffStartTime).toISOString(true);
 		return {
 			contactNumber: drop.dropoffPhoneNumber,
 			contactName: `${drop.dropoffFirstName} ${drop.dropoffLastName}`,
@@ -1141,7 +1141,7 @@ async function streetStreamMultiJobRequest(ref, strategy, params, vehicleSpecs) 
 			insuranceCover: 'PERSONAL',
 			submitForQuotesImmediately: true,
 			optimiseRoute: true,
-			deliveryFrom: packagePickupStartTime,
+			deliveryFrom: moment(packagePickupStartTime).toISOString(true),
 			deliveryTo: lastDropoffTime,
 			pickUp: {
 				contactNumber: pickupPhoneNumber,
@@ -1150,10 +1150,10 @@ async function streetStreamMultiJobRequest(ref, strategy, params, vehicleSpecs) 
 				city: pickupCity,
 				postcode: pickupPostcode,
 				pickUpNotes: pickupInstructions,
-				pickUpFrom: moment(packagePickupStartTime).format(),
+				pickUpFrom: moment(packagePickupStartTime).toISOString(true),
 				pickUpTo: packagePickupEndTime
-					? moment(packagePickupEndTime).format()
-					: moment(packagePickupStartTime).add(5, 'minutes').format()
+					? moment(packagePickupEndTime).toISOString(true)
+					: moment(packagePickupStartTime).add(5, 'minutes').toISOString(true)
 			},
 			drops: dropoffs
 		}
