@@ -65,7 +65,6 @@ stuartAxios.interceptors.response.use(
 streetStreamAxios.interceptors.response.use(
 	response => response,
 	error => {
-		console.log(error)
 		console.error(error.response);
 		if (error.response && error.response.status === 403) {
 			return authStreetStream()
@@ -76,6 +75,7 @@ streetStreamAxios.interceptors.response.use(
 				})
 				.catch(err => Promise.reject(err));
 		}
+		return Promise.reject(error);
 	}
 );
 
