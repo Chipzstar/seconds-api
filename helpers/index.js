@@ -65,7 +65,8 @@ stuartAxios.interceptors.response.use(
 streetStreamAxios.interceptors.response.use(
 	response => response,
 	error => {
-		console.error(error.response.data);
+		console.log(error)
+		console.error(error.response);
 		if (error.response && error.response.status === 403) {
 			return authStreetStream()
 				.then(token => {
