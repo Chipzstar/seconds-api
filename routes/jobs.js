@@ -15,7 +15,7 @@ const {
 	genOrderReference,
 	providerCreateMultiJob
 } = require('../helpers');
-const { AUTHORIZATION_KEY, PROVIDER_ID, STATUS, COMMISSION, DELIVERY_TYPES } = require('../constants');
+const { AUTHORIZATION_KEY, PROVIDER_ID, STATUS, COMMISSION, DELIVERY_TYPES, PROVIDERS } = require('../constants');
 const moment = require('moment');
 const mongoose = require('mongoose');
 const router = express.Router();
@@ -314,7 +314,7 @@ router.post('/multi-drop', async (req, res) => {
 				pickupAt,
 				deliveries,
 				providerId
-			} = await providerCreateMultiJob(null, jobReference, selectionStrategy, req.body, vehicleSpecs);
+			} = await providerCreateMultiJob(PROVIDERS.STREET_STREAM, jobReference, selectionStrategy, req.body, vehicleSpecs);
 			let job = {
 				createdAt: moment().format(),
 				driverInformation: {
