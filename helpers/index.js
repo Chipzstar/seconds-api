@@ -1035,10 +1035,10 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 				city: pickupCity,
 				postcode: pickupPostcode,
 				pickUpNotes: pickupInstructions,
-				pickUpFrom: packagePickupStartTime ? moment(packagePickupStartTime).format() : moment().format(),
+				pickUpFrom: packagePickupStartTime ? moment(packagePickupStartTime).toISOString(true) : moment().toISOString(true),
 				pickUpTo: packagePickupEndTime
-					? moment(packagePickupEndTime).format()
-					: moment().add(5, 'minutes').format()
+					? moment(packagePickupEndTime).toISOString(true)
+					: moment().add(5, 'minutes').toISOString(true)
 			},
 			dropOff: {
 				contactNumber: dropoffPhoneNumber,
@@ -1046,10 +1046,10 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 				addressOne: dropoffAddressLine1 + dropoffAddressLine2,
 				city: dropoffCity,
 				postcode: dropoffPostcode,
-				dropOffFrom: packageDropoffStartTime ? moment(packageDropoffStartTime).format() : moment().format(),
+				dropOffFrom: packageDropoffStartTime ? moment(packageDropoffStartTime).toISOString(true) : moment().toISOString(true),
 				dropOffTo: packageDropoffEndTime
-					? moment(packageDropoffEndTime).format()
-					: moment().add(5, 'minutes').format(),
+					? moment(packageDropoffEndTime).toISOString(true)
+					: moment().add(5, 'minutes').toISOString(true),
 				clientTag: reference,
 				deliveryNotes: dropoffInstructions
 			}
