@@ -23,8 +23,6 @@ const { validateApiKey } = require('./middleware/auth');
 const app = express();
 const db = require('./models/index');
 const sendEmail = require('./services/email');
-const { confirmCharge, getClientDetails } = require('./helpers');
-const { AUTHORIZATION_KEY } = require('./constants');
 
 app.set('port', process.env.PORT || port);
 
@@ -98,7 +96,7 @@ app.post('/test/mail', async (req, res) => {
 });
 
 // TEST ENDPOINTS
-app.get('/test/stripe/report-usage', async (req, res) => {
+/*app.get('/test/stripe/report-usage', async (req, res) => {
 	try {
 		const { deliveryType, quantity } = req.query;
 		const apiKey = req.headers[AUTHORIZATION_KEY];
@@ -109,7 +107,7 @@ app.get('/test/stripe/report-usage', async (req, res) => {
 		console.error(err);
 		res.status(400).json({ message: err.message });
 	}
-});
+});*/
 // starting the server
 app.listen(port, () => {
 	console.log(`listening on port ${port}`);

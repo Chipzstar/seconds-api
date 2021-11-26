@@ -1165,29 +1165,29 @@ async function streetStreamMultiJobRequest(ref, strategy, params, vehicleSpecs) 
 		const response = (await streetStreamAxios.post(multiJobURL, payload));
 		if (response.data) {
 			let { data } = response;
-			let deliveries = data['drops'].map(delivery => ({
+			let deliveries = data['drops'].map((delivery, index) => ({
 				id: delivery.id,
 				orderReference: delivery.clientTag,
 				description: delivery['deliveryNotes'],
 				dropoffStartTime: delivery['dropOffFrom']
 					? moment(delivery['dropOffFrom']).format()
-					: drops[0].packageDropoffStartTime,
+					: drops[index].packageDropoffStartTime,
 				dropoffEndTime: delivery['dropOffTo']
 					? moment(delivery['dropOffTo']).format()
-					: drops[0].packageDropoffEndTime,
+					: drops[index].packageDropoffEndTime,
 				transport: vehicleSpecs.name,
 				dropoffLocation: {
-					fullAddress: drops[0].dropoffAddress,
+					fullAddress: drops[index].dropoffAddress,
 					streetAddress: delivery['addressOne'] + delivery['addressTwo'] ? delivery['addressTwo'] : "",
 					city: delivery['city'],
 					postcode: delivery['postcode'],
 					country: 'UK',
 					phoneNumber: delivery['contactNumber'],
-					email: drops[0].dropoffEmailAddress ? drops[0].dropoffEmailAddress : '',
-					firstName: drops[0].dropoffFirstName,
-					lastName: drops[0].dropoffLastName,
-					businessName: drops[0].dropoffBusinessName ? drops[0].dropoffBusinessName : '',
-					instructions: drops[0].dropoffInstructions ? drops[0].dropoffInstructions : ''
+					email: drops[index].dropoffEmailAddress ? drops[index].dropoffEmailAddress : '',
+					firstName: drops[index].dropoffFirstName,
+					lastName: drops[index].dropoffLastName,
+					businessName: drops[index].dropoffBusinessName ? drops[index].dropoffBusinessName : '',
+					instructions: drops[index].dropoffInstructions ? drops[index].dropoffInstructions : ''
 				},
 				trackingURL: '',
 				status: STATUS.PENDING
