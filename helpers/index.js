@@ -1156,49 +1156,52 @@ async function streetStreamMultiJobRequest(ref, strategy, params, vehicleSpecs) 
 					: moment(packagePickupStartTime).add(5, 'minutes').toISOString(true)
 			},
 			drops: dropoffs
-		}
+		};
 		console.log("---------------------------------------")
 		console.log("PAYLOAD")
 		console.log(payload)
 		console.log("---------------------------------------")
 		const multiJobURL = `${process.env.STREET_STREAM_ENV}/api/job/multidrop`;
 		const response = (await streetStreamAxios.post(multiJobURL, payload));
-		console.log(response);
-		let data = response.data
-		let deliveries = data['drops'].map(delivery => ({
-			id: delivery.id,
-			orderReference: delivery.clientTag,
-			description: delivery['deliveryNotes'],
-			dropoffStartTime: delivery['dropOffFrom']
-				? moment(delivery['dropOffFrom']).format()
-				: drops[0].packageDropoffStartTime,
-			dropoffEndTime: delivery['dropOffTo']
-				? moment(delivery['dropOffTo']).format()
-				: drops[0].packageDropoffEndTime,
-			transport: vehicleSpecs.name,
-			dropoffLocation: {
-				fullAddress: drops[0].dropoffAddress,
-				streetAddress: delivery['addressOne'] + delivery['addressTwo'] ? delivery['addressTwo'] : "",
-				city: delivery['city'],
-				postcode: delivery['postcode'],
-				country: 'UK',
-				phoneNumber: delivery['contactNumber'],
-				email: drops[0].dropoffEmailAddress ? drops[0].dropoffEmailAddress : '',
-				firstName: drops[0].dropoffFirstName,
-				lastName: drops[0].dropoffLastName,
-				businessName: drops[0].dropoffBusinessName ? drops[0].dropoffBusinessName : '',
-				instructions: drops[0].dropoffInstructions ? drops[0].dropoffInstructions : ''
-			},
-			trackingURL: '',
-			status: STATUS.PENDING
-		}));
-		return {
-			id: data.id,
-			deliveryFee: data['jobCharge']['totalPayableWithVat'],
-			pickupAt: data['pickUp']['pickUpFrom'] ? data['pickUp']['pickUpFrom'] : packagePickupStartTime,
-			deliveries,
-			providerId: PROVIDERS.STREET_STREAM
-		};
+		if (response.data) {
+			let { data } = response;
+			let deliveries = data['drops'].map(delivery => ({
+				id: delivery.id,
+				orderReference: delivery.clientTag,
+				description: delivery['deliveryNotes'],
+				dropoffStartTime: delivery['dropOffFrom']
+					? moment(delivery['dropOffFrom']).format()
+					: drops[0].packageDropoffStartTime,
+				dropoffEndTime: delivery['dropOffTo']
+					? moment(delivery['dropOffTo']).format()
+					: drops[0].packageDropoffEndTime,
+				transport: vehicleSpecs.name,
+				dropoffLocation: {
+					fullAddress: drops[0].dropoffAddress,
+					streetAddress: delivery['addressOne'] + delivery['addressTwo'] ? delivery['addressTwo'] : "",
+					city: delivery['city'],
+					postcode: delivery['postcode'],
+					country: 'UK',
+					phoneNumber: delivery['contactNumber'],
+					email: drops[0].dropoffEmailAddress ? drops[0].dropoffEmailAddress : '',
+					firstName: drops[0].dropoffFirstName,
+					lastName: drops[0].dropoffLastName,
+					businessName: drops[0].dropoffBusinessName ? drops[0].dropoffBusinessName : '',
+					instructions: drops[0].dropoffInstructions ? drops[0].dropoffInstructions : ''
+				},
+				trackingURL: '',
+				status: STATUS.PENDING
+			}));
+			return {
+				id: data.id,
+				deliveryFee: data['jobCharge']['totalPayableWithVat'],
+				pickupAt: data['pickUp']['pickUpFrom'] ? data['pickUp']['pickUpFrom'] : packagePickupStartTime,
+				deliveries,
+				providerId: PROVIDERS.STREET_STREAM
+			};
+		} else {
+			throw new Error("There was an issue creating your multi drop with street stream")
+		}
 	} catch (err) {
 		console.error(err);
 		throw err;
