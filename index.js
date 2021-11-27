@@ -71,6 +71,7 @@ app.use('/api/v1/shopify', shopifyRoutes);
 app.post('/test/mail', async (req, res) => {
 	try {
 		const { name, email, subject, text, html, templateId, templateData } = req.body;
+		console.table(req.body)
 		let options = {
 			name,
 			email,
@@ -78,7 +79,7 @@ app.post('/test/mail', async (req, res) => {
 			...(text && { text: text }),
 			...(html && { html: html }),
 			...(templateId && { templateId: templateId }),
-			...(templateData && { dynamicTemplateData: templateData })
+			...(templateData && { templateData: templateData })
 		};
 		const response = await sendEmail(options);
 		console.log(response);
