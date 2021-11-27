@@ -109,10 +109,12 @@ router.post('/create', async (req, res) => {
 				vehicleSpecs.travelMode
 			);
 		}
-		// Check if a pickupStartTime was passed through, if not set it to 45 minutes ahead of current time
+		// Check if a pickupStartTime was passed through, if not set it to 30 minutes ahead of current time
 		if (!packagePickupStartTime) {
-			req.body.packagePickupStartTime = moment().add(45, 'minutes').format();
+			req.body.packagePickupStartTime = moment().add(30, 'minutes').format();
+			req.body.packagePickupEndTime = moment().add(35, "minutes").format();
 			req.body.drops[0].packageDropoffStartTime = moment().add(75, 'minutes').format();
+			req.body.drops[0].packageDropoffEndTime = moment().add(80, 'minutes').format();
 		}
 		// CHECK DELIVERY HOURS
 		let canDeliver = checkDeliveryHours(req.body.packagePickupStartTime, deliveryHours);

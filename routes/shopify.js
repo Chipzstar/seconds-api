@@ -18,7 +18,6 @@ const {
 const { DELIVERY_TYPES, VEHICLE_CODES_MAP, VEHICLE_CODES, STATUS, COMMISSION } = require('../constants');
 const moment = require('moment');
 const { DELIVERY_METHODS } = require('../constants/shopify');
-const { v4: uuidv4 } = require('uuid');
 const sendEmail = require('../services/email');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const orderId = require('order-id')(process.env.UID_SECRET_KEY);
