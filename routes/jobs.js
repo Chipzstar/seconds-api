@@ -70,8 +70,8 @@ router.get('/', async (req, res) => {
  */
 router.post('/create', async (req, res) => {
 	try {
-		console.table(req.body);
-		console.table(req.body.drops[0]);
+		// console.table(req.body);
+		// console.table(req.body.drops[0]);
 		let { pickupAddress, packageDeliveryType, packagePickupStartTime, vehicleType } = req.body;
 		req.body.drops[0]['reference'] = genOrderReference();
 		//generate client reference number
