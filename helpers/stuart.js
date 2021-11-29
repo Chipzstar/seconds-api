@@ -4,6 +4,7 @@ const { STATUS } = require('../constants');
 const { JOB_STATUS, DELIVERY_STATUS } = require('../constants/stuart');
 const { confirmCharge } = require('./index');
 const axios = require('axios');
+const sendEmail = require('../services/email');
 
 async function getStuartAuthToken() {
 	const URL = `${process.env.STUART_ENV}/oauth/token`;
@@ -136,6 +137,27 @@ async function updateDelivery(data) {
 				new: true
 			}
 		);
+		const user = await db.User.findOne({"_id": job.clientId})
+		// check if order status is cancelled and send out email to clients
+		if (deliveryStatus === DELIVERY_STATUS.CANCELLED) {
+			const { canceledBy, comment, reasonKey } = data.cancellation;
+			console.table(data.cancellation)
+			await sendEmail({
+				name: `${user.firstname} ${user.lastname}`,
+				to: `${user.email}`,
+				subject: `Delivery Job Cancelled`,
+				templateId: 'd-90f8f075032e4d4b90fc595ad084d2a6',
+				templateData: {
+					clientReference: `${clientReference}`,
+					customer: `${job.jobSpecification.deliveries[0].firstname} ${job.jobSpecification.deliveries[0].lastname}`,
+					pickup: `${job.jobSpecification.pickupLocation.fullAddress}`,
+					dropoff: `${job.jobSpecification.deliveries[0].dropoffLocation.fullAddress}`,
+					reason: `${reasonKey.replace(/[-_]/g, ' ')} | ${comment}`,
+					cancelledBy: `${canceledBy}`,
+					provider: `stuart`
+				}
+			})
+		}
 		console.table(job.jobSpecification.deliveries.find(({ id }) => id === deliveryId));
 		return deliveryStatus
 	} catch (err) {
