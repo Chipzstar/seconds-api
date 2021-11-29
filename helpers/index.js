@@ -193,21 +193,24 @@ function getVehicleSpecs(vehicleCode) {
 	}
 }
 
-async function checkAlternativeVehicles(pickup, dropoff, jobDistance, travelMode) {
+async function checkAlternativeVehicles(pickup, dropoff, jobDistance, vehicleSpecs) {
 	try {
 		for (let [code, specs] of Object.entries(VEHICLE_CODES_MAP)) {
 			// if travelMode of the transport type changes, calculate the job distance again using the new mode
-			if (travelMode !== specs.travelMode)
+			if (vehicleSpecs.travelMode !== specs.travelMode)
 				jobDistance = await calculateJobDistance(pickup, dropoff, specs.travelMode);
+			// if jobDistance is within the vehicle's allowed max limit
 			if (jobDistance <= specs.maxDistance) {
 				console.log('Changing Vehicle Type:', specs.name);
 				return specs;
 			}
 		}
-		return Promise.reject({
+		vehicleSpecs.stuartPackageType = null;
+		return vehicleSpecs
+		/*return Promise.reject({
 			message: `Job distance between ${pickup} and ${dropoff} exceeds the maximum limit. The maximum distance for delivery jobs is 12 miles`,
 			code: 400
-		});
+		});*/
 	} catch (err) {
 		console.log(err);
 	}
@@ -273,19 +276,19 @@ function setNextDayDeliveryTime(deliveryHours) {
 async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance) {
 	try {
 		const QUOTES = [];
-		// check if the current vehicle is supported by Stuart and if the job distance is within the maximum limit
-		if (vehicleSpecs.stuartPackageType) {
-			// check if distance is less than or equal to the vehicle's max pickup to dropoff distance
-			if (jobDistance > vehicleSpecs.maxDistance) {
-				vehicleSpecs = await checkAlternativeVehicles(
-					requestBody.pickupAddress,
-					requestBody.drops[0].dropoffAddress,
-					jobDistance,
-					vehicleSpecs.travelMode
-				);
+		// check if distance is less than or equal to the vehicle's max pickup to dropoff distance
+		if (jobDistance > vehicleSpecs.maxDistance) {
+			vehicleSpecs = await checkAlternativeVehicles(
+				requestBody.pickupAddress,
+				requestBody.drops[0].dropoffAddress,
+				jobDistance,
+				vehicleSpecs
+			);
+			// check if the current vehicle is supported by Stuart and if the job distance is within the maximum limit
+			if (vehicleSpecs.stuartPackageType) {
+				let stuartQuote = await getStuartQuote(genJobReference(), requestBody, vehicleSpecs);
+				QUOTES.push(stuartQuote);
 			}
-			let stuartQuote = await getStuartQuote(genJobReference(), requestBody, vehicleSpecs);
-			QUOTES.push(stuartQuote);
 		}
 		let gophrQuote = await getGophrQuote(requestBody, vehicleSpecs);
 		QUOTES.push(gophrQuote);
@@ -1046,7 +1049,9 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 				city: pickupCity,
 				postcode: pickupPostcode,
 				pickUpNotes: pickupInstructions,
-				pickUpFrom: packagePickupStartTime ? moment(packagePickupStartTime).toISOString(true) : moment().toISOString(true),
+				pickUpFrom: packagePickupStartTime
+					? moment(packagePickupStartTime).toISOString(true)
+					: moment().toISOString(true),
 				pickUpTo: packagePickupEndTime
 					? moment(packagePickupEndTime).toISOString(true)
 					: moment().add(5, 'minutes').toISOString(true)
@@ -1057,7 +1062,9 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 				addressOne: dropoffAddressLine1 + dropoffAddressLine2,
 				city: dropoffCity,
 				postcode: dropoffPostcode,
-				dropOffFrom: packageDropoffStartTime ? moment(packageDropoffStartTime).toISOString(true) : moment().toISOString(true),
+				dropOffFrom: packageDropoffStartTime
+					? moment(packageDropoffStartTime).toISOString(true)
+					: moment().toISOString(true),
 				dropOffTo: packageDropoffEndTime
 					? moment(packageDropoffEndTime).toISOString(true)
 					: moment().add(5, 'minutes').toISOString(true),
@@ -1168,12 +1175,12 @@ async function streetStreamMultiJobRequest(ref, strategy, params, vehicleSpecs) 
 			},
 			drops: dropoffs
 		};
-		console.log("---------------------------------------")
-		console.log("PAYLOAD")
-		console.log(payload)
-		console.log("---------------------------------------")
+		console.log('---------------------------------------');
+		console.log('PAYLOAD');
+		console.log(payload);
+		console.log('---------------------------------------');
 		const multiJobURL = `${process.env.STREET_STREAM_ENV}/api/job/multidrop`;
-		const response = (await streetStreamAxios.post(multiJobURL, payload));
+		const response = await streetStreamAxios.post(multiJobURL, payload);
 		if (response.data) {
 			let { data } = response;
 			let deliveries = data['drops'].map((delivery, index) => ({
@@ -1189,7 +1196,7 @@ async function streetStreamMultiJobRequest(ref, strategy, params, vehicleSpecs) 
 				transport: vehicleSpecs.name,
 				dropoffLocation: {
 					fullAddress: drops[index].dropoffAddress,
-					streetAddress: delivery['addressOne'] + delivery['addressTwo'] ? delivery['addressTwo'] : "",
+					streetAddress: delivery['addressOne'] + delivery['addressTwo'] ? delivery['addressTwo'] : '',
 					city: delivery['city'],
 					postcode: delivery['postcode'],
 					country: 'UK',
@@ -1211,7 +1218,7 @@ async function streetStreamMultiJobRequest(ref, strategy, params, vehicleSpecs) 
 				providerId: PROVIDERS.STREET_STREAM
 			};
 		} else {
-			throw new Error("There was an issue creating your multi drop with street stream")
+			throw new Error('There was an issue creating your multi drop with street stream');
 		}
 	} catch (err) {
 		console.error(err);
@@ -1448,8 +1455,8 @@ async function confirmCharge(
 }
 
 async function sendNewJobEmails(team, job) {
-	console.log("TEAM")
-	team.forEach(member => console.table(member))
+	console.log('TEAM');
+	team.forEach(member => console.table(member));
 	try {
 		return await Promise.all(
 			team.map(
@@ -1469,8 +1476,8 @@ async function sendNewJobEmails(team, job) {
 							eta: job.jobSpecification.pickupStartTime
 								? moment(job.jobSpecification.pickupStartTime).calendar()
 								: 'N/A',
-							unsubscribe: 'https://useseconds.com',
-						},
+							unsubscribe: 'https://useseconds.com'
+						}
 					})
 			)
 		);

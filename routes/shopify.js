@@ -156,14 +156,6 @@ async function createNewJob(order, user) {
 			payload.drops[0].dropoffAddress,
 			vehicleSpecs.travelMode
 		);
-		// check if distance is less than or equal to the vehicle's max pickup to dropoff distance
-		if (jobDistance > vehicleSpecs.maxDistance)
-			vehicleSpecs = await checkAlternativeVehicles(
-				payload.pickupAddress,
-				payload.drops[0].dropoffAddress,
-				jobDistance,
-				vehicleSpecs.travelMode
-			);
 		// check delivery hours
 		let canDeliver = checkDeliveryHours(payload.packagePickupStartTime, deliveryHours);
 		if (!canDeliver) {
@@ -177,7 +169,7 @@ async function createNewJob(order, user) {
 		console.log('-----------------------------------------------------------------');
 		console.log(payload.packagePickupStartTime);
 		console.log('-----------------------------------------------------------------');
-		const QUOTES = await getResultantQuotes(payload, vehicleSpecs);
+		const QUOTES = await getResultantQuotes(payload, vehicleSpecs, jobDistance);
 		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
 		const providerId = bestQuote.providerId;
 		const winnerQuote = bestQuote.id;
