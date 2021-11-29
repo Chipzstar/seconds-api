@@ -77,16 +77,16 @@ async function updateJob(data) {
 			firstname,
 			lastname,
 			phone,
-			transportType: { code },
+			transportType: { code }
 		} = driver;
 		// update the status for the current job
 		await db.Job.findOneAndUpdate(
 			{ 'jobSpecification.id': jobId },
 			{
-				'status': translateStuartStatus(jobStatus),
+				status: translateStuartStatus(jobStatus),
 				'driverInformation.name': `${firstname} ${lastname}`,
 				'driverInformation.phone': phone,
-				'driverInformation.transport': code,
+				'driverInformation.transport': code
 			},
 			{ new: true }
 		);
@@ -96,11 +96,11 @@ async function updateJob(data) {
 				$set: {
 					'jobSpecification.pickupStartTime': moment(etaToOrigin).toISOString(),
 					'jobSpecification.deliveries.$.dropoffStartTime': moment(etaToDestination).toISOString(),
-					'jobSpecification.deliveries.$.status': translateStuartStatus(deliveryStatus),
-				},
+					'jobSpecification.deliveries.$.status': translateStuartStatus(deliveryStatus)
+				}
 			},
 			{
-				new: true,
+				new: true
 			}
 		);
 		console.log(job.jobSpecification);
@@ -110,7 +110,13 @@ async function updateJob(data) {
 			console.log('STUART JOB COMPLETEEEEEEE!');
 			console.log('****************************************************************');
 			let { stripeCustomerId, subscriptionItems } = await db.User.findOne({ _id: job.clientId }, {});
-			confirmCharge(stripeCustomerId, subscriptionItems, job.commissionCharge, job.jobSpecification.deliveryType, job.jobSpecification.deliveries.length);
+			confirmCharge(
+				stripeCustomerId,
+				subscriptionItems,
+				job.commissionCharge,
+				job.jobSpecification.deliveryType,
+				job.jobSpecification.deliveries.length
+			);
 		}
 		return jobStatus;
 	} catch (err) {
@@ -124,25 +130,26 @@ async function updateDelivery(data) {
 		const { status: deliveryStatus, id: deliveryId, clientReference, etaToOrigin, etaToDestination } = data;
 		console.table({ deliveryStatus, deliveryId, clientReference, etaToOrigin, etaToDestination });
 		const job = await db.Job.findOneAndUpdate(
-			{'jobSpecification.deliveries.id': deliveryId },
+			{ 'jobSpecification.deliveries.id': deliveryId },
 			{
 				$set: {
-					'status': translateStuartStatus(deliveryStatus),
+					status: translateStuartStatus(deliveryStatus),
 					'jobSpecification.pickupStartTime': moment(etaToOrigin).toISOString(),
 					'jobSpecification.deliveries.$.dropoffStartTime': moment(etaToDestination).toISOString(),
-					'jobSpecification.deliveries.$.status': translateStuartStatus(deliveryStatus),
-				},
+					'jobSpecification.deliveries.$.status': translateStuartStatus(deliveryStatus)
+				}
 			},
 			{
 				new: true
 			}
 		);
-		const user = await db.User.findOne({"_id": job.clientId})
+		const user = await db.User.findOne({ _id: job.clientId });
+		console.log('User', !!user);
 		// check if order status is cancelled and send out email to clients
 		if (deliveryStatus === DELIVERY_STATUS.CANCELLED) {
 			const { canceledBy, comment, reasonKey } = data.cancellation;
-			console.table(data.cancellation)
-			await sendEmail({
+			console.table(data.cancellation);
+			let options = {
 				name: `${user.firstname} ${user.lastname}`,
 				to: `${user.email}`,
 				subject: `Delivery Job Cancelled`,
@@ -156,10 +163,13 @@ async function updateDelivery(data) {
 					cancelledBy: `${canceledBy}`,
 					provider: `stuart`
 				}
-			})
+			};
+			console.log(options)
+			await sendEmail(options);
+			console.log('CANCELLATION EMAIL SENT!');
 		}
 		console.table(job.jobSpecification.deliveries.find(({ id }) => id === deliveryId));
-		return deliveryStatus
+		return deliveryStatus;
 	} catch (err) {
 		console.error(err);
 		throw err;
