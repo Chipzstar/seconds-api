@@ -20,33 +20,25 @@ const router = express.Router();
  */
 router.post('/', async (req, res) => {
 	try {
-		console.table(req.body)
-		console.table(req.body.drops[0])
+		// console.table(req.body)
+		// console.table(req.body.drops[0])
 		const user = await getClientDetails(req.headers[AUTHORIZATION_KEY]);
 		console.log('Strategy: ', user.selectionStrategy);
 		// check that the vehicleType is valid and return the vehicle's specifications
 		let vehicleSpecs = getVehicleSpecs(req.body.vehicleType);
-		console.log(vehicleSpecs);
+		console.table(vehicleSpecs);
 		// calculate job distance
 		const jobDistance = await calculateJobDistance(
 			req.body.pickupAddress,
 			req.body.drops[0].dropoffAddress,
 			vehicleSpecs.travelMode
 		);
-		// check if distance is less than or equal to the vehicle's max pickup to dropoff distance
-		if (jobDistance > vehicleSpecs.maxDistance)
-			vehicleSpecs = await checkAlternativeVehicles(
-				req.body.pickupAddress,
-				req.body.drops[0].dropoffAddress,
-				jobDistance,
-				vehicleSpecs.travelMode
-			);
-		// Check if a pickupStartTime was passed through, if not set it to 45 minutes ahead of current time
+		// Check if a pickupStartTime was passed through, if not set it to 30 minutes ahead of current time
 		if (!req.body.packagePickupStartTime) {
-			req.body.packagePickupStartTime = moment().add(45, 'minutes').format();
-			req.body.drops[0].packageDropoffStartTime = moment().add(75, 'minutes').format();
+			req.body.packagePickupStartTime = moment().add(30, 'minutes').format();
+			req.body.drops[0].packageDropoffStartTime = moment().add(60, 'minutes').format();
 		}
-		const quotes = await getResultantQuotes(req.body, vehicleSpecs);
+		const quotes = await getResultantQuotes(req.body, vehicleSpecs, jobDistance);
 		const bestQuote = chooseBestProvider(user.selectionStrategy, quotes);
 		return res.status(200).json({
 			quotes,
