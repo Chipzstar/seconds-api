@@ -153,7 +153,7 @@ async function updateDelivery(data) {
 			let reason = comment ? `${reasonKey} | ${comment}` : reasonKey
 			let options = {
 				name: `${user.firstname} ${user.lastname}`,
-				to: `${user.email}`,
+				email: `${user.email}`,
 				subject: `Delivery Job Cancelled`,
 				templateId: 'd-90f8f075032e4d4b90fc595ad084d2a6',
 				templateData: {
