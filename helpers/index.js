@@ -203,7 +203,8 @@ async function checkAlternativeVehicles(pickup, dropoff, jobDistance, vehicleSpe
 			// if jobDistance is within the vehicle's allowed max limit
 			if (jobDistance <= specs.maxDistance) {
 				console.log('Changing Vehicle Type:', specs.name);
-				return specs;
+				vehicleSpecs.stuartPackageType = specs.stuartPackageType;
+				return vehicleSpecs
 			}
 		}
 		vehicleSpecs.stuartPackageType = null;
@@ -285,6 +286,8 @@ async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance) {
 				jobDistance,
 				vehicleSpecs
 			);
+			console.log("NEW Vehicle Specs")
+			console.table(vehicleSpecs)
 			// check if the current vehicle is supported by Stuart and if the job distance is within the maximum limit
 			if (vehicleSpecs.stuartPackageType) {
 				let stuartQuote = await getStuartQuote(genJobReference(), requestBody, vehicleSpecs);
