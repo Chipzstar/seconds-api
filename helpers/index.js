@@ -294,6 +294,7 @@ async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance) {
 				QUOTES.push(stuartQuote);
 			}
 		}
+		console.table(vehicleSpecs)
 		let gophrQuote = await getGophrQuote(requestBody, vehicleSpecs);
 		QUOTES.push(gophrQuote);
 		let streetStreamQuote = await getStreetStreamQuote(requestBody, vehicleSpecs);
