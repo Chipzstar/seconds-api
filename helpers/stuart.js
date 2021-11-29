@@ -162,11 +162,10 @@ async function updateDelivery(data) {
 					pickup: `${job.jobSpecification.pickupLocation.fullAddress}`,
 					dropoff: `${job.jobSpecification.deliveries[0].dropoffLocation.fullAddress}`,
 					reason: `${reason.replace(/[-_]/g, ' ')}`,
-					cancelledBy: `${canceledBy}`,
+					cancelled_by: `${canceledBy}`,
 					provider: `stuart`
 				}
 			};
-			console.log(options)
 			await sendEmail(options);
 			console.log('CANCELLATION EMAIL SENT!');
 		}
