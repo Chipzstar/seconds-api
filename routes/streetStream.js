@@ -1,9 +1,10 @@
 require('dotenv').config();
 const express = require('express');
 const { STATUS } = require('../constants');
-const { JOB_STATUS } = require('../constants/streetStream');
+const { JOB_STATUS, CANCELLATION_REASONS } = require('../constants/streetStream');
 const db = require('../models');
 const { confirmCharge } = require('../helpers');
+const sendEmail = require('../services/email');
 const router = express.Router();
 
 function translateStreetStreamStatus(value) {
@@ -40,20 +41,41 @@ function translateStreetStreamStatus(value) {
 async function update(data) {
 	try {
 		console.log(data);
-		const { status: STATUS, jobId: ID } = data;
-		console.log({ STATUS, ID });
+		const { status: jobStatus, jobId: ID } = data;
+		console.log({ jobStatus, ID });
 		// update the status for the current job
 		let job = await db.Job.findOneAndUpdate(
 			{ 'jobSpecification.id': ID },
 			{
-				'status': translateStreetStreamStatus(STATUS),
-				'jobSpecification.deliveries.$[].status': translateStreetStreamStatus(STATUS),
+				'status': translateStreetStreamStatus(jobStatus),
+				'jobSpecification.deliveries.$[].status': translateStreetStreamStatus(jobStatus),
 			},
 			{ new: true }
 		);
 		if (job) {
 			console.log(job);
-			return STATUS;
+			if (jobStatus === JOB_STATUS.ADMIN_CANCELLED || jobStatus === JOB_STATUS.NO_RESPONSE || jobStatus === JOB_STATUS.NOT_AS_DESCRIBED) {
+				const user = await db.User.findOne({ _id: job.clientId });
+				console.log('User:', !!user);
+				// check if order status is cancelled and send out email to clients
+				let options = {
+					name: `${user.firstname} ${user.lastname}`,
+					email: `${user.email}`,
+					templateId: 'd-90f8f075032e4d4b90fc595ad084d2a6',
+					templateData: {
+						client_reference: `${job.jobSpecification.deliveries[0].orderReference}`,
+						customer: `${job.jobSpecification.deliveries[0].dropoffLocation.firstName} ${job.jobSpecification.deliveries[0].dropoffLocation.lastName}`,
+						pickup: `${job.jobSpecification.pickupLocation.fullAddress}`,
+						dropoff: `${job.jobSpecification.deliveries[0].dropoffLocation.fullAddress}`,
+						reason: `${jobStatus} - ${CANCELLATION_REASONS[jobStatus].replace(/[-_]/g, ' ')}`,
+						cancelled_by: `operations`,
+						provider: `street stream`
+					}
+				};
+				await sendEmail(options);
+				console.log('CANCELLATION EMAIL SENT!');
+			}
+			return jobStatus;
 		}
 		throw { status: 'NO_JOB_FOUND', message: `The jobId ${ID} does not exist` };
 	} catch (err) {

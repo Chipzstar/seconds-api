@@ -18,6 +18,12 @@ exports.JOB_STATUS = {
 	ADMIN_CANCELLED: "ADMIN_CANCELLED"
 }
 
+exports.CANCELLATION_REASONS = {
+	NOT_AS_DESCRIBED: "Package type does not comply with the package type in the booking",
+	NO_RESPONSE: "Courier received no answer from the pickup / dropoff address",
+	ADMIN_CANCELLED: "A Street Stream admin needed to cancel the job. Contact secondsdelivery@gmail.com to enquire"
+}
+
 exports.PACKAGE_TYPES = [
 	{
 		id: 'PT1001',
