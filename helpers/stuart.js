@@ -147,19 +147,21 @@ async function updateDelivery(data) {
 		console.log('User', !!user);
 		// check if order status is cancelled and send out email to clients
 		if (deliveryStatus === DELIVERY_STATUS.CANCELLED) {
-			const { canceledBy, comment, reasonKey } = data.cancellation;
+			let { canceledBy, comment, reasonKey } = data.cancellation;
 			console.table(data.cancellation);
+			reasonKey = reasonKey === "pu_closed" ? "pickup_closed" : reasonKey
+			let reason = comment ? `${reasonKey} | ${comment}` : reasonKey
 			let options = {
 				name: `${user.firstname} ${user.lastname}`,
 				to: `${user.email}`,
 				subject: `Delivery Job Cancelled`,
 				templateId: 'd-90f8f075032e4d4b90fc595ad084d2a6',
 				templateData: {
-					clientReference: `${clientReference}`,
-					customer: `${job.jobSpecification.deliveries[0].firstname} ${job.jobSpecification.deliveries[0].lastname}`,
+					client_reference: `${clientReference}`,
+					customer: `${job.jobSpecification.deliveries[0].dropoffLocation.firstName} ${job.jobSpecification.deliveries[0].dropoffLocation.lastName}`,
 					pickup: `${job.jobSpecification.pickupLocation.fullAddress}`,
 					dropoff: `${job.jobSpecification.deliveries[0].dropoffLocation.fullAddress}`,
-					reason: `${reasonKey.replace(/[-_]/g, ' ')} | ${comment}`,
+					reason: `${reason.replace(/[-_]/g, ' ')}`,
 					cancelledBy: `${canceledBy}`,
 					provider: `stuart`
 				}
