@@ -113,29 +113,30 @@ function chooseBestProvider(strategy, quotes) {
 	let bestEtaIndex;
 	let bestPrice = Infinity;
 	let bestEta = Infinity;
-	console.log(quotes);
+	// console.log(quotes);
 	quotes.forEach(({ priceExVAT, dropoffEta, providerId }, index) => {
-		console.log('------------------------');
-		console.log(providerId);
-		console.log('------------------------');
+		// console.log('------------------------');
+		// console.log(providerId);
+		// console.log('------------------------');
 		if (priceExVAT < bestPrice) {
 			bestPrice = priceExVAT;
 			bestPriceIndex = index;
 		}
-		console.log(dropoffEta);
-		console.log(moment(dropoffEta));
+		// console.log(dropoffEta);
+		// console.log(moment(dropoffEta));
 		let duration = moment.duration(moment(dropoffEta).diff(moment())).asSeconds();
-		console.log('DURATION:', duration);
+		// console.log('DURATION:', duration);
 		if (duration < bestEta) {
 			bestEta = duration;
 			bestEtaIndex = index;
 		}
 	});
+	console.log('BEST')
 	if (strategy === SELECTION_STRATEGIES.PRICE) {
-		console.log('BEST:', quotes[bestPriceIndex]);
+		console.table(quotes[bestPriceIndex]);
 		return quotes[bestPriceIndex];
 	} else {
-		console.log('BEST:', quotes[bestEtaIndex]);
+		console.table(quotes[bestEtaIndex]);
 		return quotes[bestEtaIndex];
 	}
 }
