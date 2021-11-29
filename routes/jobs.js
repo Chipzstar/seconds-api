@@ -13,7 +13,8 @@ const {
 	checkDeliveryHours,
 	setNextDayDeliveryTime,
 	genOrderReference,
-	providerCreateMultiJob
+	providerCreateMultiJob,
+	sendNewJobEmails
 } = require('../helpers');
 const { AUTHORIZATION_KEY, PROVIDER_ID, STATUS, COMMISSION, DELIVERY_TYPES, PROVIDERS } = require('../constants');
 const moment = require('moment');
@@ -89,30 +90,22 @@ router.post('/create', async (req, res) => {
 			selectionStrategy,
 			subscriptionId,
 			subscriptionPlan,
-			deliveryHours
+			deliveryHours,
+			team
 		} = await getClientDetails(apiKey);
 		// check that the vehicleType is valid and return the vehicle's specifications
 		let vehicleSpecs = getVehicleSpecs(vehicleType);
-		console.log(vehicleSpecs);
+		console.table(vehicleSpecs);
 		// do job distance calculation
 		const jobDistance = await calculateJobDistance(
 			pickupAddress,
 			req.body.drops[0].dropoffAddress,
 			vehicleSpecs.travelMode
 		);
-		// check if distance is less than or equal to the vehicle's max pickup to dropoff distance
-		if (jobDistance > vehicleSpecs.maxDistance) {
-			vehicleSpecs = await checkAlternativeVehicles(
-				pickupAddress,
-				req.body.drops[0].dropoffAddress,
-				jobDistance,
-				vehicleSpecs.travelMode
-			);
-		}
 		// Check if a pickupStartTime was passed through, if not set it to 30 minutes ahead of current time
 		if (!packagePickupStartTime) {
 			req.body.packagePickupStartTime = moment().add(30, 'minutes').format();
-			req.body.packagePickupEndTime = moment().add(35, "minutes").format();
+			req.body.packagePickupEndTime = moment().add(35, 'minutes').format();
 			req.body.drops[0].packageDropoffStartTime = moment().add(75, 'minutes').format();
 			req.body.drops[0].packageDropoffEndTime = moment().add(80, 'minutes').format();
 		}
@@ -120,13 +113,13 @@ router.post('/create', async (req, res) => {
 		let canDeliver = checkDeliveryHours(req.body.packagePickupStartTime, deliveryHours);
 		if (!canDeliver) {
 			const nextDayDeliveryTime = setNextDayDeliveryTime(deliveryHours);
-			req.body.packageDeliveryType = "NEXT_DAY";
+			req.body.packageDeliveryType = 'NEXT_DAY';
 			req.body.packagePickupStartTime = nextDayDeliveryTime;
-			req.body.packagePickupEndTime = moment(nextDayDeliveryTime).add(10, "minutes").format();
+			req.body.packagePickupEndTime = moment(nextDayDeliveryTime).add(10, 'minutes').format();
 			req.body.drops[0].packageDropoffStartTime = moment(nextDayDeliveryTime).add(30, 'minutes').format();
 			req.body.drops[0].packageDropoffEndTime = moment(nextDayDeliveryTime).add(40, 'minutes').format();
 		}
-		const QUOTES = await getResultantQuotes(req.body, vehicleSpecs);
+		const QUOTES = await getResultantQuotes(req.body, vehicleSpecs, jobDistance);
 		// Use selection strategy to select the winner quote
 		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
 		// checks if the fleet provider for the delivery was manually selected or not
@@ -155,7 +148,7 @@ router.post('/create', async (req, res) => {
 			console.log('--------------------------------');
 			// if the order limit is exceeded, mark the job with a commission fee charge
 			if (numOrders >= limit) {
-				commissionCharge = true
+				commissionCharge = true;
 			}
 			const {
 				id: spec_id,
@@ -213,6 +206,7 @@ router.post('/create', async (req, res) => {
 			console.log('======================================================================================');
 			// Append the selected provider job to the jobs database
 			const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
+			process.env.NEW_RELIC_APP_NAME === 'seconds-api' && sendNewJobEmails(team, job).then(res => console.log(res));
 			return res.status(200).json({
 				jobId: createdJob._id,
 				...job
@@ -262,7 +256,8 @@ router.post('/multi-drop', async (req, res) => {
 			selectionStrategy,
 			subscriptionId,
 			subscriptionPlan,
-			deliveryHours
+			deliveryHours,
+			team
 		} = await getClientDetails(apiKey);
 		// check that the vehicleType is valid and return the vehicle's specifications
 		let vehicleSpecs = getVehicleSpecs(vehicleType);
@@ -306,7 +301,7 @@ router.post('/multi-drop', async (req, res) => {
 			console.log('--------------------------------');
 			// check whether the client number of orders has exceeded the limit
 			const numOrders = await db.Job.where({ clientId: clientId, status: 'COMPLETED' }).countDocuments();
-			console.table({numOrders, commission, limit})
+			console.table({ numOrders, commission, limit });
 			console.log('--------------------------------');
 			// if so create the payment intent for the new order
 			if (numOrders >= limit) commissionCharge = true;
@@ -316,7 +311,13 @@ router.post('/multi-drop', async (req, res) => {
 				pickupAt,
 				deliveries,
 				providerId
-			} = await providerCreateMultiJob(PROVIDERS.STREET_STREAM, jobReference, selectionStrategy, req.body, vehicleSpecs);
+			} = await providerCreateMultiJob(
+				PROVIDERS.STREET_STREAM,
+				jobReference,
+				selectionStrategy,
+				req.body,
+				vehicleSpecs
+			);
 			let job = {
 				createdAt: moment().format(),
 				driverInformation: {
@@ -361,6 +362,7 @@ router.post('/multi-drop', async (req, res) => {
 			console.log('======================================================================================');
 			// Append the selected provider job to the jobs database
 			const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
+			process.env.NEW_RELIC_APP_NAME === 'seconds-api' && sendNewJobEmails(team, job).then(res => console.log(res));
 			return res.status(200).json({
 				jobId: createdJob._id,
 				...job

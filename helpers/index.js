@@ -22,6 +22,7 @@ const { ERROR_CODES: GOPHR_ERROR_CODES } = require('../constants/gophr');
 const { updateHerokuConfigVar } = require('./heroku');
 const { getStuartAuthToken } = require('./stuart');
 const { authStreetStream } = require('./streetStream');
+const sendEmail = require('../services/email');
 
 // google maps api client
 const client = new Client();
@@ -267,12 +268,22 @@ function setNextDayDeliveryTime(deliveryHours) {
 	}
 }
 
-async function getResultantQuotes(requestBody, vehicleSpecs) {
+// QUOTE AGGREGATION
+// send delivery request to integrated providers
+async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance) {
 	try {
 		const QUOTES = [];
-		// QUOTE AGGREGATION
-		// send delivery request to integrated providers
+		// check if the current vehicle is supported by Stuart and if the job distance is within the maximum limit
 		if (vehicleSpecs.stuartPackageType) {
+			// check if distance is less than or equal to the vehicle's max pickup to dropoff distance
+			if (jobDistance > vehicleSpecs.maxDistance) {
+				vehicleSpecs = await checkAlternativeVehicles(
+					requestBody.pickupAddress,
+					requestBody.drops[0].dropoffAddress,
+					jobDistance,
+					vehicleSpecs.travelMode
+				);
+			}
 			let stuartQuote = await getStuartQuote(genJobReference(), requestBody, vehicleSpecs);
 			QUOTES.push(stuartQuote);
 		}
@@ -1436,6 +1447,38 @@ async function confirmCharge(
 	}
 }
 
+async function sendNewJobEmails(team, job) {
+	console.log("TEAM")
+	team.forEach(member => console.table(member))
+	try {
+		return await Promise.all(
+			team.map(
+				async ({ name, email }) =>
+					await sendEmail({
+						email: email,
+						name: name,
+						subject: 'New delivery job',
+						templateId: 'd-aace035dda44493e8cc507c367da3a03',
+						templateData: {
+							address: job.jobSpecification.deliveries[0].dropoffLocation.fullAddress,
+							customer: `${job.jobSpecification.deliveries[0].dropoffLocation.firstName} ${job.jobSpecification.deliveries[0].dropoffLocation.lastName}`,
+							provider: job.selectedConfiguration.providerId,
+							reference: job.jobSpecification.jobReference,
+							price: job.selectedConfiguration.deliveryFee,
+							created_at: moment(job.createdAt).format('DD/MM/YYYY HH:mm:ss'),
+							eta: job.jobSpecification.pickupStartTime
+								? moment(job.jobSpecification.pickupStartTime).calendar()
+								: 'N/A',
+							unsubscribe: 'https://useseconds.com',
+						},
+					})
+			)
+		);
+	} catch (err) {
+		console.error(err.response ? err.response.body : err);
+	}
+}
+
 module.exports = {
 	genJobReference,
 	genOrderReference,
@@ -1449,6 +1492,7 @@ module.exports = {
 	providerCreatesJob,
 	providerCreateMultiJob,
 	confirmCharge,
+	sendNewJobEmails,
 	setNextDayDeliveryTime,
 	checkMultiDropPrice
 };

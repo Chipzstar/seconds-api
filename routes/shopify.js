@@ -13,13 +13,12 @@ const {
 	checkAlternativeVehicles,
 	checkDeliveryHours,
 	setNextDayDeliveryTime,
-	genOrderReference,
+	genOrderReference, sendNewJobEmails,
 } = require('../helpers');
 const { DELIVERY_TYPES, VEHICLE_CODES_MAP, VEHICLE_CODES, STATUS, COMMISSION } = require('../constants');
 const moment = require('moment');
 const { DELIVERY_METHODS } = require('../constants/shopify');
 const sendEmail = require('../services/email');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const orderId = require('order-id')(process.env.UID_SECRET_KEY);
 
 const client = new Client();
@@ -88,40 +87,6 @@ function convertWeightToVehicleCode(total_weight) {
 	return { vehicleName, vehicleCode };
 }
 
-async function sendNewJobEmails(team, job) {
-	console.log("TEAM")
-	team.forEach(member => console.table(member))
-	try {
-		let allSent = await Promise.all(
-			team.map(
-				async ({ name, email }) =>
-					await sendEmail({
-						email: email,
-						name: name,
-						subject: 'New delivery job',
-						templateId: 'd-aace035dda44493e8cc507c367da3a03',
-						templateData: {
-							address: job.jobSpecification.deliveries[0].dropoffLocation.fullAddress,
-							customer: `${job.jobSpecification.deliveries[0].dropoffLocation.firstName} ${job.jobSpecification.deliveries[0].dropoffLocation.lastName}`,
-							provider: job.selectedConfiguration.providerId,
-							reference: job.jobSpecification.jobReference,
-							price: job.selectedConfiguration.deliveryFee,
-							created_at: moment(job.createdAt).format('DD/MM/YYYY HH:mm:ss'),
-							eta: job.jobSpecification.pickupStartTime
-								? moment().to(moment(job.jobSpecification.pickupStartTime))
-								: 'N/A',
-							unsubscribe: 'https://useseconds.com',
-						},
-					})
-			)
-		);
-		console.log(allSent);
-		return allSent;
-	} catch (err) {
-		console.error(err.response ? err.response.body : err);
-	}
-}
-
 async function createNewJob(order, user) {
 	try {
 		console.log('************************************');
@@ -178,7 +143,7 @@ async function createNewJob(order, user) {
 		console.log('-----------------------------------------------------------------');
 		let commissionCharge = false;
 		const clientRefNumber = genJobReference();
-		const { _id: clientId, email, selectionStrategy, deliveryHours } = user;
+		const { _id: clientId, selectionStrategy, deliveryHours } = user;
 		// get specifications for the vehicle
 		let vehicleSpecs = getVehicleSpecs(payload.vehicleType);
 		console.log('=====================================');
