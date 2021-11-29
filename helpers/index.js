@@ -1410,8 +1410,8 @@ async function confirmCharge(
 			deliveryType
 		});
 		console.log('*********************************');
-		let usageRecord;
 		if (standardCommission && canCharge) {
+			let usageRecord;
 			if (deliveryType === DELIVERY_TYPES.MULTI_DROP.name) {
 				usageRecord = await stripe.subscriptionItems.createUsageRecord(multiDropCommission, {
 					quantity,
@@ -1425,11 +1425,11 @@ async function confirmCharge(
 					timestamp: Math.ceil(Date.now() / 1000)
 				});
 			}
+			console.log('------------------------------');
+			console.log('USAGE RECORD');
+			console.table(usageRecord);
+			console.log('------------------------------');
 		}
-		console.log('------------------------------');
-		console.log('USAGE RECORD');
-		console.table(usageRecord);
-		console.log('------------------------------');
 	} catch (e) {
 		console.error(e);
 		throw e;
