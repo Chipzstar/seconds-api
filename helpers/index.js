@@ -203,11 +203,11 @@ async function checkAlternativeVehicles(pickup, dropoff, jobDistance, vehicleSpe
 			// if jobDistance is within the vehicle's allowed max limit
 			if (jobDistance <= specs.maxDistance) {
 				console.log('Changing Vehicle Type:', specs.name);
-				vehicleSpecs.stuartPackageType = specs.stuartPackageType;
+				vehicleSpecs.stuart = specs.stuart;
 				return vehicleSpecs
 			}
 		}
-		vehicleSpecs.stuartPackageType = null;
+		vehicleSpecs.stuart.packageType = null;
 		return vehicleSpecs
 		/*return Promise.reject({
 			message: `Job distance between ${pickup} and ${dropoff} exceeds the maximum limit. The maximum distance for delivery jobs is 12 miles`,
@@ -289,12 +289,11 @@ async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance) {
 			console.log("NEW Vehicle Specs")
 			console.table(vehicleSpecs)
 			// check if the current vehicle is supported by Stuart and if the job distance is within the maximum limit
-			if (vehicleSpecs.stuartPackageType) {
+			if (vehicleSpecs.stuart.packageType) {
 				let stuartQuote = await getStuartQuote(genJobReference(), requestBody, vehicleSpecs);
 				QUOTES.push(stuartQuote);
 			}
 		}
-		console.table(vehicleSpecs)
 		let gophrQuote = await getGophrQuote(requestBody, vehicleSpecs);
 		QUOTES.push(gophrQuote);
 		let streetStreamQuote = await getStreetStreamQuote(requestBody, vehicleSpecs);
@@ -309,7 +308,7 @@ async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance) {
 				transport: vehicleSpecs.name,
 				priceExVAT: Infinity,
 				currency: 'GBP',
-				providerId: 'ecofleet'
+				providerId: PROVIDERS.ECOFLEET
 			};
 			QUOTES.push(ecoFleetQuote);
 		}
@@ -408,7 +407,7 @@ async function getStuartQuote(reference, params, vehicleSpecs) {
 				dropoffs: [
 					{
 						...dropoffSchema,
-						package_type: vehicleSpecs.stuartPackageType,
+						package_type: vehicleSpecs.stuart.packageType,
 						client_reference: genOrderReference(),
 						address: dropoffAddress,
 						comment: dropoffInstructions,
@@ -438,7 +437,7 @@ async function getStuartQuote(reference, params, vehicleSpecs) {
 			id: `quote_${nanoid(15)}`,
 			createdAt: moment().format(),
 			expireTime: moment().add(5, 'minutes').format(),
-			transport: vehicleSpecs.name,
+			transport: vehicleSpecs.stuart.vehicleName,
 			priceExVAT: amount * 1.2,
 			currency,
 			dropoffEta: packagePickupStartTime
@@ -697,7 +696,7 @@ async function stuartJobRequest(ref, params, vehicleSpecs) {
 				dropoffs: [
 					{
 						...dropoffSchema,
-						package_type: vehicleSpecs.stuartPackageType,
+						package_type: vehicleSpecs.stuart.packageType,
 						package_description: drops[0].packageDescription,
 						client_reference: drops[0].reference,
 						address: drops[0].dropoffAddress,
@@ -790,7 +789,7 @@ async function stuartMultiJobRequest(ref, params, vehicleSpecs) {
 		}) => {
 			return {
 				...dropoffSchema,
-				package_type: vehicleSpecs.stuartPackageType,
+				package_type: vehicleSpecs.stuart.packageType,
 				package_description: packageDescription,
 				client_reference: reference,
 				address: dropoffAddress,

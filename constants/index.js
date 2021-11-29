@@ -51,7 +51,10 @@ exports.VEHICLE_CODES_MAP = {
 		y: 20, // in cm
 		z: 15, // in cm
 		weight: 8, // in kg
-		stuartPackageType: 'xsmall',
+		stuart: {
+			vehicleName: "bicycle",
+			packageType: 'xsmall'
+		},
 		gophrVehicleType: 10,
 		ecofleetVehicle: false,
 		streetPackageType: 'PT1006',
@@ -65,7 +68,10 @@ exports.VEHICLE_CODES_MAP = {
 		y: 30, // in cm
 		z: 30, // in cm
 		weight: 12, // in kg
-		stuartPackageType: 'small',
+		stuart: {
+			vehicleName: "motorbike",
+			packageType: 'small'
+		},
 		gophrVehicleType: 20,
 		ecofleetVehicle: false,
 		streetPackageType: 'PT1008',
@@ -79,7 +85,10 @@ exports.VEHICLE_CODES_MAP = {
 		y: 40, // in cm
 		z: 40, // in cm
 		weight: 25,
-		stuartPackageType: 'large',
+		stuart: {
+			vehicleName: "car",
+			packageType: 'large'
+		},
 		gophrVehicleType: 30,
 		ecofleetVehicle: false,
 		streetPackageType: 'PT1009',
@@ -93,7 +102,10 @@ exports.VEHICLE_CODES_MAP = {
 		y: 50, // in cm
 		z: 50, // in cm
 		weight: 65, // in kg
-		stuartPackageType: null,
+		stuart: {
+			vehicleName: "N/A",
+			packageType: null
+		},
 		gophrVehicleType: 15,
 		ecofleetVehicle: true,
 		streetPackageType: 'PT1012',
@@ -108,7 +120,10 @@ exports.VEHICLE_CODES_MAP = {
 		z: 90, // in cm
 		weight: 70, // in kg
 		gophrVehicleType: 40,
-		stuartPackageType: null,
+		stuart: {
+			vehicleName: "N/A",
+			packageType: null
+		},
 		streetPackageType: 'PT1010',
 		ecofleetVehicle: false,
 		streetVehicleType: 'MEDIUM_VAN_MESSENGER',

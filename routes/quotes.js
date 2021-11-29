@@ -5,8 +5,7 @@ const {
 	getResultantQuotes,
 	chooseBestProvider,
 	getVehicleSpecs,
-	calculateJobDistance,
-	checkAlternativeVehicles,
+	calculateJobDistance
 } = require('../helpers');
 const moment = require('moment');
 const router = express.Router();
