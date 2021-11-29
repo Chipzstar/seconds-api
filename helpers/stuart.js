@@ -143,10 +143,10 @@ async function updateDelivery(data) {
 				new: true
 			}
 		);
-		const user = await db.User.findOne({ _id: job.clientId });
-		console.log('User', !!user);
 		// check if order status is cancelled and send out email to clients
 		if (deliveryStatus === DELIVERY_STATUS.CANCELLED) {
+			const user = await db.User.findOne({ _id: job.clientId });
+			console.log('User:', !!user);
 			let { canceledBy, comment, reasonKey } = data.cancellation;
 			console.table(data.cancellation);
 			reasonKey = reasonKey === "pu_closed" ? "pickup_closed" : reasonKey
@@ -154,7 +154,6 @@ async function updateDelivery(data) {
 			let options = {
 				name: `${user.firstname} ${user.lastname}`,
 				email: `${user.email}`,
-				subject: `Delivery Job Cancelled`,
 				templateId: 'd-90f8f075032e4d4b90fc595ad084d2a6',
 				templateData: {
 					client_reference: `${clientReference}`,
