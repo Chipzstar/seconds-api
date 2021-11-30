@@ -82,6 +82,14 @@ const userSchema = new mongoose.Schema({
 		baseURL: String,
 		accessToken: String
 	},
+	square: {
+		shopId: String,
+		domain: String,
+		country: String,
+		clientId: String,
+		clientSecret: String,
+		accessToken: String
+	},
 	createdAt: {
 		type: Date,
 		default: Date.now()

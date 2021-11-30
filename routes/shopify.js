@@ -115,7 +115,7 @@ async function createNewJob(order, user) {
 			pickupInstructions: order['note'] ? order['note'] : '',
 			packagePickupStartTime: moment().add(45, 'minutes').format(),
 			packagePickupEndTime: moment().add(60, 'minutes').format(),
-			packageDeliveryType: DELIVERY_TYPES.ON_DEMAND.name,
+			packageDeliveryType: DELIVERY_TYPES.ON_DEMAND,
 			packageDescription,
 			itemsCount,
 			vehicleType,
