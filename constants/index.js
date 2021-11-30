@@ -16,7 +16,7 @@ exports.DELIVERY_TYPES = {
 	},
 	MULTI_DROP: {
 		name: 'multi-drop',
-		ecofleet: null
+		ecofleet: 'same day'
 	}
 }
 

@@ -261,7 +261,7 @@ router.post('/multi-drop', async (req, res) => {
 		} = await getClientDetails(apiKey);
 		// check that the vehicleType is valid and return the vehicle's specifications
 		let vehicleSpecs = getVehicleSpecs(vehicleType);
-		console.log(vehicleSpecs);
+		console.table(vehicleSpecs);
 		// do job distance calculation
 		for (let drop of drops) {
 			const index = drops.indexOf(drop);
@@ -272,13 +272,13 @@ router.post('/multi-drop', async (req, res) => {
 					pickupAddress,
 					drop.dropoffAddress,
 					jobDistance,
-					vehicleSpecs.travelMode
+					vehicleSpecs
 				);
 			}
 			req.body.drops[index]['reference'] = genOrderReference();
 		}
 		// Check if a pickupStartTime was passed through, if not set it to 45 minutes ahead of current time
-		if (!packagePickupStartTime) req.body.packagePickupStartTime = moment().add(45, 'minutes').format();
+		if (!packagePickupStartTime) req.body.packagePickupStartTime = moment().add(30, 'minutes').format();
 		// CHECK DELIVERY HOURS
 		let canDeliver = checkDeliveryHours(req.body.packagePickupStartTime, deliveryHours);
 		if (!canDeliver) {

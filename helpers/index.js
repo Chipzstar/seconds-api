@@ -131,7 +131,7 @@ function chooseBestProvider(strategy, quotes) {
 			bestEtaIndex = index;
 		}
 	});
-	console.log('BEST')
+	console.log('BEST');
 	if (strategy === SELECTION_STRATEGIES.PRICE) {
 		console.table(quotes[bestPriceIndex]);
 		return quotes[bestPriceIndex];
@@ -204,11 +204,11 @@ async function checkAlternativeVehicles(pickup, dropoff, jobDistance, vehicleSpe
 			if (jobDistance <= specs.maxDistance) {
 				console.log('Changing Vehicle Type:', specs.name);
 				vehicleSpecs.stuart = specs.stuart;
-				return vehicleSpecs
+				return vehicleSpecs;
 			}
 		}
 		vehicleSpecs.stuart.packageType = null;
-		return vehicleSpecs
+		return vehicleSpecs;
 		/*return Promise.reject({
 			message: `Job distance between ${pickup} and ${dropoff} exceeds the maximum limit. The maximum distance for delivery jobs is 12 miles`,
 			code: 400
@@ -286,8 +286,8 @@ async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance) {
 				jobDistance,
 				vehicleSpecs
 			);
-			console.log("NEW Vehicle Specs")
-			console.table(vehicleSpecs)
+			console.log('NEW Vehicle Specs');
+			console.table(vehicleSpecs);
 			// check if the current vehicle is supported by Stuart and if the job distance is within the maximum limit
 			if (vehicleSpecs.stuart.packageType) {
 				let stuartQuote = await getStuartQuote(genJobReference(), requestBody, vehicleSpecs);
@@ -347,6 +347,9 @@ async function providerCreateMultiJob(provider, ref, strategy, request, vehicleS
 		case PROVIDERS.STREET_STREAM:
 			console.log('Creating STREET-STREAM Job');
 			return await streetStreamMultiJobRequest(ref, strategy, request, vehicleSpecs);
+		case PROVIDERS.ECOFLEET:
+			console.log('Creating ECOFLEET Job');
+			return await ecofleetMultiJobRequest(ref, request, vehicleSpecs);
 		default:
 			console.log('Creating STUART Job');
 			return await stuartMultiJobRequest(ref, request, vehicleSpecs);
@@ -1336,6 +1339,104 @@ async function ecofleetJobRequest(refNumber, params, vehicleSpecs) {
 			deliveryFee: data['amount'],
 			pickupAt: packagePickupStartTime ? moment(packagePickupStartTime).format() : undefined,
 			delivery
+		};
+	} catch (err) {
+		throw err;
+	}
+}
+
+async function ecofleetMultiJobRequest(refNumber, params, vehicleSpecs) {
+	const {
+		pickupAddressLine1,
+		pickupAddressLine2,
+		pickupCity,
+		pickupPostcode,
+		pickupPhoneNumber,
+		pickupEmailAddress,
+		pickupBusinessName,
+		pickupFirstName,
+		pickupLastName,
+		pickupInstructions,
+		packageDeliveryType,
+		packagePickupStartTime,
+		packageDescription,
+		vehicleType,
+		drops
+	} = params;
+
+	const dropoffs = drops.map(drop => ({
+		name: `${drop.dropoffFirstName} ${drop.dropoffLastName}`,
+		company_name: drop.dropoffBusinessName,
+		address_line1: drop.dropoffAddressLine1,
+		...(drop['dropoffAddressLine2'] && { address_line2: drop['dropoffAddressLine2'] }),
+		city: drop.dropoffCity,
+		postal: drop.dropoffPostcode,
+		country: 'England',
+		phone: drop.dropoffPhoneNumber,
+		email: drop.dropoffEmailAddress,
+		comment: drop.dropoffInstructions
+	}));
+
+	const payload = {
+		pickup: {
+			name: `${pickupFirstName} ${pickupLastName}`,
+			company_name: pickupBusinessName,
+			address_line1: pickupAddressLine1,
+			...(pickupAddressLine2 && { address_line2: pickupAddressLine2 }),
+			city: pickupCity,
+			postal: pickupPostcode,
+			country: 'England',
+			phone: pickupPhoneNumber,
+			email: pickupEmailAddress,
+			comment: pickupInstructions
+		},
+		drops: dropoffs,
+		parcel: {
+			weight: VEHICLE_CODES_MAP[vehicleType].weight,
+			type: packageDescription ? packageDescription : ''
+		},
+		schedule: {
+			type: DELIVERY_TYPES[packageDeliveryType].ecofleet,
+			...(packagePickupStartTime && { pickupWindow: moment(packagePickupStartTime).unix() }),
+			// ...(drops[0].packageDropoffStartTime && { dropoffWindow: moment(drops[0].packageDropoffStartTime).unix() })
+		}
+	};
+	console.log(payload);
+	try {
+		const config = { headers: { Authorization: `Bearer ${process.env.ECOFLEET_API_KEY}` } };
+		const createJobURL = `${process.env.ECOFLEET_ENV}/api/v1/order`;
+		const data = (await axios.post(createJobURL, payload, config)).data;
+		console.log(data);
+		data.tasks.shift()
+		let deliveries = data.tasks.map((task, index) => ({
+			id: task.id,
+			orderReference: drops[index].reference,
+			description: drops[index].packageDescription ? drops[index].packageDescription : '',
+			dropoffStartTime: drops[index].packageDropoffStartTime,
+			dropoffEndTime: drops[index].packageDropoffEndTime,
+			transport: vehicleSpecs.name,
+			dropoffLocation: {
+				fullAddress: drops[index].dropoffAddress,
+				streetAddress: task.address,
+				city: task.city,
+				postcode: task.postal,
+				country: 'UK',
+				phoneNumber: task.phone,
+				email: task.email ? task.email : '',
+				firstName: drops[index].dropoffFirstName,
+				lastName: drops[index].dropoffLastName,
+				businessName: drops[index].dropoffBusinessName ? drops[index].dropoffBusinessName : '',
+				instructions: task.comment ? task.comment : ''
+			},
+			trackingURL: task['tracking_link'],
+			status: STATUS.PENDING
+		}));
+		return {
+			id: data.id,
+			deliveryFee: data['amount'],
+			pickupAt: packagePickupStartTime ? moment(packagePickupStartTime).format() : undefined,
+			deliveries,
+			providerId: PROVIDERS.ECOFLEET
 		};
 	} catch (err) {
 		throw err;
