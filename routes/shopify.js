@@ -160,7 +160,7 @@ async function createNewJob(order, user) {
 		let canDeliver = checkDeliveryHours(payload.packagePickupStartTime, deliveryHours);
 		if (!canDeliver) {
 			const nextDayDeliveryTime = setNextDayDeliveryTime(deliveryHours);
-			payload.packageDeliveryType = DELIVERY_TYPES.NEXT_DAY.name;
+			payload.packageDeliveryType = DELIVERY_TYPES.NEXT_DAY;
 			payload.packagePickupStartTime = nextDayDeliveryTime;
 			payload.packagePickupEndTime = moment(nextDayDeliveryTime).add(15, 'minutes').format()
 			payload.drops[0].packageDropoffStartTime = moment(nextDayDeliveryTime).add(25, 'minutes').format();
