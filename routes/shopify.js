@@ -115,7 +115,7 @@ async function createNewJob(order, user) {
 			pickupInstructions: order['note'] ? order['note'] : '',
 			packagePickupStartTime: moment().add(45, 'minutes').format(),
 			packagePickupEndTime: moment().add(60, 'minutes').format(),
-			packageDeliveryType: DELIVERY_TYPES.ON_DEMAND,
+			packageDeliveryType: "ON_DEMAND",
 			packageDescription,
 			itemsCount,
 			vehicleType,
@@ -160,7 +160,7 @@ async function createNewJob(order, user) {
 		let canDeliver = checkDeliveryHours(payload.packagePickupStartTime, deliveryHours);
 		if (!canDeliver) {
 			const nextDayDeliveryTime = setNextDayDeliveryTime(deliveryHours);
-			payload.packageDeliveryType = DELIVERY_TYPES.NEXT_DAY;
+			payload.packageDeliveryType = "NEXT_DAY";
 			payload.packagePickupStartTime = nextDayDeliveryTime;
 			payload.packagePickupEndTime = moment(nextDayDeliveryTime).add(15, 'minutes').format()
 			payload.drops[0].packageDropoffStartTime = moment(nextDayDeliveryTime).add(25, 'minutes').format();
