@@ -109,6 +109,7 @@ router.post('/create', async (req, res) => {
 			req.body.drops[0].packageDropoffStartTime = moment().add(75, 'minutes').format();
 			req.body.drops[0].packageDropoffEndTime = moment().add(80, 'minutes').format();
 		}
+		console.log(req.body)
 		// CHECK DELIVERY HOURS
 		let canDeliver = checkDeliveryHours(req.body.packagePickupStartTime, deliveryHours);
 		if (!canDeliver) {

@@ -1013,6 +1013,7 @@ async function gophrJobRequest(ref, params, vehicleSpecs) {
 }
 
 async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
+	console.table(params)
 	const {
 		pickupAddressLine1,
 		pickupAddressLine2,
@@ -1079,6 +1080,10 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 				deliveryNotes: dropoffInstructions
 			}
 		};
+		console.log("-------------------------------------------")
+		console.log("Payload")
+		console.log(payload)
+		console.log("---------------------------------------------")
 		const createJobURL = `${process.env.STREET_STREAM_ENV}/api/job/pointtopoint`;
 		const data = (await streetStreamAxios.post(createJobURL, payload)).data;
 		console.log(data);
