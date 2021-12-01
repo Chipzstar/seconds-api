@@ -1013,7 +1013,7 @@ async function gophrJobRequest(ref, params, vehicleSpecs) {
 }
 
 async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
-	console.table(params);
+	console.table(params)
 	const {
 		pickupAddressLine1,
 		pickupAddressLine2,
@@ -1060,7 +1060,9 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 				pickUpFrom: packagePickupStartTime
 					? moment(packagePickupStartTime).toISOString(true)
 					: moment().toISOString(true),
-				...(packagePickupEndTime && { pickUpTo: packagePickupEndTime }),
+				pickUpTo: packagePickupEndTime
+					? moment(packagePickupEndTime).toISOString(true)
+					: moment().add(5, 'minutes').toISOString(true)
 			},
 			dropOff: {
 				contactNumber: dropoffPhoneNumber,
@@ -1071,15 +1073,17 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 				dropOffFrom: packageDropoffStartTime
 					? moment(packageDropoffStartTime).toISOString(true)
 					: moment().toISOString(true),
-				...(packageDropoffEndTime && { dropoffTo: packageDropoffEndTime }),
+				dropOffTo: packageDropoffEndTime
+					? moment(packageDropoffEndTime).toISOString(true)
+					: moment().add(5, 'minutes').toISOString(true),
 				clientTag: reference,
 				deliveryNotes: dropoffInstructions
 			}
 		};
-		console.log('-------------------------------------------');
-		console.log('Payload');
-		console.log(payload);
-		console.log('---------------------------------------------');
+		console.log("-------------------------------------------")
+		console.log("Payload")
+		console.log(payload)
+		console.log("---------------------------------------------")
 		const createJobURL = `${process.env.STREET_STREAM_ENV}/api/job/pointtopoint`;
 		const data = (await streetStreamAxios.post(createJobURL, payload)).data;
 		console.log(data);
@@ -1398,7 +1402,7 @@ async function ecofleetMultiJobRequest(refNumber, params, vehicleSpecs) {
 		},
 		schedule: {
 			type: DELIVERY_TYPES[packageDeliveryType].ecofleet,
-			...(packagePickupStartTime && { pickupWindow: moment(packagePickupStartTime).unix() })
+			...(packagePickupStartTime && { pickupWindow: moment(packagePickupStartTime).unix() }),
 			// ...(drops[0].packageDropoffStartTime && { dropoffWindow: moment(drops[0].packageDropoffStartTime).unix() })
 		}
 	};
@@ -1408,7 +1412,7 @@ async function ecofleetMultiJobRequest(refNumber, params, vehicleSpecs) {
 		const createJobURL = `${process.env.ECOFLEET_ENV}/api/v1/order`;
 		const data = (await axios.post(createJobURL, payload, config)).data;
 		console.log(data);
-		data.tasks.shift();
+		data.tasks.shift()
 		let deliveries = data.tasks.map((task, index) => ({
 			id: task.id,
 			orderReference: drops[index].reference,

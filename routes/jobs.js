@@ -72,7 +72,8 @@ router.post('/create', async (req, res) => {
 	try {
 		console.table(req.body);
 		console.table(req.body.drops[0]);
-		let { pickupAddress, packageDeliveryType, packagePickupStartTime, vehicleType } = req.body;
+		let { pickupAddress, packageDeliveryType, packagePickupStartTime, packagePickupEndTime, vehicleType } = req.body;
+		let { packageDropoffStartTime, packageDropoffEndTime } = req.body.drops[0]
 		req.body.drops[0]['reference'] = genOrderReference();
 		//generate client reference number
 		let commissionCharge = false;
@@ -102,6 +103,14 @@ router.post('/create', async (req, res) => {
 			req.body.drops[0].dropoffAddress,
 			vehicleSpecs.travelMode
 		);
+		// check if a pickup start time was passed through but not pickup end time
+		if (packagePickupStartTime && !packagePickupEndTime){
+			req.body.packagePickupEndTime = moment(packagePickupStartTime).add(10, 'minutes').format();
+		}
+		// check if a dropoff start time was passed through but not dropoff end time
+		if (packageDropoffStartTime && !packageDropoffEndTime){
+			req.body.drops[0].packageDropoffEndTime = moment(packageDropoffStartTime).add(10, 'minutes').format();
+		}
 		// Check if a pickupStartTime was passed through, if not set it to 30 minutes ahead of current time
 		if (!packagePickupStartTime) {
 			req.body.packagePickupStartTime = moment().add(30, 'minutes').format();
