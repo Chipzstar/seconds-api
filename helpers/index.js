@@ -223,8 +223,20 @@ function checkDeliveryHours(pickupTime, deliveryHours) {
 	const today = String(moment(pickupTime).day());
 	console.log('Current Day:', today);
 	// get open / close times for the current day of the week
-	const open = moment({ h: deliveryHours[today].open['h'], m: deliveryHours[today].open['m'] });
-	const close = moment({ h: deliveryHours[today].close['h'], m: deliveryHours[today].close['m'] });
+	const open = moment({
+		y: moment(pickupTime).get('year'),
+		M: moment(pickupTime).get('month'),
+		d: moment(pickupTime).get('date'),
+		h: deliveryHours[today].open['h'],
+		m: deliveryHours[today].open['m']
+	});
+	const close = moment({
+		y: moment(pickupTime).get('year'),
+		M: moment(pickupTime).get('month'),
+		d: moment(pickupTime).get('date'),
+		h: deliveryHours[today].close['h'],
+		m: deliveryHours[today].close['m']
+	});
 	const canDeliver = deliveryHours[today].canDeliver;
 	// check time of creation is within the delivery hours
 	let timeFromOpen = moment.duration(moment(pickupTime).diff(open)).asHours();
@@ -596,7 +608,7 @@ async function getStreetStreamQuote(params, vehicleSpecs) {
 		console.log('----------------------------');
 		return quote;
 	} catch (err) {
-		return null
+		return null;
 	}
 }
 
@@ -755,7 +767,7 @@ async function stuartJobRequest(ref, params, vehicleSpecs) {
 		return {
 			id: String(data.id),
 			deliveryFee: data['pricing']['price_tax_included'],
-			pickupAt: data['pickup_at'] ?  data['pickup_at'] : moment(packagePickupStartTime).format(),
+			pickupAt: data['pickup_at'] ? data['pickup_at'] : moment(packagePickupStartTime).format(),
 			dropoffAt: data['dropoff_at'],
 			delivery
 		};
@@ -1013,7 +1025,7 @@ async function gophrJobRequest(ref, params, vehicleSpecs) {
 }
 
 async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
-	console.table(params)
+	console.table(params);
 	const {
 		pickupAddressLine1,
 		pickupAddressLine2,
@@ -1080,10 +1092,10 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 				deliveryNotes: dropoffInstructions
 			}
 		};
-		console.log("-------------------------------------------")
-		console.log("Payload")
-		console.log(payload)
-		console.log("---------------------------------------------")
+		console.log('-------------------------------------------');
+		console.log('Payload');
+		console.log(payload);
+		console.log('---------------------------------------------');
 		const createJobURL = `${process.env.STREET_STREAM_ENV}/api/job/pointtopoint`;
 		const data = (await streetStreamAxios.post(createJobURL, payload)).data;
 		console.log(data);
@@ -1402,7 +1414,7 @@ async function ecofleetMultiJobRequest(refNumber, params, vehicleSpecs) {
 		},
 		schedule: {
 			type: DELIVERY_TYPES[packageDeliveryType].ecofleet,
-			...(packagePickupStartTime && { pickupWindow: moment(packagePickupStartTime).unix() }),
+			...(packagePickupStartTime && { pickupWindow: moment(packagePickupStartTime).unix() })
 			// ...(drops[0].packageDropoffStartTime && { dropoffWindow: moment(drops[0].packageDropoffStartTime).unix() })
 		}
 	};
@@ -1412,7 +1424,7 @@ async function ecofleetMultiJobRequest(refNumber, params, vehicleSpecs) {
 		const createJobURL = `${process.env.ECOFLEET_ENV}/api/v1/order`;
 		const data = (await axios.post(createJobURL, payload, config)).data;
 		console.log(data);
-		data.tasks.shift()
+		data.tasks.shift();
 		let deliveries = data.tasks.map((task, index) => ({
 			id: task.id,
 			orderReference: drops[index].reference,
@@ -1539,10 +1551,10 @@ async function confirmCharge(
 			paymentIntentId,
 			deliveryType
 		});
-		console.log("*********************************");
+		console.log('*********************************');
 		if (paymentIntentId) {
 			const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId, {
-				setup_future_usage: 'off_session',
+				setup_future_usage: 'off_session'
 			});
 			console.log('----------------------------------------------');
 			console.log('Delivery Fee Paid Successfully!');
@@ -1570,7 +1582,7 @@ async function confirmCharge(
 			console.table(usageRecord);
 			console.log('------------------------------');
 		}
-		return Promise.resolve(true)
+		return Promise.resolve(true);
 	} catch (e) {
 		console.error(e);
 		throw e;
