@@ -120,6 +120,7 @@ async function updateETA(data) {
 router.post('/', async (req, res) => {
 	try {
 		// GOPHR
+		console.log(req.body)
 		const { api_key, webhook_type, job_id } = req.body;
 		if (api_key === String(process.env.GOPHR_API_KEY)) {
 			if (webhook_type === WEBHOOK_TYPES.STATUS) {
