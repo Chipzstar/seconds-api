@@ -14,7 +14,7 @@ const {
 	setNextDayDeliveryTime,
 	genOrderReference, sendNewJobEmails,
 } = require('../helpers');
-const { DELIVERY_TYPES, VEHICLE_CODES_MAP, VEHICLE_CODES, STATUS, COMMISSION } = require('../constants');
+const { VEHICLE_CODES_MAP, VEHICLE_CODES, STATUS, COMMISSION } = require('../constants');
 const moment = require('moment');
 const { DELIVERY_METHODS } = require('../constants/shopify');
 const sendEmail = require('../services/email');

@@ -297,7 +297,7 @@ async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance) {
 		let gophrQuote = await getGophrQuote(requestBody, vehicleSpecs);
 		QUOTES.push(gophrQuote);
 		let streetStreamQuote = await getStreetStreamQuote(requestBody, vehicleSpecs);
-		QUOTES.push(streetStreamQuote);
+		if (streetStreamQuote) QUOTES.push(streetStreamQuote);
 		if (vehicleSpecs.ecofleetVehicle) {
 			let ecoFleetQuote = {
 				...quoteSchema,
@@ -596,7 +596,7 @@ async function getStreetStreamQuote(params, vehicleSpecs) {
 		console.log('----------------------------');
 		return quote;
 	} catch (err) {
-		throw err;
+		return null
 	}
 }
 
