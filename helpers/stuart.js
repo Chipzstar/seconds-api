@@ -114,6 +114,7 @@ async function updateJob(data) {
 				stripeCustomerId,
 				subscriptionItems,
 				job.commissionCharge,
+				job.paymentIntentId,
 				job.jobSpecification.deliveryType,
 				job.jobSpecification.deliveries.length
 			);

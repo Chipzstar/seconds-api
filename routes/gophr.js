@@ -132,6 +132,7 @@ router.post('/', async (req, res) => {
 					let {
 						clientId,
 						commissionCharge,
+						paymentIntentId,
 						jobSpecification: { deliveryType, deliveries }
 					} = await db.Job.findOne({ 'jobSpecification.id': job_id }, {});
 					console.log('****************************************************************');
@@ -142,6 +143,7 @@ router.post('/', async (req, res) => {
 						stripeCustomerId,
 						subscriptionItems,
 						commissionCharge,
+						paymentIntentId,
 						deliveryType,
 						deliveries.length
 					);

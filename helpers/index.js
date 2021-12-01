@@ -1524,6 +1524,7 @@ async function confirmCharge(
 	customerId,
 	{ standardMonthly, standardCommission, multiDropCommission },
 	canCharge,
+	paymentIntentId,
 	deliveryType,
 	quantity = 1
 ) {
@@ -1535,8 +1536,19 @@ async function confirmCharge(
 			standardCommission,
 			multiDropCommission,
 			canCharge,
+			paymentIntentId,
 			deliveryType
 		});
+		console.log("*********************************");
+		if (paymentIntentId) {
+			const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId, {
+				setup_future_usage: 'off_session',
+			});
+			console.log('----------------------------------------------');
+			console.log('Delivery Fee Paid Successfully!');
+			console.log(paymentIntent);
+			console.log('----------------------------------------------');
+		}
 		console.log('*********************************');
 		if (standardCommission && canCharge) {
 			let usageRecord;
@@ -1558,6 +1570,7 @@ async function confirmCharge(
 			console.table(usageRecord);
 			console.log('------------------------------');
 		}
+		return Promise.resolve(true)
 	} catch (e) {
 		console.error(e);
 		throw e;

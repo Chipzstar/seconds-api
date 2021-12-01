@@ -19,8 +19,10 @@ const {
 const { AUTHORIZATION_KEY, PROVIDER_ID, STATUS, COMMISSION, DELIVERY_TYPES, PROVIDERS } = require('../constants');
 const moment = require('moment');
 const mongoose = require('mongoose');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const router = express.Router();
 const orderId = require('order-id')(process.env.UID_SECRET_KEY);
+const { v4: uuidv4} = require('uuid');
 
 /**
  * List Jobs - The API endpoint for listing all jobs currently belonging to a user
@@ -76,7 +78,7 @@ router.post('/create', async (req, res) => {
 		let { packageDropoffStartTime, packageDropoffEndTime } = req.body.drops[0]
 		req.body.drops[0]['reference'] = genOrderReference();
 		//generate client reference number
-		let commissionCharge = false;
+		let commissionCharge, paymentIntent = false;
 		const jobReference = genJobReference();
 		// fetch api key
 		const apiKey = req.headers[AUTHORIZATION_KEY];
@@ -89,6 +91,8 @@ router.post('/create', async (req, res) => {
 		const {
 			_id: clientId,
 			selectionStrategy,
+			stripeCustomerId,
+			paymentMethodId,
 			subscriptionId,
 			subscriptionPlan,
 			deliveryHours,
@@ -105,7 +109,7 @@ router.post('/create', async (req, res) => {
 		);
 		// check if a pickup start time was passed through but not pickup end time
 		if (packagePickupStartTime && !packagePickupEndTime){
-			req.body.packagePickupEndTime = moment(packagePickupStartTime).add(10, 'minutes').format();
+			req.body.packagePickupEndTime = moment(packagePickupStartTime).add(60, 'minutes').format();
 		}
 		// check if a dropoff start time was passed through but not dropoff end time
 		if (packageDropoffStartTime && !packageDropoffEndTime){
@@ -115,8 +119,8 @@ router.post('/create', async (req, res) => {
 		if (!packagePickupStartTime) {
 			req.body.packagePickupStartTime = moment().add(30, 'minutes').format();
 			req.body.packagePickupEndTime = moment().add(35, 'minutes').format();
-			req.body.drops[0].packageDropoffStartTime = moment().add(75, 'minutes').format();
-			req.body.drops[0].packageDropoffEndTime = moment().add(80, 'minutes').format();
+			req.body.drops[0].packageDropoffStartTime = moment().add(85, 'minutes').format();
+			req.body.drops[0].packageDropoffEndTime = moment().add(90, 'minutes').format();
 		}
 		console.log(req.body)
 		// CHECK DELIVERY HOURS
@@ -126,8 +130,8 @@ router.post('/create', async (req, res) => {
 			req.body.packageDeliveryType = 'NEXT_DAY';
 			req.body.packagePickupStartTime = nextDayDeliveryTime;
 			req.body.packagePickupEndTime = moment(nextDayDeliveryTime).add(10, 'minutes').format();
-			req.body.drops[0].packageDropoffStartTime = moment(nextDayDeliveryTime).add(30, 'minutes').format();
-			req.body.drops[0].packageDropoffEndTime = moment(nextDayDeliveryTime).add(40, 'minutes').format();
+			req.body.drops[0].packageDropoffStartTime = moment(nextDayDeliveryTime).add(70, 'minutes').format();
+			req.body.drops[0].packageDropoffEndTime = moment(nextDayDeliveryTime).add(80, 'minutes').format();
 		}
 		const QUOTES = await getResultantQuotes(req.body, vehicleSpecs, jobDistance);
 		// Use selection strategy to select the winner quote
@@ -172,6 +176,21 @@ router.post('/create', async (req, res) => {
 				req.body,
 				vehicleSpecs
 			);
+			let idempotencyKey = uuidv4()
+			paymentIntent = await stripe.paymentIntents.create({
+				amount: deliveryFee * 100,
+				customer: stripeCustomerId,
+				currency: 'GBP',
+				setup_future_usage: 'off_session',
+				payment_method: paymentMethodId,
+				payment_method_types: ['card'],
+			}, {
+				idempotencyKey,
+			});
+			console.log("-------------------------------------------")
+			console.log("Payment Intent Created!", paymentIntent)
+			console.log("-------------------------------------------")
+			const paymentIntentId = paymentIntent ? paymentIntent.id : undefined
 			let job = {
 				createdAt: moment().format(),
 				driverInformation: {
@@ -215,7 +234,7 @@ router.post('/create', async (req, res) => {
 			console.log('JOB', job);
 			console.log('======================================================================================');
 			// Append the selected provider job to the jobs database
-			const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
+			const createdJob = await db.Job.create({ ...job, clientId, commissionCharge, paymentIntentId });
 			process.env.NEW_RELIC_APP_NAME === 'seconds-api' && sendNewJobEmails(team, job).then(res => console.log(res));
 			return res.status(200).json({
 				jobId: createdJob._id,

@@ -87,12 +87,12 @@ router.post('/', async (req, res) => {
 	try {
 		let jobStatus = await update(req.body);
 		if (jobStatus === JOB_STATUS.COMPLETED_SUCCESSFULLY) {
-			let { clientId, commissionCharge, jobSpecification: { deliveryType, deliveries } } = await db.Job.findOne({ 'jobSpecification.id': req.body.jobId }, {});
+			let { clientId, commissionCharge, paymentIntentId, jobSpecification: { deliveryType, deliveries } } = await db.Job.findOne({ 'jobSpecification.id': req.body.jobId }, {});
 			console.log('****************************************************************');
 			console.log('STREET-STREAM DELIVERY COMPLETEEEEEEE!');
 			console.log('****************************************************************');
 			let { stripeCustomerId, subscriptionItems } = await db.User.findOne({ _id: clientId }, {});
-			confirmCharge(stripeCustomerId, subscriptionItems, commissionCharge, deliveryType, deliveries.length);
+			confirmCharge(stripeCustomerId, subscriptionItems, commissionCharge, paymentIntentId, deliveryType, deliveries.length);
 		}
 		res.status(200).send({
 			success: true,

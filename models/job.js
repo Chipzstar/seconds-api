@@ -10,6 +10,9 @@ const jobSchema = new mongoose.Schema({
 		type: Boolean,
 		default: false
 	},
+	paymentIntentId: {
+		type: String,
+	},
 	jobSpecification: {
 		id: {
 			type: String,
