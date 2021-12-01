@@ -78,7 +78,8 @@ router.post('/create', async (req, res) => {
 		let { packageDropoffStartTime, packageDropoffEndTime } = req.body.drops[0]
 		req.body.drops[0]['reference'] = genOrderReference();
 		//generate client reference number
-		let commissionCharge, paymentIntent = false;
+		let commissionCharge = false;
+		let paymentIntent;
 		const jobReference = genJobReference();
 		// fetch api key
 		const apiKey = req.headers[AUTHORIZATION_KEY];

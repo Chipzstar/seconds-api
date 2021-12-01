@@ -10,7 +10,6 @@ const {
 	providerCreatesJob,
 	getVehicleSpecs,
 	calculateJobDistance,
-	checkAlternativeVehicles,
 	checkDeliveryHours,
 	setNextDayDeliveryTime,
 	genOrderReference, sendNewJobEmails,
@@ -19,6 +18,8 @@ const { DELIVERY_TYPES, VEHICLE_CODES_MAP, VEHICLE_CODES, STATUS, COMMISSION } =
 const moment = require('moment');
 const { DELIVERY_METHODS } = require('../constants/shopify');
 const sendEmail = require('../services/email');
+const { v4: uuidv4 } = require('uuid');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const orderId = require('order-id')(process.env.UID_SECRET_KEY);
 
 const client = new Client();
@@ -102,6 +103,8 @@ async function createNewJob(order, user) {
 		const { formattedAddress, fullAddress } = await geocodeAddress(
 			`${order.shipping_address['address1']} ${order.shipping_address['city']} ${order.shipping_address['zip']}`
 		);
+		console.log(fullAddress)
+		console.table(formattedAddress)
 		const payload = {
 			pickupAddress: user.fullAddress,
 			pickupAddressLine1: user.address['street'],
@@ -131,8 +134,8 @@ async function createNewJob(order, user) {
 					dropoffFirstName: order.customer.first_name,
 					dropoffLastName: order.customer.last_name,
 					dropoffInstructions: order.customer['note'] ? order.customer['note'] : '',
-					packageDropoffStartTime: moment().add(90, 'minutes').format(),
-					packageDropoffEndTime: moment().add(105, 'minutes').format(),
+					packageDropoffStartTime: moment().add(105, 'minutes').format(),
+					packageDropoffEndTime: moment().add(120, 'minutes').format(),
 					reference: genOrderReference(),
 				},
 			],
@@ -142,6 +145,7 @@ async function createNewJob(order, user) {
 		console.log(payload);
 		console.log('-----------------------------------------------------------------');
 		let commissionCharge = false;
+		let paymentIntent;
 		const clientRefNumber = genJobReference();
 		const { _id: clientId, selectionStrategy, deliveryHours } = user;
 		// get specifications for the vehicle
@@ -182,12 +186,11 @@ async function createNewJob(order, user) {
 		console.log('NUM COMPLETED ORDERS:', numOrders);
 		console.log('--------------------------------');
 		// if the order limit is exceeded, mark the job with a commission fee charge
-		if (numOrders >= limit) {
-			commissionCharge = true
-		}
+		if (numOrders >= limit) commissionCharge = true
 		const {
 			id: spec_id,
 			deliveryFee,
+			pickupAt,
 			delivery,
 		} = await providerCreatesJob(
 			providerId.toLowerCase(),
@@ -196,7 +199,21 @@ async function createNewJob(order, user) {
 			payload,
 			vehicleSpecs
 		);
-
+		let idempotencyKey = uuidv4()
+		paymentIntent = await stripe.paymentIntents.create({
+			amount: deliveryFee * 100,
+			customer: user.stripeCustomerId,
+			currency: 'GBP',
+			setup_future_usage: 'off_session',
+			payment_method: user.paymentMethodId,
+			payment_method_types: ['card'],
+		}, {
+			idempotencyKey,
+		});
+		console.log("-------------------------------------------")
+		console.log("Payment Intent Created!", paymentIntent)
+		console.log("-------------------------------------------")
+		const paymentIntentId = paymentIntent ? paymentIntent.id : undefined
 		let job = {
 			createdAt: moment().format(),
 			jobSpecification: {
@@ -205,7 +222,7 @@ async function createNewJob(order, user) {
 				shopifyId: order.id,
 				orderNumber: orderId.generate(),
 				deliveryType: payload.packageDeliveryType,
-				pickupStartTime: payload.packagePickupStartTime,
+				pickupStartTime: pickupAt,
 				pickupEndTime: payload.packagePickupEndTime,
 				pickupLocation: {
 					fullAddress: payload.pickupAddress,
@@ -232,7 +249,7 @@ async function createNewJob(order, user) {
 			status: STATUS.NEW,
 		};
 		// Append the selected provider job to the jobs database
-		const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
+		const createdJob = await db.Job.create({ ...job, clientId, commissionCharge, paymentIntentId });
 		console.log(createdJob);
 		await sendNewJobEmails(user.team, job);
 		return true;

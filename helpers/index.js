@@ -296,8 +296,8 @@ async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance) {
 		}
 		let gophrQuote = await getGophrQuote(requestBody, vehicleSpecs);
 		QUOTES.push(gophrQuote);
-		/*let streetStreamQuote = await getStreetStreamQuote(requestBody, vehicleSpecs);
-		QUOTES.push(streetStreamQuote);*/
+		let streetStreamQuote = await getStreetStreamQuote(requestBody, vehicleSpecs);
+		QUOTES.push(streetStreamQuote);
 		if (vehicleSpecs.ecofleetVehicle) {
 			let ecoFleetQuote = {
 				...quoteSchema,
@@ -755,7 +755,7 @@ async function stuartJobRequest(ref, params, vehicleSpecs) {
 		return {
 			id: String(data.id),
 			deliveryFee: data['pricing']['price_tax_included'],
-			pickupAt: data['pickup_at'],
+			pickupAt: data['pickup_at'] ?  data['pickup_at'] : moment(packagePickupStartTime).format(),
 			dropoffAt: data['dropoff_at'],
 			delivery
 		};
@@ -981,7 +981,7 @@ async function gophrJobRequest(ref, params, vehicleSpecs) {
 			return {
 				id: job_id,
 				deliveryFee: price_gross,
-				pickupAt: pickup_eta,
+				pickupAt: pickup_eta ? pickup_eta : packagePickupStartTime,
 				dropoffAt: delivery_eta,
 				delivery
 			};
@@ -1118,7 +1118,7 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 			id: data.id,
 			trackingURL: null,
 			deliveryFee: data['jobCharge']['totalPayableWithVat'],
-			pickupAt: packagePickupStartTime ? moment(packagePickupStartTime) : moment().add(25, 'minutes'),
+			pickupAt: packagePickupStartTime ? moment(packagePickupStartTime) : moment().add(35, 'minutes'),
 			dropoffAt: packageDropoffStartTime
 				? moment(packagePickupStartTime).add(data['estimatedRouteTimeSeconds'], 'seconds').format()
 				: moment().add(25, 'minutes').add(data['estimatedRouteTimeSeconds'], 'seconds').format(),
