@@ -84,6 +84,7 @@ const userSchema = new mongoose.Schema({
 	},
 	square: {
 		shopId: String,
+		shopName: String,
 		domain: String,
 		country: String,
 		clientId: String,
