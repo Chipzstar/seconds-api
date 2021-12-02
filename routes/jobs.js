@@ -110,7 +110,7 @@ router.post('/create', async (req, res) => {
 		);
 		// check if a pickup start time was passed through but not pickup end time
 		if (packagePickupStartTime && !packagePickupEndTime){
-			req.body.packagePickupEndTime = moment(packagePickupStartTime).add(60, 'minutes').format();
+			req.body.packagePickupEndTime = moment(packagePickupStartTime).add(10, 'minutes').format();
 		}
 		// check if a dropoff start time was passed through but not dropoff end time
 		if (packageDropoffStartTime && !packageDropoffEndTime){
