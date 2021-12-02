@@ -514,7 +514,8 @@ async function getGophrQuote(params, vehicleSpecs) {
 			delivery_address1: dropoffAddressLine1,
 			delivery_city: dropoffCity,
 			delivery_postcode: dropoffPostcode,
-			delivery_country_code: 'GB'
+			delivery_country_code: 'GB',
+			job_priority: 0
 		});
 		console.log('PAYLOAD');
 		console.log('--------------------------');
@@ -946,7 +947,7 @@ async function gophrJobRequest(ref, params, vehicleSpecs) {
 			...(packageDropoffStartTime && {
 				earliest_delivery_time: moment(packageDropoffStartTime).toISOString(true)
 			}),
-			job_priority: DELIVERY_TYPES[packageDeliveryType].name === DELIVERY_TYPES.ON_DEMAND.name ? 2 : 1,
+			job_priority: DELIVERY_TYPES[packageDeliveryType].name === DELIVERY_TYPES.ON_DEMAND.name ? 0 : 1,
 			...(packagePickupEndTime && { pickup_deadline: moment(packagePickupEndTime).toISOString(true) }),
 			...(packageDropoffEndTime && { delivery_deadline: moment(packageDropoffEndTime).toISOString(true) }),
 			delivery_address1: `${dropoffAddressLine1}`,

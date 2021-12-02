@@ -167,8 +167,8 @@ async function createNewJob(order, user) {
 			payload.packageDeliveryType = "NEXT_DAY";
 			payload.packagePickupStartTime = nextDayDeliveryTime;
 			payload.packagePickupEndTime = moment(nextDayDeliveryTime).add(15, 'minutes').format()
-			payload.drops[0].packageDropoffStartTime = moment(nextDayDeliveryTime).add(25, 'minutes').format();
-			payload.drops[0].packageDropoffEndTime= moment(nextDayDeliveryTime).add(40, 'minutes').format();
+			payload.drops[0].packageDropoffStartTime = moment(nextDayDeliveryTime).add(60, 'minutes').format();
+			payload.drops[0].packageDropoffEndTime= moment(nextDayDeliveryTime).add(120, 'minutes').format();
 		}
 		console.log('-----------------------------------------------------------------');
 		console.log(payload.packagePickupStartTime);
