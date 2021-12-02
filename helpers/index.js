@@ -16,7 +16,7 @@ const {
 	VEHICLE_CODES,
 	STATUS
 } = require('../constants');
-const { STRATEGIES } = require('../constants/streetStream');
+const { STRATEGIES, CANCELLATION_REASONS } = require('../constants/streetStream');
 const { ERROR_CODES: STUART_ERROR_CODES } = require('../constants/stuart');
 const { ERROR_CODES: GOPHR_ERROR_CODES } = require('../constants/gophr');
 const { updateHerokuConfigVar } = require('./heroku');
@@ -298,13 +298,13 @@ async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance) {
 				jobDistance,
 				vehicleSpecs
 			);
-			console.log('NEW Vehicle Specs');
-			console.table(vehicleSpecs);
-			// check if the current vehicle is supported by Stuart and if the job distance is within the maximum limit
-			if (vehicleSpecs.stuart.packageType) {
-				let stuartQuote = await getStuartQuote(genJobReference(), requestBody, vehicleSpecs);
-				QUOTES.push(stuartQuote);
-			}
+		}
+		console.log('NEW Vehicle Specs');
+		console.table(vehicleSpecs);
+		// check if the current vehicle is supported by Stuart and if the job distance is within the maximum limit
+		if (vehicleSpecs.stuart.packageType) {
+			let stuartQuote = await getStuartQuote(genJobReference(), requestBody, vehicleSpecs);
+			QUOTES.push(stuartQuote);
 		}
 		let gophrQuote = await getGophrQuote(requestBody, vehicleSpecs);
 		QUOTES.push(gophrQuote);
@@ -1590,6 +1590,78 @@ async function confirmCharge(
 	}
 }
 
+async function sendCancellationRequest(jobId, provider, job, comment) {
+	try {
+		const user = await db.User.findById(job.clientId)
+		let options = {
+			name: `${user.firstname} ${user.lastname}`,
+			email: `chipzstar.dev@gmail.com`,
+			templateId: 'd-90f8f075032e4d4b90fc595ad084d2a6',
+			templateData: {
+				client_reference: `${job.jobSpecification.deliveries[0].orderReference}`,
+				customer: `${job.jobSpecification.deliveries[0].dropoffLocation.firstName} ${job.jobSpecification.deliveries[0].dropoffLocation.lastName}`,
+				pickup: `${job.jobSpecification.pickupLocation.fullAddress}`,
+				dropoff: `${job.jobSpecification.deliveries[0].dropoffLocation.fullAddress}`,
+				reason: comment ? comment : `Requested by User`,
+				cancelled_by: `${user.firstname} ${user.lastname}`,
+				provider: provider
+			}
+		};
+		await sendEmail(options);
+		return "Cancellation request sent"
+	} catch (e) {
+		throw e
+	}
+}
+
+async function stuartCancelRequest(jobId, comment) {
+	try {
+	    const URL = `${process.env.STUART_ENV}/v2/jobs/${jobId}/cancel`
+		const payload = {
+			public_reason_key: 'customer_cancellation_requested',
+			comment
+		}
+		const res = (await stuartAxios.post(URL, payload)).data
+		return "Your job has been cancelled by Stuart!"
+	} catch (err) {
+	    throw err
+	}
+}
+
+async function gophrCancelRequest(jobId, comment) {
+	try {
+		const cancelURL = `${process.env.GOPHR_ENV}/v1/commercial-api/cancel-job`
+		const costURL = `${process.env.GOPHR_ENV}/v1/commercial-api/get-cancelation-cost`
+		const payload = qs.stringify({
+			api_key: `${process.env.GOPHR_API_KEY}`,
+			job_id: `${jobId}`
+		})
+		let response = (await axios.post(costURL, payload)).data
+		console.log(response)
+		console.log(response['cancelation_cost'])
+		response = (await axios.post(cancelURL, payload)).data
+		console.log(response)
+		return "Your job has been cancelled by Gohpr!"
+	} catch (err) {
+		throw err
+	}
+}
+
+async function cancelOrder(jobId, provider, jobDetails, comment){
+	switch (provider) {
+		case PROVIDERS.STUART:
+			console.log('Cancelling STUART Job');
+			return await stuartCancelRequest(jobId, comment);
+		case PROVIDERS.GOPHR:
+			console.log('Cancelling GOPHR Job');
+			return await gophrCancelRequest(jobId, comment);
+		// default case if the provider does not support cancellation via API
+		default:
+			console.log('Sending cancellation request');
+			return await sendCancellationRequest(jobId, provider, jobDetails, comment);
+	}
+}
+
 async function sendNewJobEmails(team, job) {
 	console.log('TEAM');
 	team.forEach(member => console.table(member));
@@ -1637,5 +1709,6 @@ module.exports = {
 	confirmCharge,
 	sendNewJobEmails,
 	setNextDayDeliveryTime,
-	checkMultiDropPrice
+	checkMultiDropPrice,
+	cancelOrder
 };

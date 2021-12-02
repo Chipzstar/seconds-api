@@ -14,7 +14,8 @@ const {
 	setNextDayDeliveryTime,
 	genOrderReference,
 	providerCreateMultiJob,
-	sendNewJobEmails
+	sendNewJobEmails,
+	cancelOrder
 } = require('../helpers');
 const { AUTHORIZATION_KEY, PROVIDER_ID, STATUS, COMMISSION, DELIVERY_TYPES, PROVIDERS } = require('../constants');
 const moment = require('moment');
@@ -547,25 +548,38 @@ router.patch('/:job_id', async (req, res) => {
  */
 router.delete('/:job_id', async (req, res) => {
 	try {
-		const jobId = req.params['job_id'];
-		let foundJob = await db.Job.findByIdAndUpdate(jobId, { status: STATUS.CANCELLED }, { new: true });
+		const { comment } = req.query;
+		const id = req.params['job_id'];
+		console.table(id, comment)
+		let foundJob = await db.Job.findByIdAndUpdate(id, { status: STATUS.CANCELLED }, { new: true });
 		console.log(foundJob);
 		if (foundJob) {
+			let jobId = foundJob.jobSpecification.id;
+			let provider = foundJob.selectedConfiguration.providerId
+			let message = await cancelOrder(jobId, provider, foundJob, comment)
+			console.log(message)
 			return res.status(200).json({
+				message,
 				jobId,
 				cancelled: true
 			});
 		} else {
 			return res.status(404).json({
 				code: 404,
-				description: `No job found with ID: ${jobId}`,
+				description: `No job found with ID: ${id}`,
 				message: 'Not Found'
 			});
 		}
 	} catch (err) {
-		console.error(err);
+		err.response ? console.error('RESPONSE ERROR:', err.response.data) : console.log('GENERAL ERROR:', err);
+		if (err.response.data) {
+			return res.status(err.response.status).json({
+				error: err.response.data
+			});
+		}
 		return res.status(500).json({
-			...err
+			code: 500,
+			message: 'Unknown error occurred!'
 		});
 	}
 });
