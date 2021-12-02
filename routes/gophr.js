@@ -127,7 +127,7 @@ router.post('/', async (req, res) => {
 				console.log('--------------------------------');
 				console.log('NEW STATUS:', jobStatus);
 				console.log('--------------------------------');
-				if (isFinished) {
+				if (isFinished && jobStatus === JOB_STATUS.COMPLETED) {
 					let {
 						clientId,
 						commissionCharge,
