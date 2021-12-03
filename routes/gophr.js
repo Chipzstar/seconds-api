@@ -79,7 +79,7 @@ async function updateStatus(data) {
 					customer: `${job.jobSpecification.deliveries[0].dropoffLocation.firstName} ${job.jobSpecification.deliveries[0].dropoffLocation.lastName}`,
 					pickup: `${job.jobSpecification.pickupLocation.fullAddress}`,
 					dropoff: `${job.jobSpecification.deliveries[0].dropoffLocation.fullAddress}`,
-					reason: `${cancellation_reason.replace(/[-_]/g, ' ')}`,
+					reason: `${cancellation_reason}`,
 					cancelled_by: `operations`,
 					provider: `gophr`
 				}
