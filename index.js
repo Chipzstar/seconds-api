@@ -16,6 +16,7 @@ const streetStreamRoutes = require('./routes/streetStream');
 const ecoFleetRoutes = require('./routes/ecofleet');
 const port = process.env.PORT || 3001;
 moment.tz.setDefault('Europe/London');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 const { validateApiKey } = require('./middleware/auth');
 
@@ -71,7 +72,7 @@ app.use('/api/v1/shopify', shopifyRoutes);
 app.post('/test/mail', async (req, res) => {
 	try {
 		const { name, email, subject, text, html, templateId, templateData } = req.body;
-		console.table(req.body)
+		console.table(req.body);
 		let options = {
 			name,
 			email,
@@ -109,6 +110,20 @@ app.post('/test/mail', async (req, res) => {
 		res.status(400).json({ message: err.message });
 	}
 });*/
+
+app.post('/test/stripe/confirm-payment', async (req, res) => {
+	try {
+		const { paymentIntentId, paymentMethodId } = req.body;
+		const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId, {
+			payment_method: paymentMethodId
+		});
+		console.log(paymentIntent);
+		res.status(200).json(paymentIntent);
+	} catch (err) {
+		console.error(err);
+		res.status(500).json({ message: err.message });
+	}
+});
 // starting the server
 app.listen(port, () => {
 	console.log(`listening on port ${port}`);
