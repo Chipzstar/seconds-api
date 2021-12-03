@@ -1,4 +1,5 @@
 const { DELIVERY_TYPES } = require('../constants');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 const confirmCharge = async (
 	customerId,
