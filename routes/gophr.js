@@ -3,8 +3,8 @@ const { JOB_STATUS, WEBHOOK_TYPES } = require('../constants/gophr');
 const { STATUS } = require('../constants');
 const db = require('../models');
 const moment = require('moment');
-const { confirmCharge } = require('../helpers');
 const sendEmail = require('../services/email');
+const confirmCharge = require('../services/payments')
 const router = express.Router();
 
 function translateGophrStatus(value) {

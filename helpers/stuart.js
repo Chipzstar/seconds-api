@@ -2,9 +2,9 @@ const db = require('../models');
 const moment = require('moment');
 const { STATUS } = require('../constants');
 const { JOB_STATUS, DELIVERY_STATUS } = require('../constants/stuart');
-const { confirmCharge } = require('./index');
 const axios = require('axios');
 const sendEmail = require('../services/email');
+const confirmCharge = require('../services/payments')
 
 async function getStuartAuthToken() {
 	const URL = `${process.env.STUART_ENV}/oauth/token`;

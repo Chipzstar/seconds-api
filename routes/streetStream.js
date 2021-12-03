@@ -3,8 +3,8 @@ const express = require('express');
 const { STATUS } = require('../constants');
 const { JOB_STATUS, CANCELLATION_REASONS } = require('../constants/streetStream');
 const db = require('../models');
-const { confirmCharge } = require('../helpers');
 const sendEmail = require('../services/email');
+const confirmCharge = require('../services/payments')
 const router = express.Router();
 
 function translateStreetStreamStatus(value) {
