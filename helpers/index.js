@@ -899,7 +899,6 @@ async function gophrJobRequest(ref, params, vehicleSpecs) {
 		packageDeliveryType,
 		packagePickupStartTime,
 		packagePickupEndTime,
-		packageDescription,
 		drops
 	} = params;
 	const {
@@ -916,6 +915,7 @@ async function gophrJobRequest(ref, params, vehicleSpecs) {
 		dropoffInstructions,
 		packageDropoffStartTime,
 		packageDropoffEndTime,
+		packageDescription,
 		reference
 	} = drops[0];
 	try {
