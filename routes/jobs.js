@@ -24,6 +24,7 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const router = express.Router();
 const orderId = require('order-id')(process.env.UID_SECRET_KEY);
 const { v4: uuidv4} = require('uuid');
+const sendEmail = require('../services/email');
 
 /**
  * List Jobs - The API endpoint for listing all jobs currently belonging to a user
@@ -252,6 +253,13 @@ router.post('/create', async (req, res) => {
 			});
 		}
 	} catch (err) {
+		process.env.NEW_RELIC_APP_NAME === "seconds-api" && await sendEmail({
+			email: 'chipzstar.dev@gmail.com',
+			name: 'Chisom Oguibe',
+			subject: `Failed Order`,
+			text: `Job could not be created. Reason: ${err.message}`,
+			html: `<p>Job could not be created. Reason: ${err.message}</p>`
+		});
 		err.response ? console.error('ERROR:', err.response.data) : console.log('ERROR:', err);
 		if (err.message) {
 			return res.status(err.code).json({
