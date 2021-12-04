@@ -137,7 +137,7 @@ async function createNewJob(order, user) {
 			pickupLastName: user.lastname,
 			pickupInstructions: order['note'] ? order['note'] : '',
 			packagePickupStartTime: moment().add(45, 'minutes').format(),
-			packagePickupEndTime: moment().add(60, 'minutes').format(),
+			packagePickupEndTime: undefined,
 			packageDeliveryType: 'ON_DEMAND',
 			packageDescription,
 			itemsCount,
@@ -154,7 +154,6 @@ async function createNewJob(order, user) {
 					dropoffFirstName: order.customer.first_name,
 					dropoffLastName: order.customer.last_name,
 					dropoffInstructions: order.customer['note'] ? order.customer['note'] : '',
-					packageDropoffStartTime: moment().add(105, 'minutes').format(),
 					packageDropoffEndTime: moment().add(120, 'minutes').format(),
 					reference: genOrderReference()
 				}
@@ -196,12 +195,10 @@ async function createNewJob(order, user) {
 		// check delivery hours
 		let canDeliver = checkDeliveryHours(payload.packagePickupStartTime, deliveryHours);
 		if (!canDeliver) {
-			const nextDayDeliveryTime = setNextDayDeliveryTime(deliveryHours);
+			const { nextDayPickup, nextDayDropoff } = setNextDayDeliveryTime(deliveryHours);
 			payload.packageDeliveryType = 'NEXT_DAY';
-			payload.packagePickupStartTime = nextDayDeliveryTime;
-			payload.packagePickupEndTime = moment(nextDayDeliveryTime).add(15, 'minutes').format();
-			payload.drops[0].packageDropoffStartTime = moment(nextDayDeliveryTime).add(60, 'minutes').format();
-			payload.drops[0].packageDropoffEndTime = moment(nextDayDeliveryTime).add(120, 'minutes').format();
+			payload.packagePickupStartTime = nextDayPickup;
+			payload.drops[0].packageDropoffEndTime = nextDayDropoff;
 		}
 		console.log('-----------------------------------------------------------------');
 		console.log(payload.packagePickupStartTime);

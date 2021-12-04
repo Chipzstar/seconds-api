@@ -76,8 +76,9 @@ router.post('/create', async (req, res) => {
 	try {
 		console.table(req.body);
 		console.table(req.body.drops[0]);
-		let { pickupAddress, packageDeliveryType, packagePickupStartTime, packagePickupEndTime, vehicleType } = req.body;
-		let { packageDropoffStartTime, packageDropoffEndTime } = req.body.drops[0]
+		let { pickupAddress, packageDeliveryType, packagePickupStartTime, packagePickupEndTime, vehicleType } =
+			req.body;
+		let { packageDropoffStartTime, packageDropoffEndTime } = req.body.drops[0];
 		req.body.drops[0]['reference'] = genOrderReference();
 		//generate client reference number
 		let commissionCharge = false;
@@ -110,31 +111,20 @@ router.post('/create', async (req, res) => {
 			req.body.drops[0].dropoffAddress,
 			vehicleSpecs.travelMode
 		);
-		// check if a pickup start time was passed through but not pickup end time
-		if (packagePickupStartTime && !packagePickupEndTime){
-			req.body.packagePickupEndTime = moment(packagePickupStartTime).add(10, 'minutes').format();
-		}
-		// check if a dropoff start time was passed through but not dropoff end time
-		if (packageDropoffStartTime && !packageDropoffEndTime){
-			req.body.drops[0].packageDropoffEndTime = moment(packageDropoffStartTime).add(10, 'minutes').format();
-		}
 		// Check if a pickupStartTime was passed through, if not set it to 30 minutes ahead of current time
-		if (!packagePickupStartTime) {
+		if (packageDeliveryType === DELIVERY_TYPES.ON_DEMAND) {
 			req.body.packagePickupStartTime = moment().add(30, 'minutes').format();
-			req.body.packagePickupEndTime = moment().add(35, 'minutes').format();
-			req.body.drops[0].packageDropoffStartTime = moment().add(85, 'minutes').format();
+			req.body.packagePickupEndTime = moment().add(60, 'minutes').format();
 			req.body.drops[0].packageDropoffEndTime = moment().add(90, 'minutes').format();
 		}
-		console.log(req.body)
+		console.log(req.body);
 		// CHECK DELIVERY HOURS
 		let canDeliver = checkDeliveryHours(req.body.packagePickupStartTime, deliveryHours);
 		if (!canDeliver) {
-			const nextDayDeliveryTime = setNextDayDeliveryTime(deliveryHours);
+			const { nextDayPickup, nextDayDropoff } = setNextDayDeliveryTime(deliveryHours);
 			req.body.packageDeliveryType = 'NEXT_DAY';
-			req.body.packagePickupStartTime = nextDayDeliveryTime;
-			req.body.packagePickupEndTime = moment(nextDayDeliveryTime).add(10, 'minutes').format();
-			req.body.drops[0].packageDropoffStartTime = moment(nextDayDeliveryTime).add(60, 'minutes').format();
-			req.body.drops[0].packageDropoffEndTime = moment(nextDayDeliveryTime).add(120, 'minutes').format();
+			req.body.packagePickupStartTime = nextDayPickup;
+			req.body.drops[0].packageDropoffEndTime = nextDayDropoff
 		}
 		const QUOTES = await getResultantQuotes(req.body, vehicleSpecs, jobDistance);
 		// Use selection strategy to select the winner quote
@@ -179,21 +169,24 @@ router.post('/create', async (req, res) => {
 				req.body,
 				vehicleSpecs
 			);
-			let idempotencyKey = uuidv4()
-			paymentIntent = await stripe.paymentIntents.create({
-				amount: deliveryFee * 100,
-				customer: stripeCustomerId,
-				currency: 'GBP',
-				setup_future_usage: 'off_session',
-				payment_method: paymentMethodId,
-				payment_method_types: ['card'],
-			}, {
-				idempotencyKey,
-			});
-			console.log("-------------------------------------------")
-			console.log("Payment Intent Created!", paymentIntent)
-			console.log("-------------------------------------------")
-			const paymentIntentId = paymentIntent ? paymentIntent.id : undefined
+			let idempotencyKey = uuidv4();
+			paymentIntent = await stripe.paymentIntents.create(
+				{
+					amount: Math.round(deliveryFee * 100),
+					customer: stripeCustomerId,
+					currency: 'GBP',
+					setup_future_usage: 'off_session',
+					payment_method: paymentMethodId,
+					payment_method_types: ['card']
+				},
+				{
+					idempotencyKey
+				}
+			);
+			console.log('-------------------------------------------');
+			console.log('Payment Intent Created!', paymentIntent);
+			console.log('-------------------------------------------');
+			const paymentIntentId = paymentIntent ? paymentIntent.id : undefined;
 			let job = {
 				createdAt: moment().format(),
 				driverInformation: {
@@ -238,7 +231,8 @@ router.post('/create', async (req, res) => {
 			console.log('======================================================================================');
 			// Append the selected provider job to the jobs database
 			const createdJob = await db.Job.create({ ...job, clientId, commissionCharge, paymentIntentId });
-			process.env.NEW_RELIC_APP_NAME === 'seconds-api' && sendNewJobEmails(team, job).then(res => console.log(res));
+			process.env.NEW_RELIC_APP_NAME === 'seconds-api' &&
+				sendNewJobEmails(team, job).then(res => console.log(res));
 			return res.status(200).json({
 				jobId: createdJob._id,
 				...job
@@ -317,19 +311,20 @@ router.post('/multi-drop', async (req, res) => {
 			req.body.drops[index]['reference'] = genOrderReference();
 		}
 		// Check if a pickupStartTime was passed through, if not set it to 45 minutes ahead of current time
-		if (!packagePickupStartTime) req.body.packagePickupStartTime = moment().add(30, 'minutes').format();
+		if (!packagePickupStartTime) {
+			req.body.packagePickupStartTime = moment().add(30, 'minutes').format();
+		}
+		//TODO - Test multi drop with dashboard -> use packageDropoffEndTime instead of packageDropoffStartTime to base dropoff windows (see line 336)
+
 		// CHECK DELIVERY HOURS
 		let canDeliver = checkDeliveryHours(req.body.packagePickupStartTime, deliveryHours);
 		if (!canDeliver) {
-			let interval = 20;
-			const nextDayDeliveryTime = setNextDayDeliveryTime(deliveryHours);
+			const { nextDayPickup, nextDayDropoff } = setNextDayDeliveryTime(deliveryHours);
 			req.body.packageDeliveryType = DELIVERY_TYPES.NEXT_DAY.name;
-			req.body.packagePickupStartTime = nextDayDeliveryTime;
+			req.body.packagePickupStartTime = nextDayPickup;
 			drops.forEach(
 				(drop, index) =>
-					(req.body.drops[index].packageDropoffStartTime = moment(nextDayDeliveryTime)
-						.add(interval * (index + 1), 'minutes')
-						.format())
+					(req.body.drops[index].packageDropoffEndTime = moment(nextDayDropoff).format())
 			);
 		}
 		// check if user has a subscription active

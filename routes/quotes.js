@@ -1,5 +1,5 @@
 const express = require('express');
-const { AUTHORIZATION_KEY } = require('../constants');
+const { AUTHORIZATION_KEY, DELIVERY_TYPES } = require('../constants');
 const {
 	getClientDetails,
 	getResultantQuotes,
@@ -19,10 +19,10 @@ const router = express.Router();
  */
 router.post('/', async (req, res) => {
 	try {
-		// console.table(req.body)
-		// console.table(req.body.drops[0])
+		console.table(req.body)
+		console.table(req.body.drops[0])
 		const user = await getClientDetails(req.headers[AUTHORIZATION_KEY]);
-		console.log('Strategy: ', user.selectionStrategy);
+		console.log('Strategy: ', user['selectionStrategy']);
 		// check that the vehicleType is valid and return the vehicle's specifications
 		let vehicleSpecs = getVehicleSpecs(req.body.vehicleType);
 		console.table(vehicleSpecs);
@@ -32,13 +32,14 @@ router.post('/', async (req, res) => {
 			req.body.drops[0].dropoffAddress,
 			vehicleSpecs.travelMode
 		);
-		// Check if a pickupStartTime was passed through, if not set it to 30 minutes ahead of current time
-		if (!req.body.packagePickupStartTime) {
+		// Check if a job is an on-demand job, and override and set pickup/dropoff times
+		if (req.body.packageDeliveryType === DELIVERY_TYPES.ON_DEMAND) {
 			req.body.packagePickupStartTime = moment().add(30, 'minutes').format();
-			req.body.drops[0].packageDropoffStartTime = moment().add(60, 'minutes').format();
+			req.body.packagePickupEndTime = moment().add(60, 'minutes').format();
+			req.body.drops[0].packageDropoffEndTime = moment().add(90, 'minutes').format();
 		}
 		const quotes = await getResultantQuotes(req.body, vehicleSpecs, jobDistance);
-		const bestQuote = chooseBestProvider(user.selectionStrategy, quotes);
+		const bestQuote = chooseBestProvider(user['selectionStrategy'], quotes);
 		return res.status(200).json({
 			quotes,
 			bestQuote,

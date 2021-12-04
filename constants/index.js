@@ -3,19 +3,19 @@ exports.PROVIDER_ID = 'X-Seconds-Provider-Id'.toLowerCase();
 
 exports.DELIVERY_TYPES = {
 	ON_DEMAND: {
-		name: 'on-demand',
+		name: 'ON_DEMAND',
 		ecofleet: 'on demand',
 	},
 	SAME_DAY: {
-		name: 'same-day',
+		name: 'SAME_DAY',
 		ecofleet: 'same day',
 	},
 	NEXT_DAY: {
-		name: 'next-day',
+		name: 'NEXT_DAY',
 		ecofleet: 'next day'
 	},
 	MULTI_DROP: {
-		name: 'multi-drop',
+		name: 'MULTI_DROP',
 		ecofleet: 'same day'
 	}
 }

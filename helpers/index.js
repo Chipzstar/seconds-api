@@ -277,9 +277,13 @@ function setNextDayDeliveryTime(deliveryHours) {
 		}
 		// return the pickup time for the next day delivery
 		const open = { h: deliveryHours[nextDay].open['h'], m: deliveryHours[nextDay].open['m'] };
-		console.log(open);
+		const close = { h: deliveryHours[nextDay].close['h'], m: deliveryHours[nextDay].close['m'] };
+		console.table({ open, close });
 		console.log('===================================================================');
-		return moment(open).add(interval, 'days').add(30, 'minutes').format();
+		return {
+			nextDayPickup: moment(open).add(interval, 'days').format(),
+			nextDayDropoff: moment(close).add(interval, 'days').format()
+		};
 	} else {
 		throw new Error('Store has no delivery hours available!');
 	}
@@ -488,8 +492,17 @@ async function getStuartQuote(reference, params, vehicleSpecs) {
 }
 
 async function getGophrQuote(params, vehicleSpecs) {
-	const { pickupAddressLine1, pickupCity, pickupPostcode, packagePickupStartTime, drops } = params;
-	const { dropoffAddressLine1, dropoffCity, dropoffPostcode, packageDropoffStartTime } = drops[0];
+	const {
+		pickupAddressLine1,
+		pickupCity,
+		pickupPostcode,
+		packagePickupStartTime,
+		packagePickupEndTime,
+		packageDeliveryType,
+		drops
+	} = params;
+	const { dropoffAddressLine1, dropoffCity, dropoffPostcode, packageDropoffStartTime, packageDropoffEndTime } =
+		drops[0];
 	// get gophr vehicle/package specs
 	try {
 		const { x: size_x, y: size_y, z: size_z, weight, gophrVehicleType } = vehicleSpecs;
@@ -505,17 +518,18 @@ async function getGophrQuote(params, vehicleSpecs) {
 			weight,
 			vehicle_type: gophrVehicleType,
 			...(packagePickupStartTime && { earliest_pickup_time: moment(packagePickupStartTime).toISOString(true) }),
+			...(packagePickupEndTime && { pickup_deadline: moment(packagePickupEndTime).toISOString(true) }),
 			...(packageDropoffStartTime && {
 				earliest_delivery_time: moment(packageDropoffStartTime).toISOString(true)
 			}),
-			...(packageDropoffStartTime && {
-				delivery_deadline: moment(packageDropoffStartTime).add(1, 'hour').toISOString(true)
+			...(packageDropoffEndTime && {
+				delivery_deadline: moment(packageDropoffEndTime).add(1, 'hour').toISOString(true)
 			}),
 			delivery_address1: dropoffAddressLine1,
 			delivery_city: dropoffCity,
 			delivery_postcode: dropoffPostcode,
 			delivery_country_code: 'GB',
-			job_priority: 0
+			job_priority: DELIVERY_TYPES[packageDeliveryType].name === DELIVERY_TYPES.ON_DEMAND.name ? 1 : 0
 		});
 		console.log('PAYLOAD');
 		console.log('--------------------------');
@@ -734,6 +748,9 @@ async function stuartJobRequest(ref, params, vehicleSpecs) {
 				]
 			}
 		};
+		console.log(payload.job);
+		const priceURL = `${process.env.STUART_ENV}/v2/jobs/pricing`;
+		let { amount } = (await stuartAxios.post(priceURL, payload)).data;
 		const URL = `${process.env.STUART_ENV}/v2/jobs`;
 		let data = (await stuartAxios.post(URL, payload)).data;
 		const deliveryInfo = data['deliveries'][0];
@@ -767,7 +784,8 @@ async function stuartJobRequest(ref, params, vehicleSpecs) {
 		};
 		return {
 			id: String(data.id),
-			deliveryFee: process.env.NEW_RELIC_APP_NAME === "seconds-api" ? data['pricing']['price_tax_included'] : 10,
+			deliveryFee:
+				process.env.NEW_RELIC_APP_NAME === 'seconds-api' ? data['pricing']['price_tax_included'] : amount * 1.2,
 			pickupAt: data['pickup_at'] ? data['pickup_at'] : moment(packagePickupStartTime).format(),
 			dropoffAt: data['dropoff_at'],
 			delivery
@@ -938,24 +956,24 @@ async function gophrJobRequest(ref, params, vehicleSpecs) {
 			pickup_postcode: `${pickupPostcode}`,
 			pickup_country_code: 'GB',
 			pickup_tips_how_to_find: `${pickupInstructions}`,
+			delivery_address1: `${dropoffAddressLine1}`,
+			...(dropoffAddressLine2 && { delivery_address2: `${dropoffAddressLine2}` }),
+			...(dropoffCity && { delivery_city: `${dropoffCity}` }),
+			delivery_postcode: `${dropoffPostcode}`,
+			...(packagePickupStartTime && { earliest_pickup_time: moment(packagePickupStartTime).toISOString(true) }),
+			...(packagePickupEndTime && { pickup_deadline: moment(packagePickupEndTime).toISOString(true) }),
+			...(packageDropoffStartTime && {
+				earliest_delivery_time: moment(packageDropoffStartTime).toISOString(true)
+			}),
+			...(packageDropoffEndTime && { delivery_deadline: moment(packageDropoffEndTime).toISOString(true) }),
+			delivery_country_code: 'GB',
+			delivery_tips_how_to_find: `${dropoffInstructions}`,
 			size_x,
 			size_y,
 			size_z,
 			weight,
 			vehicle_type: gophrVehicleType,
-			...(packagePickupStartTime && { earliest_pickup_time: moment(packagePickupStartTime).toISOString(true) }),
-			...(packageDropoffStartTime && {
-				earliest_delivery_time: moment(packageDropoffStartTime).toISOString(true)
-			}),
-			job_priority: DELIVERY_TYPES[packageDeliveryType].name === DELIVERY_TYPES.ON_DEMAND.name ? 0 : 1,
-			...(packagePickupEndTime && { pickup_deadline: moment(packagePickupEndTime).toISOString(true) }),
-			...(packageDropoffEndTime && { delivery_deadline: moment(packageDropoffEndTime).toISOString(true) }),
-			delivery_address1: `${dropoffAddressLine1}`,
-			...(dropoffAddressLine2 && { delivery_address2: `${dropoffAddressLine2}` }),
-			...(dropoffCity && { delivery_city: `${dropoffCity}` }),
-			delivery_postcode: `${dropoffPostcode}`,
-			delivery_country_code: 'GB',
-			delivery_tips_how_to_find: `${dropoffInstructions}`
+			job_priority: DELIVERY_TYPES[packageDeliveryType].name === DELIVERY_TYPES.ON_DEMAND.name ? 1 : 0
 		});
 		console.log(payload);
 		const config = { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } };
@@ -1159,8 +1177,8 @@ async function streetStreamMultiJobRequest(ref, strategy, params, vehicleSpecs) 
 
 	let lastDropoffTime = moment().toISOString(true);
 	const dropoffs = drops.map(drop => {
-		if (moment(drop.packageDropoffStartTime).diff(lastDropoffTime) > 0)
-			lastDropoffTime = moment(drop.packageDropoffStartTime).toISOString(true);
+		if (moment(drop.packageDropoffEndTime).diff(lastDropoffTime) > 0)
+			lastDropoffTime = moment(drop.packageDropoffEndTime).toISOString(true);
 		return {
 			contactNumber: drop.dropoffPhoneNumber,
 			contactName: `${drop.dropoffFirstName} ${drop.dropoffLastName}`,
@@ -1535,7 +1553,7 @@ async function addisonLeeJobRequestWithQuote(quoteId, params, vehicleSpecs) {
 
 async function sendCancellationRequest(jobId, provider, job, comment) {
 	try {
-		const user = await db.User.findById(job.clientId)
+		const user = await db.User.findById(job.clientId);
 		let options = {
 			name: `${user.firstname} ${user.lastname}`,
 			email: `chipzstar.dev@gmail.com`,
@@ -1551,46 +1569,46 @@ async function sendCancellationRequest(jobId, provider, job, comment) {
 			}
 		};
 		await sendEmail(options);
-		return "Cancellation request sent"
+		return 'Cancellation request sent';
 	} catch (e) {
-		throw e
+		throw e;
 	}
 }
 
 async function stuartCancelRequest(jobId, comment) {
 	try {
-	    const URL = `${process.env.STUART_ENV}/v2/jobs/${jobId}/cancel`
+		const URL = `${process.env.STUART_ENV}/v2/jobs/${jobId}/cancel`;
 		const payload = {
 			public_reason_key: 'customer_cancellation_requested',
 			comment
-		}
-		const res = (await stuartAxios.post(URL, payload)).data
-		return "Your job has been cancelled by Stuart!"
+		};
+		const res = (await stuartAxios.post(URL, payload)).data;
+		return 'Your job has been cancelled by Stuart!';
 	} catch (err) {
-	    throw err
+		throw err;
 	}
 }
 
 async function gophrCancelRequest(jobId, comment) {
 	try {
-		const cancelURL = `${process.env.GOPHR_ENV}/v1/commercial-api/cancel-job`
-		const costURL = `${process.env.GOPHR_ENV}/v1/commercial-api/get-cancelation-cost`
+		const cancelURL = `${process.env.GOPHR_ENV}/v1/commercial-api/cancel-job`;
+		const costURL = `${process.env.GOPHR_ENV}/v1/commercial-api/get-cancelation-cost`;
 		const payload = qs.stringify({
 			api_key: `${process.env.GOPHR_API_KEY}`,
 			job_id: `${jobId}`
-		})
-		let response = (await axios.post(costURL, payload)).data
-		console.log(response)
-		console.log(response['cancelation_cost'])
-		response = (await axios.post(cancelURL, payload)).data
-		console.log(response)
-		return "Your job has been cancelled by Gohpr!"
+		});
+		let response = (await axios.post(costURL, payload)).data;
+		console.log(response);
+		console.log(response['cancelation_cost']);
+		response = (await axios.post(cancelURL, payload)).data;
+		console.log(response);
+		return 'Your job has been cancelled by Gohpr!';
 	} catch (err) {
-		throw err
+		throw err;
 	}
 }
 
-async function cancelOrder(jobId, provider, jobDetails, comment){
+async function cancelOrder(jobId, provider, jobDetails, comment) {
 	switch (provider) {
 		case PROVIDERS.STUART:
 			console.log('Cancelling STUART Job');
