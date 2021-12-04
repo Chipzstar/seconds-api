@@ -17,7 +17,7 @@ const sendEmail = async options => {
 		...(options.templateId && { templateId: options.templateId }),
 		...(options.templateData && { dynamicTemplateData: options.templateData })
 	};
-	await sgMail.send(msg);
+	process.env.NEW_RELIC_APP_NAME === "seconds-api" && await sgMail.send(msg);
 };
 
 module.exports = sendEmail;

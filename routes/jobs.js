@@ -253,7 +253,7 @@ router.post('/create', async (req, res) => {
 			});
 		}
 	} catch (err) {
-		process.env.NEW_RELIC_APP_NAME === "seconds-api" && await sendEmail({
+		await sendEmail({
 			email: 'chipzstar.dev@gmail.com',
 			name: 'Chisom Oguibe',
 			subject: `Failed Order`,

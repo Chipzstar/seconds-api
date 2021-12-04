@@ -12,7 +12,8 @@ const {
 	calculateJobDistance,
 	checkDeliveryHours,
 	setNextDayDeliveryTime,
-	genOrderReference, sendNewJobEmails,
+	genOrderReference,
+	sendNewJobEmails
 } = require('../helpers');
 const { VEHICLE_CODES_MAP, VEHICLE_CODES, STATUS, COMMISSION } = require('../constants');
 const moment = require('moment');
@@ -31,8 +32,8 @@ async function geocodeAddress(address) {
 			await client.geocode({
 				params: {
 					address,
-					key: process.env.GOOGLE_MAPS_API_KEY,
-				},
+					key: process.env.GOOGLE_MAPS_API_KEY
+				}
 			})
 		).data;
 
@@ -40,7 +41,7 @@ async function geocodeAddress(address) {
 			const formattedAddress = {
 				street: '',
 				city: '',
-				postcode: '',
+				postcode: ''
 			};
 			let fullAddress = response.results[0].formatted_address;
 			let components = response.results[0].address_components;
@@ -88,6 +89,24 @@ function convertWeightToVehicleCode(total_weight) {
 	return { vehicleName, vehicleCode };
 }
 
+function validateDeliveryDate(date, time) {
+	console.table({ date, time });
+	const [from, to] = time.split(' - ');
+	console.log('FROM:', from);
+	console.log('TO:', to);
+	// convert delivery date + time (from) into a moment and check it is not in the past
+	let deliverFrom = moment(`${date} ${from}`, 'DD-MM-YYYY HH:mm');
+	let deliverTo = moment(`${date} ${to}`, 'DD-MM-YYYY HH:mm');
+	// check that the two moments are valid
+	if (deliverTo.isValid() && deliverFrom.isValid()) {
+		// if deliverFrom time is in the past set it to be 20 minutes ahead of the current time
+		deliverFrom = deliverFrom.diff(moment()) < 0 ? moment().add(20, 'minutes') : deliverFrom;
+		deliverTo = deliverTo.diff(moment()) < 0 ? moment(deliverFrom).add(2, 'hours') : deliverTo;
+		return { deliverFrom, deliverTo, isValid: deliverTo.isValid() && deliverFrom.isValid() };
+	}
+	return { deliverFrom: null, deliverTo: null, isValid: deliverTo.isValid() && deliverFrom.isValid() };
+}
+
 async function createNewJob(order, user) {
 	try {
 		console.log('************************************');
@@ -98,13 +117,14 @@ async function createNewJob(order, user) {
 		console.log(order['total_weight']);
 		const vehicleType = convertWeightToVehicleCode(order['total_weight'] / 1000).vehicleCode;
 		console.log('DETAILS');
-		console.table({ itemsCount, packageDescription, vehicleType });
+		console.table({ itemsCount, vehicleType });
+		console.log(packageDescription);
 		// geocode dropoff address
 		const { formattedAddress, fullAddress } = await geocodeAddress(
 			`${order.shipping_address['address1']} ${order.shipping_address['city']} ${order.shipping_address['zip']}`
 		);
-		console.log(fullAddress)
-		console.table(formattedAddress)
+		console.log(fullAddress);
+		console.table(formattedAddress);
 		const payload = {
 			pickupAddress: user.fullAddress,
 			pickupAddressLine1: user.address['street'],
@@ -118,7 +138,7 @@ async function createNewJob(order, user) {
 			pickupInstructions: order['note'] ? order['note'] : '',
 			packagePickupStartTime: moment().add(45, 'minutes').format(),
 			packagePickupEndTime: moment().add(60, 'minutes').format(),
-			packageDeliveryType: "ON_DEMAND",
+			packageDeliveryType: 'ON_DEMAND',
 			packageDescription,
 			itemsCount,
 			vehicleType,
@@ -136,10 +156,23 @@ async function createNewJob(order, user) {
 					dropoffInstructions: order.customer['note'] ? order.customer['note'] : '',
 					packageDropoffStartTime: moment().add(105, 'minutes').format(),
 					packageDropoffEndTime: moment().add(120, 'minutes').format(),
-					reference: genOrderReference(),
-				},
-			],
+					reference: genOrderReference()
+				}
+			]
 		};
+		// check if delivery date specified by the customer
+		if (order['note_attributes']) {
+			const [date, time] = order['note_attributes']
+				.filter(({ name }) => name === 'Delivery-Date' || name === 'Delivery-Time')
+				.map(({ value }) => value);
+			const { deliverFrom, deliverTo, isValid } = validateDeliveryDate(date, time);
+			if (isValid) {
+				payload.packagePickupStartTime = deliverFrom.format();
+				payload.packagePickupEndTime = undefined;
+				payload.drops[0].packageDropoffStartTime = undefined;
+				payload.drops[0].packageDropoffEndTime = deliverTo.format();
+			}
+		}
 		console.log('-----------------------------------------------------------------');
 		console.log('Payload');
 		console.log(payload);
@@ -164,11 +197,11 @@ async function createNewJob(order, user) {
 		let canDeliver = checkDeliveryHours(payload.packagePickupStartTime, deliveryHours);
 		if (!canDeliver) {
 			const nextDayDeliveryTime = setNextDayDeliveryTime(deliveryHours);
-			payload.packageDeliveryType = "NEXT_DAY";
+			payload.packageDeliveryType = 'NEXT_DAY';
 			payload.packagePickupStartTime = nextDayDeliveryTime;
-			payload.packagePickupEndTime = moment(nextDayDeliveryTime).add(15, 'minutes').format()
+			payload.packagePickupEndTime = moment(nextDayDeliveryTime).add(15, 'minutes').format();
 			payload.drops[0].packageDropoffStartTime = moment(nextDayDeliveryTime).add(60, 'minutes').format();
-			payload.drops[0].packageDropoffEndTime= moment(nextDayDeliveryTime).add(120, 'minutes').format();
+			payload.drops[0].packageDropoffEndTime = moment(nextDayDeliveryTime).add(120, 'minutes').format();
 		}
 		console.log('-----------------------------------------------------------------');
 		console.log(payload.packagePickupStartTime);
@@ -186,34 +219,31 @@ async function createNewJob(order, user) {
 		console.log('NUM COMPLETED ORDERS:', numOrders);
 		console.log('--------------------------------');
 		// if the order limit is exceeded, mark the job with a commission fee charge
-		if (numOrders >= limit) commissionCharge = true
+		if (numOrders >= limit) commissionCharge = true;
 		const {
 			id: spec_id,
 			deliveryFee,
 			pickupAt,
-			delivery,
-		} = await providerCreatesJob(
-			providerId.toLowerCase(),
-			clientRefNumber,
-			selectionStrategy,
-			payload,
-			vehicleSpecs
+			delivery
+		} = await providerCreatesJob(providerId, clientRefNumber, selectionStrategy, payload, vehicleSpecs);
+		let idempotencyKey = uuidv4();
+		paymentIntent = await stripe.paymentIntents.create(
+			{
+				amount: deliveryFee * 100,
+				customer: user.stripeCustomerId,
+				currency: 'GBP',
+				setup_future_usage: 'off_session',
+				payment_method: user.paymentMethodId,
+				payment_method_types: ['card']
+			},
+			{
+				idempotencyKey
+			}
 		);
-		let idempotencyKey = uuidv4()
-		paymentIntent = await stripe.paymentIntents.create({
-			amount: deliveryFee * 100,
-			customer: user.stripeCustomerId,
-			currency: 'GBP',
-			setup_future_usage: 'off_session',
-			payment_method: user.paymentMethodId,
-			payment_method_types: ['card'],
-		}, {
-			idempotencyKey,
-		});
-		console.log("-------------------------------------------")
-		console.log("Payment Intent Created!", paymentIntent)
-		console.log("-------------------------------------------")
-		const paymentIntentId = paymentIntent ? paymentIntent.id : undefined
+		console.log('-------------------------------------------');
+		console.log('Payment Intent Created!', paymentIntent);
+		console.log('-------------------------------------------');
+		const paymentIntentId = paymentIntent ? paymentIntent.id : undefined;
 		let job = {
 			createdAt: moment().format(),
 			jobSpecification: {
@@ -235,18 +265,18 @@ async function createNewJob(order, user) {
 					firstName: payload.pickupFirstName,
 					lastName: payload.pickupLastName,
 					businessName: payload.pickupBusinessName,
-					instructions: payload.pickupInstructions,
+					instructions: payload.pickupInstructions
 				},
-				deliveries: [delivery],
+				deliveries: [delivery]
 			},
 			selectedConfiguration: {
 				createdAt: moment().format(),
 				deliveryFee,
 				winnerQuote,
 				providerId,
-				quotes: QUOTES,
+				quotes: QUOTES
 			},
-			status: STATUS.NEW,
+			status: STATUS.NEW
 		};
 		// Append the selected provider job to the jobs database
 		const createdJob = await db.Job.create({ ...job, clientId, commissionCharge, paymentIntentId });
@@ -291,7 +321,7 @@ router.post('/', async (req, res) => {
 						res.status(200).json({
 							success: true,
 							status: 'DELIVERY_JOB_CREATED',
-							message: 'webhook received',
+							message: 'webhook received'
 						});
 					} else {
 						console.error('No subscription detected!');
@@ -299,7 +329,7 @@ router.post('/', async (req, res) => {
 							success: false,
 							status: 'NO_SUBSCRIPTION',
 							message:
-								'We cannot carry out orders without a subscription. Please subscribe to one of our business plans!',
+								'We cannot carry out orders without a subscription. Please subscribe to one of our business plans!'
 						});
 					}
 				} else {
@@ -308,14 +338,14 @@ router.post('/', async (req, res) => {
 						status: 'NON_LOCAL_DELIVERY',
 						message:
 							'Seconds can only fulfill orders using the local delivery method\n' +
-							'See https://help.shopify.com/en/manual/shipping/setting-up-and-managing-your-shipping/local-methods/local-delivery for reference ',
+							'See https://help.shopify.com/en/manual/shipping/setting-up-and-managing-your-shipping/local-methods/local-delivery for reference '
 					});
 				}
 			} else {
 				res.status(200).json({
 					success: false,
 					status: 'USER_NOT_FOUND',
-					message: `Failed to find a user with shopify domain ${shop}`,
+					message: `Failed to find a user with shopify domain ${shop}`
 				});
 			}
 		} else if (topic === 'fulfillments/create') {
@@ -327,7 +357,7 @@ router.post('/', async (req, res) => {
 			res.status(200).json({
 				success: false,
 				status: 'UNKNOWN_TOPIC',
-				message: `Webhook topic ${topic} is not recognised`,
+				message: `Webhook topic ${topic} is not recognised`
 			});
 		}
 	} catch (err) {
@@ -335,7 +365,7 @@ router.post('/', async (req, res) => {
 		res.status(200).json({
 			success: false,
 			STATUS: 'INTERNAL_SERVER_ERROR',
-			message: err.message,
+			message: err.message
 		});
 	}
 });
