@@ -53,7 +53,6 @@ const confirmCharge = async (
 		}
 		return Promise.resolve(true);
 	} catch (e) {
-		console.error(e);
 		throw e;
 	}
 };

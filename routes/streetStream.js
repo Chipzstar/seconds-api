@@ -4,7 +4,7 @@ const { STATUS } = require('../constants');
 const { JOB_STATUS, CANCELLATION_REASONS } = require('../constants/streetStream');
 const db = require('../models');
 const sendEmail = require('../services/email');
-const confirmCharge = require('../services/payments')
+const confirmCharge = require('../services/payments');
 const router = express.Router();
 
 function translateStreetStreamStatus(value) {
@@ -47,14 +47,18 @@ async function update(data) {
 		let job = await db.Job.findOneAndUpdate(
 			{ 'jobSpecification.id': ID },
 			{
-				'status': translateStreetStreamStatus(jobStatus),
-				'jobSpecification.deliveries.$[].status': translateStreetStreamStatus(jobStatus),
+				status: translateStreetStreamStatus(jobStatus),
+				'jobSpecification.deliveries.$[].status': translateStreetStreamStatus(jobStatus)
 			},
 			{ new: true }
 		);
 		if (job) {
 			console.log(job);
-			if (jobStatus === JOB_STATUS.ADMIN_CANCELLED || jobStatus === JOB_STATUS.NO_RESPONSE || jobStatus === JOB_STATUS.NOT_AS_DESCRIBED) {
+			if (
+				jobStatus === JOB_STATUS.ADMIN_CANCELLED ||
+				jobStatus === JOB_STATUS.NO_RESPONSE ||
+				jobStatus === JOB_STATUS.NOT_AS_DESCRIBED
+			) {
 				const user = await db.User.findOne({ _id: job.clientId });
 				console.log('User:', !!user);
 				// check if order status is cancelled and send out email to clients
@@ -87,24 +91,38 @@ router.post('/', async (req, res) => {
 	try {
 		let jobStatus = await update(req.body);
 		if (jobStatus === JOB_STATUS.COMPLETED_SUCCESSFULLY) {
-			let { clientId, commissionCharge, paymentIntentId, jobSpecification: { deliveryType, deliveries } } = await db.Job.findOne({ 'jobSpecification.id': req.body.jobId }, {});
+			let {
+				clientId,
+				commissionCharge,
+				paymentIntentId,
+				jobSpecification: { deliveryType, deliveries }
+			} = await db.Job.findOne({ 'jobSpecification.id': req.body.jobId }, {});
 			console.log('****************************************************************');
 			console.log('STREET-STREAM DELIVERY COMPLETEEEEEEE!');
 			console.log('****************************************************************');
 			let { stripeCustomerId, subscriptionItems } = await db.User.findOne({ _id: clientId }, {});
-			confirmCharge(stripeCustomerId, subscriptionItems, commissionCharge, paymentIntentId, deliveryType, deliveries.length);
+			confirmCharge(
+				stripeCustomerId,
+				subscriptionItems,
+				commissionCharge,
+				paymentIntentId,
+				deliveryType,
+				deliveries.length
+			)
+				.then(res => console.log('Charge confirmed:', res))
+				.catch(err => console.error(err));
 		}
 		res.status(200).send({
 			success: true,
 			status: 'NEW_JOB_STATUS',
-			message: `Job status is now ${jobStatus}`,
+			message: `Job status is now ${jobStatus}`
 		});
 	} catch (err) {
 		console.error(err);
 		res.status(200).json({
 			success: false,
 			status: err.status,
-			message: err.message,
+			message: err.message
 		});
 	}
 });

@@ -55,7 +55,7 @@ async function updateStatus(data) {
 			{
 				$set: {
 					'jobSpecification.pickupStartTime': moment(pickup_eta).toISOString(true),
-					'jobSpecification.deliveries.$[].dropoffStartTime': moment(delivery_eta).toISOString(true),
+					'jobSpecification.deliveries.$[].dropoffEndTime': moment(delivery_eta).toISOString(true),
 					'driverInformation.name': courier_name,
 					'driverInformation.phone': 'N/A',
 					'driverInformation.transport': 'N/A',
@@ -105,7 +105,7 @@ async function updateETA(data) {
 		{
 			$set: {
 				'jobSpecification.pickupStartTime': moment(pickup_eta).toISOString(true),
-				'jobSpecification.deliveries.$[].dropoffStartTime': moment(delivery_eta).toISOString(true)
+				'jobSpecification.deliveries.$[].dropoffEndTime': moment(delivery_eta).toISOString(true)
 			}
 		},
 		{
@@ -145,7 +145,7 @@ router.post('/', async (req, res) => {
 						paymentIntentId,
 						deliveryType,
 						deliveries.length
-					);
+					).then(res => console.log("Charge confirmed:", res)).catch(err => console.error(err));
 				}
 			} else if (webhook_type === WEBHOOK_TYPES.ETA) {
 				let jobETA = await updateETA(req.body);

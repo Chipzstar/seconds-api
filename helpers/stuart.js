@@ -95,7 +95,7 @@ async function updateJob(data) {
 			{
 				$set: {
 					'jobSpecification.pickupStartTime': moment(etaToOrigin).toISOString(),
-					'jobSpecification.deliveries.$.dropoffStartTime': moment(etaToDestination).toISOString(),
+					'jobSpecification.deliveries.$.dropoffEndTime': moment(etaToDestination).toISOString(),
 					'jobSpecification.deliveries.$.status': translateStuartStatus(deliveryStatus)
 				}
 			},
@@ -117,7 +117,7 @@ async function updateJob(data) {
 				job.paymentIntentId,
 				job.jobSpecification.deliveryType,
 				job.jobSpecification.deliveries.length
-			);
+			).then(res => console.log("Charge confirmed:", res)).catch(err => console.error(err));;
 		}
 		return jobStatus;
 	} catch (err) {
@@ -137,7 +137,7 @@ async function updateDelivery(data) {
 				$set: {
 					status: translateStuartStatus(deliveryStatus),
 					'jobSpecification.pickupStartTime': moment(etaToOrigin).toISOString(),
-					'jobSpecification.deliveries.$.dropoffStartTime': moment(etaToDestination).toISOString(),
+					'jobSpecification.deliveries.$.dropoffEndTime': moment(etaToDestination).toISOString(),
 					'jobSpecification.deliveries.$.status': translateStuartStatus(deliveryStatus)
 				}
 			},
