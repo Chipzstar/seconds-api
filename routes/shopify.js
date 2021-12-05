@@ -91,9 +91,8 @@ function convertWeightToVehicleCode(total_weight) {
 
 function validateDeliveryDate(date, time) {
 	console.table({ date, time });
-	const [from, to] = time.split(' - ');
-	console.log('FROM:', from);
-	console.log('TO:', to);
+	const [from, to] = time ? time.split(' - ') : [null, null];
+	console.table({from, to})
 	// convert delivery date + time (from) into a moment and check it is not in the past
 	let deliverFrom = moment(`${date} ${from}`, 'DD-MM-YYYY HH:mm');
 	let deliverTo = moment(`${date} ${to}`, 'DD-MM-YYYY HH:mm');
