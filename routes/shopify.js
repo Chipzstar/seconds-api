@@ -27,7 +27,6 @@ const client = new Client();
 
 async function geocodeAddress(address) {
 	try {
-		console.log(address);
 		const response = (
 			await client.geocode({
 				params: {
@@ -45,9 +44,6 @@ async function geocodeAddress(address) {
 			};
 			let fullAddress = response.results[0].formatted_address;
 			let components = response.results[0].address_components;
-			/*console.log('**************************************************');
-			console.log(components);
-			console.log('**************************************************');*/
 			components.forEach(({ long_name, types }) => {
 				switch (types[0]) {
 					case 'street_number':
