@@ -34,9 +34,8 @@ router.post('/', async (req, res) => {
 		);
 		// Check if a job is an on-demand job, and override and set pickup/dropoff times
 		if (req.body.packageDeliveryType === DELIVERY_TYPES.ON_DEMAND.name) {
-			req.body.packagePickupStartTime = moment().add(30, 'minutes').format();
-			req.body.packagePickupEndTime = moment().add(60, 'minutes').format();
-			req.body.drops[0].packageDropoffEndTime = moment().add(90, 'minutes').format();
+			req.body.packagePickupStartTime = moment().add(20, 'minutes').format();
+			req.body.drops[0].packageDropoffEndTime = moment().add(120, 'minutes').format();
 		}
 		const quotes = await getResultantQuotes(req.body, vehicleSpecs, jobDistance);
 		const bestQuote = chooseBestProvider(user['selectionStrategy'], quotes);

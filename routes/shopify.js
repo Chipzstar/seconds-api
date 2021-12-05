@@ -222,7 +222,7 @@ async function createNewJob(order, user) {
 			deliveryFee,
 			pickupAt,
 			delivery
-		} = await providerCreatesJob(providerId, clientRefNumber, selectionStrategy, payload, vehicleSpecs);
+		} = await providerCreatesJob(providerId.toLowerCase(), clientRefNumber, selectionStrategy, payload, vehicleSpecs);
 		let idempotencyKey = uuidv4();
 		paymentIntent = await stripe.paymentIntents.create(
 			{

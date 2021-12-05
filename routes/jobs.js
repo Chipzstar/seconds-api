@@ -113,9 +113,8 @@ router.post('/create', async (req, res) => {
 		);
 		// Check if a pickupStartTime was passed through, if not set it to 30 minutes ahead of current time
 		if (packageDeliveryType === DELIVERY_TYPES.ON_DEMAND.name) {
-			req.body.packagePickupStartTime = moment().add(30, 'minutes').format();
-			req.body.packagePickupEndTime = moment().add(60, 'minutes').format();
-			req.body.drops[0].packageDropoffEndTime = moment().add(90, 'minutes').format();
+			req.body.packagePickupStartTime = moment().add(20, 'minutes').format();
+			req.body.drops[0].packageDropoffEndTime = moment().add(120, 'minutes').format();
 		}
 		console.log(req.body);
 		// CHECK DELIVERY HOURS

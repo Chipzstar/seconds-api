@@ -126,7 +126,7 @@ const userSchema = new mongoose.Schema({
 			1: {
 				open: {
 					h: 7,
-					m: 0
+					m: 30
 				},
 				close: {
 					h: 18,
@@ -137,7 +137,7 @@ const userSchema = new mongoose.Schema({
 			2: {
 				open: {
 					h: 7,
-					m: 0
+					m: 30
 				},
 				close: {
 					h: 18,
@@ -148,7 +148,7 @@ const userSchema = new mongoose.Schema({
 			3: {
 				open: {
 					h: 7,
-					m: 0
+					m: 30
 				},
 				close: {
 					h: 18,
@@ -159,7 +159,7 @@ const userSchema = new mongoose.Schema({
 			4: {
 				open: {
 					h: 7,
-					m: 0
+					m: 30
 				},
 				close: {
 					h: 18,
@@ -170,7 +170,7 @@ const userSchema = new mongoose.Schema({
 			5: {
 				open: {
 					h: 7,
-					m: 0
+					m: 30
 				},
 				close: {
 					h: 18,
@@ -181,7 +181,7 @@ const userSchema = new mongoose.Schema({
 			6: {
 				open: {
 					h: 7,
-					m: 0
+					m: 30
 				},
 				close: {
 					h: 18,

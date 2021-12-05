@@ -872,7 +872,7 @@ async function stuartMultiJobRequest(ref, params, vehicleSpecs) {
 			orderReference: delivery.client_reference,
 			description: delivery.package_description,
 			dropoffStartTime: delivery.eta['dropoff'] ? moment(delivery.eta['dropoff']).format() : data['dropoff_at'],
-			dropoffEndTime: undefined,
+			dropoffEndTime: delivery.eta['dropoff'] ? moment(delivery.eta['dropoff']).format() : data['dropoff_at'],
 			transport: vehicleSpecs.name,
 			dropoffLocation: {
 				fullAddress: `${delivery['dropoff']['address']['street']} ${delivery['dropoff']['address']['city']} ${delivery['dropoff']['address']['postcode']}`,
@@ -990,7 +990,7 @@ async function gophrJobRequest(ref, params, vehicleSpecs) {
 				orderReference: drops[0].reference,
 				description: packageDescription ? packageDescription : '',
 				dropoffStartTime: delivery_eta ? moment(delivery_eta).format() : drops[0].packageDropoffStartTime,
-				dropoffEndTime: drops[0].packageDropoffEndTime,
+				dropoffEndTime: delivery_eta ? moment(delivery_eta).format() : drops[0].packageDropoffEndTime,
 				transport: vehicleSpecs.name,
 				dropoffLocation: {
 					fullAddress: dropoffAddress,
@@ -1088,12 +1088,10 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 				city: pickupCity,
 				postcode: pickupPostcode,
 				pickUpNotes: pickupInstructions,
-				pickUpFrom: packagePickupStartTime
-					? moment(packagePickupStartTime).toISOString(true)
-					: moment().toISOString(true),
+				pickUpFrom: moment(packagePickupStartTime).toISOString(true),
 				pickUpTo: packagePickupEndTime
 					? moment(packagePickupEndTime).toISOString(true)
-					: moment().add(5, 'minutes').toISOString(true)
+					: moment(packagePickupStartTime).add(5, 'minutes').toISOString(true)
 			},
 			dropOff: {
 				contactNumber: dropoffPhoneNumber,
@@ -1103,10 +1101,8 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 				postcode: dropoffPostcode,
 				dropOffFrom: packageDropoffStartTime
 					? moment(packageDropoffStartTime).toISOString(true)
-					: moment().toISOString(true),
-				dropOffTo: packageDropoffEndTime
-					? moment(packageDropoffEndTime).toISOString(true)
-					: moment().add(5, 'minutes').toISOString(true),
+					: moment(packagePickupStartTime).add(5, 'minutes').toISOString(true),
+				dropOffTo: moment(packageDropoffEndTime).toISOString(true),
 				clientTag: reference,
 				deliveryNotes: dropoffInstructions
 			}
@@ -1149,10 +1145,10 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 			id: data.id,
 			trackingURL: null,
 			deliveryFee: data['jobCharge']['totalPayableWithVat'],
-			pickupAt: packagePickupStartTime ? moment(packagePickupStartTime) : moment().add(35, 'minutes'),
-			dropoffAt: packageDropoffStartTime
-				? moment(packagePickupStartTime).add(data['estimatedRouteTimeSeconds'], 'seconds').format()
-				: moment().add(25, 'minutes').add(data['estimatedRouteTimeSeconds'], 'seconds').format(),
+			pickupAt: data.pickUp['pickUpFrom'] ? moment(data.pickUp['pickUpFrom']).format() : packagePickupStartTime,
+			dropoffAt: packageDropoffEndTime
+				? moment(packageDropoffEndTime).format()
+				: moment(packagePickupStartTime).add(data['estimatedRouteTimeSeconds'], 'seconds').format(),
 			delivery
 		};
 	} catch (err) {
@@ -1300,7 +1296,8 @@ async function ecofleetJobRequest(refNumber, params, vehicleSpecs) {
 		dropoffFirstName,
 		dropoffLastName,
 		dropoffInstructions,
-		packageDropoffStartTime
+		packageDropoffStartTime,
+		packageDropoffEndTime,
 	} = drops[0];
 
 	const payload = {
@@ -1337,7 +1334,7 @@ async function ecofleetJobRequest(refNumber, params, vehicleSpecs) {
 		schedule: {
 			type: DELIVERY_TYPES[packageDeliveryType].ecofleet,
 			...(packagePickupStartTime && { pickupWindow: moment(packagePickupStartTime).unix() }),
-			...(packageDropoffStartTime && { dropoffWindow: moment(packageDropoffStartTime).unix() })
+			...(packageDropoffEndTime && { dropoffWindow: moment(packageDropoffEndTime).unix() })
 		}
 	};
 	console.log(payload);
