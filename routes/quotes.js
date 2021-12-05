@@ -33,7 +33,7 @@ router.post('/', async (req, res) => {
 			vehicleSpecs.travelMode
 		);
 		// Check if a job is an on-demand job, and override and set pickup/dropoff times
-		if (req.body.packageDeliveryType === DELIVERY_TYPES.ON_DEMAND) {
+		if (req.body.packageDeliveryType === DELIVERY_TYPES.ON_DEMAND.name) {
 			req.body.packagePickupStartTime = moment().add(30, 'minutes').format();
 			req.body.packagePickupEndTime = moment().add(60, 'minutes').format();
 			req.body.drops[0].packageDropoffEndTime = moment().add(90, 'minutes').format();
