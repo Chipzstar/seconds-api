@@ -302,9 +302,9 @@ async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance) {
 				jobDistance,
 				vehicleSpecs
 			);
+			console.log('NEW Vehicle Specs');
+			console.table(vehicleSpecs);
 		}
-		console.log('NEW Vehicle Specs');
-		console.table(vehicleSpecs);
 		// check if the current vehicle is supported by Stuart and if the job distance is within the maximum limit
 		if (vehicleSpecs.stuart.packageType) {
 			let stuartQuote = await getStuartQuote(genJobReference(), requestBody, vehicleSpecs);

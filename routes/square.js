@@ -23,33 +23,38 @@ router.post('/', async (req, res) => {
 		const squareVersion = req.headers['square-version'];
 		const { merchant_id, type, data } = req.body;
 		console.table({ environment, squareVersion, merchant_id, type });
-		if (type === 'order.created') {
-			console.log('-----------------------------');
-			console.log('ORDER:');
-			console.log(data);
-			console.log('-----------------------------');
-			// check that the shop domain belongs to a user
-			const user = await db.User.findOne({ 'square.shopId': merchant_id });
-			console.log('User Found:', !!user);
-			if (user) {
-				console.log(user)
+		// check that the shop domain belongs to a user
+		const user = await db.User.findOne({ 'square.shopId': merchant_id });
+		console.log('User Found:', !!user);
+		if (user) {
+			if (type === 'order.created') {
+				console.log('-----------------------------');
+				console.log('ORDER:');
+				console.log(data);
+				console.log('-----------------------------');
+
 				res.status(200).json({
 					success: true,
 					status: 'DELIVERY_JOB_CREATED',
 					message: 'webhook received'
 				});
+			} else if (type === 'order.fulfillment.updated') {
+				console.log('-----------------------------');
+				console.log('FULFILLMENT:');
+				console.log(data);
+				console.log('-----------------------------');
 			} else {
 				res.status(200).json({
 					success: false,
-					status: 'USER_NOT_FOUND',
-					message: `Failed to find a user with square shop ${merchant_id}`
+					status: 'UNKNOWN_TOPIC',
+					message: `Webhook type ${type} is not recognised`
 				});
 			}
 		} else {
 			res.status(200).json({
 				success: false,
-				status: 'UNKNOWN_TOPIC',
-				message: `Webhook type ${type} is not recognised`
+				status: 'USER_NOT_FOUND',
+				message: `Failed to find a user with square shop ${merchant_id}`
 			});
 		}
 	} catch (err) {
