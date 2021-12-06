@@ -10,6 +10,7 @@ const authRoutes = require('./routes/auth');
 const jobRoutes = require('./routes/jobs');
 const quoteRoutes = require('./routes/quotes');
 const shopifyRoutes = require('./routes/shopify');
+const squareRoutes = require('./routes/square');
 const stuartRoutes = require('./routes/stuart');
 const gophrRoutes = require('./routes/gophr');
 const streetStreamRoutes = require('./routes/streetStream');
@@ -67,6 +68,7 @@ app.use('/api/v1/street-stream', streetStreamRoutes);
 
 //WEBHOOKS
 app.use('/api/v1/shopify', shopifyRoutes);
+app.use('/api/v1/square', squareRoutes);
 
 // EMAIL
 app.post('/test/mail', async (req, res) => {
