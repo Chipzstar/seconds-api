@@ -25,8 +25,8 @@ router.post('/', async (req, res) => {
 		console.table({ environment, squareVersion, merchant_id, type });
 		if (type === 'order.created') {
 			console.log('-----------------------------');
-			console.log('ORDER ID:');
-			console.log(data.id);
+			console.log('ORDER:');
+			console.log(data);
 			console.log('-----------------------------');
 			// check that the shop domain belongs to a user
 			const user = await db.User.findOne({ 'square.shopId': merchant_id });
