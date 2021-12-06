@@ -32,10 +32,9 @@ router.post('/', async (req, res) => {
 				console.log('ORDER:');
 				console.log(data);
 				console.log('-----------------------------');
-
 				res.status(200).json({
 					success: true,
-					status: 'DELIVERY_JOB_CREATED',
+					status: 'ORDER_RECEIVED',
 					message: 'webhook received'
 				});
 			} else if (type === 'order.fulfillment.updated') {
@@ -43,6 +42,11 @@ router.post('/', async (req, res) => {
 				console.log('FULFILLMENT:');
 				console.log(data);
 				console.log('-----------------------------');
+				res.status(200).json({
+					success: true,
+					status: 'ORDER_FULFILLMENT_RECEIVED',
+					message: 'webhook received'
+				});
 			} else {
 				res.status(200).json({
 					success: false,
