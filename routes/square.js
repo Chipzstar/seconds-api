@@ -40,7 +40,7 @@ router.post('/', async (req, res) => {
 			} else if (type === 'order.fulfillment.updated') {
 				console.log('-----------------------------');
 				console.log('FULFILLMENT:');
-				console.log(data);
+				console.log(data.object['order_fulfillment_updated']);
 				console.log('-----------------------------');
 				res.status(200).json({
 					success: true,
@@ -48,6 +48,7 @@ router.post('/', async (req, res) => {
 					message: 'webhook received'
 				});
 			} else {
+				console.log("Unknown topic")
 				res.status(200).json({
 					success: false,
 					status: 'UNKNOWN_TOPIC',
