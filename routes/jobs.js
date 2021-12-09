@@ -94,6 +94,7 @@ router.post('/create', async (req, res) => {
 		// fetch user information from the api key
 		const {
 			_id: clientId,
+			email,
 			selectionStrategy,
 			stripeCustomerId,
 			paymentMethodId,
@@ -249,7 +250,7 @@ router.post('/create', async (req, res) => {
 		await sendEmail({
 			email: 'chipzstar.dev@gmail.com',
 			name: 'Chisom Oguibe',
-			subject: `Failed Order`,
+			subject: `Failed Order: ${req.headers[AUTHORIZATION_KEY]}`,
 			text: `Job could not be created. Reason: ${err.message}`,
 			html: `<p>Job could not be created. Reason: ${err.message}</p>`
 		});
