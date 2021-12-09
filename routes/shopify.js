@@ -88,7 +88,7 @@ function convertWeightToVehicleCode(total_weight) {
 function validateDeliveryDate(date, time) {
 	console.table({ date, time });
 	const [from, to] = time ? time.split(' - ') : [null, null];
-	console.table({from, to})
+	console.table({ from, to });
 	// convert delivery date + time (from) into a moment and check it is not in the past
 	let deliverFrom = moment(`${date} ${from}`, 'DD-MM-YYYY HH:mm');
 	let deliverTo = moment(`${date} ${to}`, 'DD-MM-YYYY HH:mm');
@@ -157,7 +157,13 @@ async function createNewJob(order, user) {
 		// check if delivery date specified by the customer
 		if (order['note_attributes']) {
 			const [date, time] = order['note_attributes']
-				.filter(({ name }) => name === 'Delivery-Date' || name === 'Delivery-Time')
+				.filter(
+					({ name }) =>
+						name === 'Delivery-Date' ||
+						name === 'Delivery-Time' ||
+						name === 'Delivery-date' ||
+						name === 'Delivery-time'
+				)
 				.map(({ value }) => value);
 			const { deliverFrom, deliverTo, isValid } = validateDeliveryDate(date, time);
 			if (isValid) {
@@ -217,7 +223,13 @@ async function createNewJob(order, user) {
 			deliveryFee,
 			pickupAt,
 			delivery
-		} = await providerCreatesJob(providerId.toLowerCase(), clientRefNumber, selectionStrategy, payload, vehicleSpecs);
+		} = await providerCreatesJob(
+			providerId.toLowerCase(),
+			clientRefNumber,
+			selectionStrategy,
+			payload,
+			vehicleSpecs
+		);
 		let idempotencyKey = uuidv4();
 		paymentIntent = await stripe.paymentIntents.create(
 			{
