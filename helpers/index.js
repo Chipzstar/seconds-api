@@ -220,31 +220,32 @@ async function checkAlternativeVehicles(pickup, dropoff, jobDistance, vehicleSpe
 
 function checkDeliveryHours(pickupTime, deliveryHours) {
 	console.log('===================================================================');
-	const today = String(moment(pickupTime).day());
-	console.log('Current Day:', today);
+	const deliveryDay = String(moment(pickupTime).day());
+	console.log('Current Day:', deliveryDay);
 	// get open / close times for the current day of the week
 	const open = moment({
 		y: moment(pickupTime).get('year'),
 		M: moment(pickupTime).get('month'),
 		d: moment(pickupTime).get('date'),
-		h: deliveryHours[today].open['h'],
-		m: deliveryHours[today].open['m']
+		h: deliveryHours[deliveryDay].open['h'],
+		m: deliveryHours[deliveryDay].open['m']
 	});
 	const close = moment({
 		y: moment(pickupTime).get('year'),
 		M: moment(pickupTime).get('month'),
 		d: moment(pickupTime).get('date'),
-		h: deliveryHours[today].close['h'],
-		m: deliveryHours[today].close['m']
+		h: deliveryHours[deliveryDay].close['h'],
+		m: deliveryHours[deliveryDay].close['m']
 	});
-	const canDeliver = deliveryHours[today].canDeliver;
+	const canDeliver = deliveryHours[deliveryDay].canDeliver;
 	// check time of creation is within the delivery hours
 	let timeFromOpen = moment.duration(moment(pickupTime).diff(open)).asHours();
 	let timeFromClose = moment.duration(moment(pickupTime).diff(close)).asHours();
 	console.log('DURATION:', { open: open.format('HH:mm'), timeFromOpen });
 	console.log('DURATION:', { close: close.format('HH:mm'), timeFromClose });
 	console.log('===================================================================');
-	return canDeliver && timeFromClose <= -0.5 && timeFromOpen >= 0;
+	console.log(timeFromClose <= -0.5)
+	return canDeliver && timeFromClose <= -0.5;
 }
 
 function setNextDayDeliveryTime(deliveryHours) {
@@ -259,10 +260,10 @@ function setNextDayDeliveryTime(deliveryHours) {
 	);
 	// check if the datetime is not in the past & if store allows delivery on that day, if not check another day
 	if (isValid) {
-		// if a day does not allow deliveries OR if the time of the order request is AHEAD of the current day's opening time (only when nextDay = "Today")
+		// if a day does not allow deliveries OR if the time of the order request is AHEAD of the current day's opening time (only when nextDay = "deliveryDay")
 		// iterate over to the next day
 		console.log(
-			"Is past today's opening hours:",
+			"Is past delivery day's opening hours:",
 			moment().diff(moment(deliveryHours[nextDay].open).add(interval, 'days'), 'minutes') > 0
 		);
 		console.log('CAN DELIVER:', deliveryHours[nextDay].canDeliver);

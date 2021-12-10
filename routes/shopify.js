@@ -85,21 +85,36 @@ function convertWeightToVehicleCode(total_weight) {
 	return { vehicleName, vehicleCode };
 }
 
-function validateDeliveryDate(date, time) {
+function validateDeliveryDate(date, time, deliveryHours) {
 	console.table({ date, time });
-	const [from, to] = time ? time.split(' - ') : [null, null];
-	console.table({ from, to });
-	// convert delivery date + time (from) into a moment and check it is not in the past
-	let deliverFrom = moment(`${date} ${from}`, 'DD-MM-YYYY HH:mm');
-	let deliverTo = moment(`${date} ${to}`, 'DD-MM-YYYY HH:mm');
-	// check that the two moments are valid
-	if (deliverTo.isValid() && deliverFrom.isValid()) {
-		// if deliverFrom time is in the past set it to be 20 minutes ahead of the current time
-		deliverFrom = deliverFrom.diff(moment()) < 0 ? moment().add(20, 'minutes') : deliverFrom;
-		deliverTo = deliverTo.diff(moment()) < 0 ? moment(deliverFrom).add(2, 'hours') : deliverTo;
-		return { deliverFrom, deliverTo, isValid: deliverTo.isValid() && deliverFrom.isValid() };
+	// check if date and time are not undefined
+	if (date) {
+		const [from, to] = time ? time.split(' - ') : [null, null];
+		console.table({ from, to });
+		// convert delivery date + time (from) into a moment and check it is not in the past
+		let deliverFrom = moment(`${date} ${from}`, 'DD-MM-YYYY HH:mm');
+		let deliverTo = moment(`${date} ${to}`, 'DD-MM-YYYY HH:mm');
+		// check that the two moments are valid
+		if (deliverTo.isValid() && deliverFrom.isValid()) {
+			// if deliverFrom time is in the past set it to be 20 minutes ahead of the current time
+			deliverFrom = deliverFrom.diff(moment()) < 0 ? moment().add(20, 'minutes') : deliverFrom;
+			deliverTo = deliverTo.diff(moment()) < 0 ? moment(deliverFrom).add(2, 'hours') : deliverTo;
+			return { deliverFrom, deliverTo, isValid: deliverTo.isValid() && deliverFrom.isValid() };
+		} else {
+			// else use the shop's delivery hours to set the pickup / dropoff time window
+			const dayOfMonth = moment(`${date}`).get('date')
+			const dayOfWeek = moment(`${date}`, "DD-MM=YYYY").day()
+			const openHour = deliveryHours[dayOfWeek].open.h
+			const openMinute = deliveryHours[dayOfWeek].open.m
+			const closeHour = deliveryHours[dayOfWeek].close.h
+			const closeMinute = deliveryHours[dayOfWeek].close.m
+			console.table({dayOfMonth, dayOfWeek, openHour, openMinute, closeHour, closeMinute})
+			deliverFrom = moment({d: dayOfMonth, h: openHour, m: openMinute})
+			deliverTo = moment({d: dayOfMonth, h: closeHour, m: closeMinute})
+			return { deliverFrom, deliverTo, isValid: deliverTo.isValid() && deliverFrom.isValid() };
+		}
 	}
-	return { deliverFrom: null, deliverTo: null, isValid: deliverTo.isValid() && deliverFrom.isValid() };
+	return { deliverFrom: null, deliverTo: null, isValid: false };
 }
 
 async function createNewJob(order, user) {
@@ -165,7 +180,7 @@ async function createNewJob(order, user) {
 						name === 'Delivery-time'
 				)
 				.map(({ value }) => value);
-			const { deliverFrom, deliverTo, isValid } = validateDeliveryDate(date, time);
+			const { deliverFrom, deliverTo, isValid } = validateDeliveryDate(date, time, user.deliveryHours);
 			if (isValid) {
 				payload.packagePickupStartTime = deliverFrom.format();
 				payload.packagePickupEndTime = undefined;
@@ -233,7 +248,7 @@ async function createNewJob(order, user) {
 		let idempotencyKey = uuidv4();
 		paymentIntent = await stripe.paymentIntents.create(
 			{
-				amount: deliveryFee * 100,
+				amount: Math.round(deliveryFee * 100),
 				customer: user.stripeCustomerId,
 				currency: 'GBP',
 				setup_future_usage: 'off_session',
