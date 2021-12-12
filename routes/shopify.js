@@ -73,15 +73,16 @@ async function geocodeAddress(address) {
 
 function convertWeightToVehicleCode(total_weight) {
 	console.log('Total Weight:', total_weight, 'kg');
-	let vehicleName = 'Bicycle';
-	let vehicleCode = 'BIC';
-	VEHICLE_CODES.forEach(code => {
+	let vehicleName;
+	let vehicleCode;
+	for (let code of VEHICLE_CODES) {
+		console.log("switching vehicle...")
 		const { name, weight } = VEHICLE_CODES_MAP[code];
-		if (total_weight > weight) {
-			vehicleCode = code;
-			vehicleName = name;
-		}
-	});
+		console.table({code, name, weight})
+		vehicleCode = code;
+		vehicleName = name;
+		if (total_weight < weight) break;
+	}
 	return { vehicleName, vehicleCode };
 }
 
@@ -164,7 +165,7 @@ async function createNewJob(order, user) {
 					dropoffFirstName: order.customer.first_name,
 					dropoffLastName: order.customer.last_name,
 					dropoffInstructions: order.customer['note'] ? order.customer['note'] : '',
-					packageDropoffEndTime: moment().add(120, 'minutes').format(),
+					packageDropoffEndTime: moment().add(200, 'minutes').format(),
 					reference: genOrderReference()
 				}
 			]
