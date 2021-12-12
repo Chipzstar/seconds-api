@@ -4,7 +4,7 @@ const { STATUS } = require('../constants');
 const { JOB_STATUS, DELIVERY_STATUS } = require('../constants/stuart');
 const axios = require('axios');
 const sendEmail = require('../services/email');
-const confirmCharge = require('../services/payments')
+const confirmCharge = require('../services/payments');
 
 async function getStuartAuthToken() {
 	const URL = `${process.env.STUART_ENV}/oauth/token`;
@@ -62,6 +62,7 @@ function translateStuartStatus(value) {
 
 async function updateJob(data) {
 	try {
+		console.log(data);
 		const jobStatus = data.status;
 		const jobId = data.id.toString();
 		const {
@@ -72,7 +73,6 @@ async function updateJob(data) {
 			etaToDestination,
 			driver
 		} = data.currentDelivery;
-		console.table({ jobStatus, jobId, client_reference, etaToOrigin, etaToDestination, driver });
 		const {
 			firstname,
 			lastname,
@@ -117,7 +117,9 @@ async function updateJob(data) {
 				job.paymentIntentId,
 				job.jobSpecification.deliveryType,
 				job.jobSpecification.deliveries.length
-			).then(res => console.log("Charge confirmed:", res)).catch(err => console.error(err));;
+			)
+				.then(res => console.log('Charge confirmed:', res))
+				.catch(err => console.error(err));
 		}
 		return jobStatus;
 	} catch (err) {
@@ -129,7 +131,7 @@ async function updateJob(data) {
 async function updateDelivery(data) {
 	try {
 		const { status: deliveryStatus, id, clientReference, etaToOrigin, etaToDestination } = data;
-		const deliveryId = id.toString()
+		const deliveryId = id.toString();
 		console.table({ deliveryStatus, deliveryId, clientReference, etaToOrigin, etaToDestination });
 		const job = await db.Job.findOneAndUpdate(
 			{ 'jobSpecification.deliveries.id': deliveryId },
@@ -152,8 +154,8 @@ async function updateDelivery(data) {
 			console.log('User:', !!user);
 			let { canceledBy, comment, reasonKey } = data.cancellation;
 			console.table(data.cancellation);
-			reasonKey = reasonKey === "pu_closed" ? "pickup_closed" : reasonKey
-			let reason = comment ? `${reasonKey} | ${comment}` : reasonKey
+			reasonKey = reasonKey === 'pu_closed' ? 'pickup_closed' : reasonKey;
+			let reason = comment ? `${reasonKey} | ${comment}` : reasonKey;
 			let options = {
 				name: `${user.firstname} ${user.lastname}`,
 				email: `${user.email}`,
@@ -178,4 +180,33 @@ async function updateDelivery(data) {
 	}
 }
 
-module.exports = { updateJob, updateDelivery, getStuartAuthToken };
+async function updateDriverETA(data) {
+	try {
+		console.log(data);
+		const {
+			job: {
+				currentDelivery: { id, etaToDestination, etaToOrigin, status:deliveryStatus }
+			}
+		} = data;
+		const deliveryId = id.toString();
+		const job = await db.Job.findOneAndUpdate(
+			{ 'jobSpecification.deliveries.id': deliveryId },
+			{
+				$set: {
+					'jobSpecification.pickupStartTime': moment(etaToOrigin).toISOString(),
+					'jobSpecification.deliveries.$.dropoffEndTime': moment(etaToDestination).toISOString(),
+					'jobSpecification.deliveries.$.status': translateStuartStatus(deliveryStatus)
+				}
+			},
+			{
+				new: true
+			}
+		);
+		console.log(job.jobSpecification);
+	} catch (err) {
+		console.error(err);
+		throw err;
+	}
+}
+
+module.exports = { updateJob, updateDelivery, updateDriverETA, getStuartAuthToken };
