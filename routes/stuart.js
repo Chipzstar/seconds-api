@@ -28,6 +28,11 @@ router.post('/delivery-update', async (req, res) => {
 				console.log(data);
 				jobStatus = await updateDelivery(data);
 			}
+		} else if (event && event === 'driver'){
+			if (type && type === 'update'){
+				console.log('DRIVER UPDATE')
+				console.log(data)
+			}
 		}
 		return res.status(200).json({
 			success: true,
