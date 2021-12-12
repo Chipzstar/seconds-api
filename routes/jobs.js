@@ -23,7 +23,7 @@ const mongoose = require('mongoose');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const router = express.Router();
 const orderId = require('order-id')(process.env.UID_SECRET_KEY);
-const { v4: uuidv4} = require('uuid');
+const { v4: uuidv4 } = require('uuid');
 const sendEmail = require('../services/email');
 
 /**
@@ -76,9 +76,7 @@ router.post('/create', async (req, res) => {
 	try {
 		console.table(req.body);
 		console.table(req.body.drops[0]);
-		let { pickupAddress, packageDeliveryType, packagePickupStartTime, packagePickupEndTime, vehicleType } =
-			req.body;
-		let { packageDropoffStartTime, packageDropoffEndTime } = req.body.drops[0];
+		let { pickupAddress, packageDeliveryType, vehicleType } = req.body;
 		req.body.drops[0]['reference'] = genOrderReference();
 		//generate client reference number
 		let commissionCharge = false;
@@ -121,10 +119,13 @@ router.post('/create', async (req, res) => {
 		// CHECK DELIVERY HOURS
 		let canDeliver = checkDeliveryHours(req.body.packagePickupStartTime, deliveryHours);
 		if (!canDeliver) {
-			const { nextDayPickup, nextDayDropoff } = setNextDayDeliveryTime(deliveryHours);
+			const { nextDayPickup, nextDayDropoff } = setNextDayDeliveryTime(
+				req.body.packagePickupStartTime,
+				deliveryHours
+			);
 			req.body.packageDeliveryType = 'NEXT_DAY';
 			req.body.packagePickupStartTime = nextDayPickup;
-			req.body.drops[0].packageDropoffEndTime = nextDayDropoff
+			req.body.drops[0].packageDropoffEndTime = nextDayDropoff;
 		}
 		const QUOTES = await getResultantQuotes(req.body, vehicleSpecs, jobDistance);
 		// Use selection strategy to select the winner quote
@@ -319,12 +320,15 @@ router.post('/multi-drop', async (req, res) => {
 		// CHECK DELIVERY HOURS
 		let canDeliver = checkDeliveryHours(req.body.packagePickupStartTime, deliveryHours);
 		if (!canDeliver) {
-			const { nextDayPickup, nextDayDropoff } = setNextDayDeliveryTime(deliveryHours);
+			const { nextDayPickup, nextDayDropoff } = setNextDayDeliveryTime(
+				req.body.packagePickupStartTime,
+				deliveryHours
+			);
+			console.table({ nextDayPickup, nextDayDropoff });
 			req.body.packageDeliveryType = DELIVERY_TYPES.NEXT_DAY.name;
 			req.body.packagePickupStartTime = nextDayPickup;
 			drops.forEach(
-				(drop, index) =>
-					(req.body.drops[index].packageDropoffEndTime = moment(nextDayDropoff).format())
+				(drop, index) => (req.body.drops[index].packageDropoffEndTime = moment(nextDayDropoff).format())
 			);
 		}
 		// check if user has a subscription active
@@ -396,7 +400,8 @@ router.post('/multi-drop', async (req, res) => {
 			console.log('======================================================================================');
 			// Append the selected provider job to the jobs database
 			const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
-			process.env.NEW_RELIC_APP_NAME === 'seconds-api' && sendNewJobEmails(team, job).then(res => console.log(res));
+			process.env.NEW_RELIC_APP_NAME === 'seconds-api' &&
+				sendNewJobEmails(team, job).then(res => console.log(res));
 			return res.status(200).json({
 				jobId: createdJob._id,
 				...job
@@ -553,14 +558,14 @@ router.delete('/:job_id', async (req, res) => {
 	try {
 		const { comment } = req.query;
 		const id = req.params['job_id'];
-		console.table(id, comment)
+		console.table(id, comment);
 		let foundJob = await db.Job.findByIdAndUpdate(id, { status: STATUS.CANCELLED }, { new: true });
 		console.log(foundJob);
 		if (foundJob) {
 			let jobId = foundJob.jobSpecification.id;
-			let provider = foundJob.selectedConfiguration.providerId
-			let message = await cancelOrder(jobId, provider, foundJob, comment)
-			console.log(message)
+			let provider = foundJob.selectedConfiguration.providerId;
+			let message = await cancelOrder(jobId, provider, foundJob, comment);
+			console.log(message);
 			return res.status(200).json({
 				message,
 				jobId,

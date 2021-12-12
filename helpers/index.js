@@ -244,15 +244,14 @@ function checkDeliveryHours(pickupTime, deliveryHours) {
 	console.log('DURATION:', { open: open.format('HH:mm'), timeFromOpen });
 	console.log('DURATION:', { close: close.format('HH:mm'), timeFromClose });
 	console.log('===================================================================');
-	console.log(timeFromClose <= -0.5)
 	return canDeliver && timeFromClose <= -0.5;
 }
 
-function setNextDayDeliveryTime(deliveryHours) {
+function setNextDayDeliveryTime(pickupTime, deliveryHours) {
 	console.log('===================================================================');
 	const max = 6;
 	let interval = 0;
-	let nextDay = moment().day();
+	let nextDay = moment(pickupTime).day();
 	console.log('Current Day:', nextDay);
 	// check that the store has at least one day in the week that allows delivery
 	const isValid = Object.entries(JSON.parse(JSON.stringify(deliveryHours))).some(
@@ -264,12 +263,30 @@ function setNextDayDeliveryTime(deliveryHours) {
 		// iterate over to the next day
 		console.log(
 			"Is past delivery day's opening hours:",
-			moment().diff(moment(deliveryHours[nextDay].open).add(interval, 'days'), 'minutes') > 0
+			moment(pickupTime).diff(
+				moment({
+					y: moment(pickupTime).get('year'),
+					M: moment(pickupTime).get('month'),
+					d: moment(pickupTime).get('date'),
+					h: deliveryHours[nextDay].open['h'],
+					m: deliveryHours[nextDay].open['m']
+				}),
+				'minutes'
+			) > 0
 		);
 		console.log('CAN DELIVER:', deliveryHours[nextDay].canDeliver);
 		while (
 			!deliveryHours[nextDay].canDeliver ||
-			moment().diff(moment(deliveryHours[nextDay].open).add(interval, 'days'), 'minutes') > 0
+			moment(pickupTime).diff(
+				moment({
+					y: moment(pickupTime).get('year'),
+					M: moment(pickupTime).get('month'),
+					d: moment(pickupTime).get('date'),
+					h: deliveryHours[nextDay].open['h'],
+					m: deliveryHours[nextDay].open['m']
+				}).add(interval, 'days'),
+				'minutes'
+			) > 0
 		) {
 			nextDay === max ? (nextDay = 0) : (nextDay = nextDay + 1);
 			console.log('Next Day:', nextDay);
@@ -277,9 +294,20 @@ function setNextDayDeliveryTime(deliveryHours) {
 			interval = interval + 1;
 		}
 		// return the pickup time for the next day delivery
-		const open = { h: deliveryHours[nextDay].open['h'], m: deliveryHours[nextDay].open['m'] };
-		const close = { h: deliveryHours[nextDay].close['h'], m: deliveryHours[nextDay].close['m'] };
-		console.table({ open, close });
+		const open = {
+			y: moment(pickupTime).get('year'),
+			M: moment(pickupTime).get('month'),
+			d: moment(pickupTime).get('date'),
+			h: deliveryHours[nextDay].open['h'],
+			m: deliveryHours[nextDay].open['m']
+		};
+		const close = {
+			y: moment(pickupTime).get('year'),
+			M: moment(pickupTime).get('month'),
+			d: moment(pickupTime).get('date'),
+			h: deliveryHours[nextDay].close['h'],
+			m: deliveryHours[nextDay].close['m']
+		};
 		console.log('===================================================================');
 		return {
 			nextDayPickup: moment(open).add(interval, 'days').format(),
@@ -1298,7 +1326,7 @@ async function ecofleetJobRequest(refNumber, params, vehicleSpecs) {
 		dropoffLastName,
 		dropoffInstructions,
 		packageDropoffStartTime,
-		packageDropoffEndTime,
+		packageDropoffEndTime
 	} = drops[0];
 
 	const payload = {
