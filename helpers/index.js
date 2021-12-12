@@ -784,6 +784,7 @@ async function stuartJobRequest(ref, params, vehicleSpecs) {
 		let data = (await stuartAxios.post(URL, payload)).data;
 		const deliveryInfo = data['deliveries'][0];
 		console.log('----------------------------');
+		console.log(data)
 		console.log(deliveryInfo);
 		console.log('----------------------------');
 		const delivery = {
@@ -816,7 +817,7 @@ async function stuartJobRequest(ref, params, vehicleSpecs) {
 			deliveryFee:
 				process.env.NEW_RELIC_APP_NAME === 'seconds-api' ? data['pricing']['price_tax_included'] : amount * 1.2,
 			pickupAt: data['pickup_at'] ? data['pickup_at'] : moment(packagePickupStartTime).format(),
-			dropoffAt: data['dropoff_at'],
+			dropoffAt: data['dropoff_at'] ? data['dropoff_at'] : moment(drops[0].packageDropoffEndTime).format(),
 			delivery
 		};
 	} catch (err) {

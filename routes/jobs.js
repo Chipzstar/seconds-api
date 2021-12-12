@@ -123,6 +123,7 @@ router.post('/create', async (req, res) => {
 				req.body.packagePickupStartTime,
 				deliveryHours
 			);
+			console.table({nextDayPickup, nextDayDropoff})
 			req.body.packageDeliveryType = 'NEXT_DAY';
 			req.body.packagePickupStartTime = nextDayPickup;
 			req.body.drops[0].packageDropoffEndTime = nextDayDropoff;
