@@ -1001,7 +1001,7 @@ async function gophrJobRequest(ref, params, vehicleSpecs) {
 			size_x,
 			size_y,
 			size_z,
-			weight,
+			weight: 3,
 			vehicle_type: gophrVehicleType,
 			job_priority: DELIVERY_TYPES[packageDeliveryType].name === DELIVERY_TYPES.ON_DEMAND.name ? 1 : 0
 		});
