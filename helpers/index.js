@@ -1667,7 +1667,7 @@ async function sendNewJobEmails(team, job) {
 							customer: `${job.jobSpecification.deliveries[0].dropoffLocation.firstName} ${job.jobSpecification.deliveries[0].dropoffLocation.lastName}`,
 							provider: job.selectedConfiguration.providerId,
 							reference: job.jobSpecification.jobReference,
-							price: job.selectedConfiguration.deliveryFee,
+							price: `£${job.selectedConfiguration.deliveryFee.toFixed(2)}`,
 							created_at: moment(job.createdAt).format('DD/MM/YYYY HH:mm:ss'),
 							eta: job.jobSpecification.pickupStartTime
 								? moment(job.jobSpecification.pickupStartTime).calendar()
