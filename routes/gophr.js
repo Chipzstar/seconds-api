@@ -5,6 +5,8 @@ const db = require('../models');
 const moment = require('moment');
 const sendEmail = require('../services/email');
 const confirmCharge = require('../services/payments')
+const { v4: uuidv4 } = require('uuid');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const router = express.Router();
 
 function translateGophrStatus(value) {
@@ -39,6 +41,7 @@ async function updateStatus(data) {
 			job_id: JOB_ID,
 			finished,
 			pickup_eta,
+			price_gross,
 			delivery_eta,
 			courier_name,
 			cancellation_reason
@@ -66,6 +69,25 @@ async function updateStatus(data) {
 				new: true
 			}
 		);
+		const user = await db.User.findOne({"_id": job.clientId})
+		if (!!finished){
+			let idempotencyKey = uuidv4();
+			const paymentIntent = await stripe.paymentIntents.create(
+				{
+					amount: Math.round(price_gross * 100),
+					customer: user.stripeCustomerId,
+					currency: 'GBP',
+					setup_future_usage: 'off_session',
+					payment_method: user.paymentMethodId,
+					payment_method_types: ['card']
+				},
+				{
+					idempotencyKey
+				}
+			);
+			let job = await db.Job.updateOne({'jobSpecification.id': JOB_ID}, {paymentIntentId: paymentIntent.id}, {new: true})
+			console.log(job)
+		}
 		if (jobStatus === JOB_STATUS.CANCELLED) {
 			const user = await db.User.findOne({ _id: job.clientId });
 			console.log('User:', !!user);
