@@ -85,8 +85,9 @@ async function updateStatus(data) {
 					idempotencyKey
 				}
 			);
+			console.log(paymentIntent)
 			let job = await db.Job.updateOne({'jobSpecification.id': JOB_ID}, {paymentIntentId: paymentIntent.id}, {new: true})
-			console.log(job)
+			console.log("NEW PAYMENT INTENT:", job.paymentIntentId)
 		}
 		if (jobStatus === JOB_STATUS.CANCELLED) {
 			const user = await db.User.findOne({ _id: job.clientId });
