@@ -153,6 +153,7 @@ async function createNewJob(order, user) {
 			packageDescription,
 			itemsCount,
 			vehicleType,
+			parcelWeight: order['total_weight'] / 1000,
 			drops: [
 				{
 					dropoffAddress: fullAddress,
@@ -276,7 +277,7 @@ async function createNewJob(order, user) {
 				pickupEndTime: payload.packagePickupEndTime,
 				pickupLocation: {
 					fullAddress: payload.pickupAddress,
-					street_address: payload.pickupAddressLine1,
+					streetAddress: payload.pickupAddressLine1,
 					city: payload.pickupCity,
 					postcode: payload.pickupPostcode,
 					country: 'UK',

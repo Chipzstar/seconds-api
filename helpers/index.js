@@ -528,6 +528,7 @@ async function getGophrQuote(params, vehicleSpecs) {
 		packagePickupStartTime,
 		packagePickupEndTime,
 		packageDeliveryType,
+		parcelWeight,
 		drops
 	} = params;
 	const { dropoffAddressLine1, dropoffCity, dropoffPostcode, packageDropoffStartTime, packageDropoffEndTime } =
@@ -544,7 +545,7 @@ async function getGophrQuote(params, vehicleSpecs) {
 			size_x,
 			size_y,
 			size_z,
-			weight,
+			weight: parcelWeight ? parcelWeight : weight,
 			vehicle_type: gophrVehicleType,
 			...(packagePickupStartTime && { earliest_pickup_time: moment(packagePickupStartTime).toISOString(true) }),
 			...(packagePickupEndTime && { pickup_deadline: moment(packagePickupEndTime).toISOString(true) }),
@@ -947,6 +948,7 @@ async function gophrJobRequest(ref, params, vehicleSpecs) {
 		packageDeliveryType,
 		packagePickupStartTime,
 		packagePickupEndTime,
+		parcelWeight,
 		drops
 	} = params;
 	const {
@@ -1001,7 +1003,7 @@ async function gophrJobRequest(ref, params, vehicleSpecs) {
 			size_x,
 			size_y,
 			size_z,
-			weight: 3,
+			weight: parcelWeight ? parcelWeight : weight,
 			vehicle_type: gophrVehicleType,
 			job_priority: DELIVERY_TYPES[packageDeliveryType].name === DELIVERY_TYPES.ON_DEMAND.name ? 1 : 0
 		});
