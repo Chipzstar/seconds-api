@@ -150,7 +150,6 @@ async function createNewJob(order, user) {
 			packagePickupStartTime: moment().add(45, 'minutes').format(),
 			packagePickupEndTime: undefined,
 			packageDeliveryType: 'ON_DEMAND',
-			packageDescription,
 			itemsCount,
 			vehicleType,
 			parcelWeight: order['total_weight'] / 1000,
@@ -167,6 +166,7 @@ async function createNewJob(order, user) {
 					dropoffLastName: order.customer.last_name,
 					dropoffInstructions: order.customer['note'] ? order.customer['note'] : '',
 					packageDropoffEndTime: moment().add(200, 'minutes').format(),
+					packageDescription,
 					reference: genOrderReference()
 				}
 			]

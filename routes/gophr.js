@@ -87,8 +87,8 @@ async function updateStatus(data) {
 				}
 			);
 			paymentIntentId = paymentIntent.id
-			let job = await db.Job.updateOne({'jobSpecification.id': JOB_ID}, {paymentIntentId: paymentIntent.id}, {new: true})
-			console.log("NEW PAYMENT INTENT:", job.paymentIntentId)
+			await db.Job.updateOne({'jobSpecification.id': JOB_ID}, {paymentIntentId: paymentIntent.id}, {new: true})
+			console.log("NEW PAYMENT INTENT:", paymentIntent)
 		}
 		if (jobStatus === JOB_STATUS.CANCELLED) {
 			const user = await db.User.findOne({ _id: job.clientId });
