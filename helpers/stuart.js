@@ -201,7 +201,6 @@ async function updateDriverETA(data) {
 				new: true
 			}
 		);
-		console.log(job.jobSpecification);
 	} catch (err) {
 		console.error(err);
 		throw err;

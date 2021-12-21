@@ -38,7 +38,6 @@ router.post('/delivery-update', async (req, res) => {
 				console.log('DRIVER UPDATE')
 				let jobETA = await updateDriverETA(data)
 				message = `New job eta: ${jobETA}`
-
 			}
 		}
 		return res.status(200).json({
