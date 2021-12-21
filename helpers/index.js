@@ -270,11 +270,11 @@ function setNextDayDeliveryTime(pickupTime, deliveryHours) {
 					y: moment(pickupTime).get('year'),
 					M: moment(pickupTime).get('month'),
 					d: moment(pickupTime).get('date'),
-					h: deliveryHours[nextDay].close['h'],
-					m: deliveryHours[nextDay].close['m']
+					h: deliveryHours[nextDay].open['h'],
+					m: deliveryHours[nextDay].open['m']
 				}),
 				'minutes'
-			) <= -0.5
+			) > 0
 		);
 		console.log('CAN DELIVER:', deliveryHours[nextDay].canDeliver);
 		while (!deliveryHours[nextDay].canDeliver || moment(pickupTime).diff(
@@ -288,16 +288,6 @@ function setNextDayDeliveryTime(pickupTime, deliveryHours) {
 				'minutes'
 			) > 0
 		) {
-			console.log(moment(pickupTime).diff(
-				moment({
-					y: moment(pickupTime).get('year'),
-					M: moment(pickupTime).get('month'),
-					d: moment(pickupTime).get('date'),
-					h: deliveryHours[nextDay].open['h'],
-					m: deliveryHours[nextDay].open['m']
-				}).add(interval, 'days'),
-				'minutes'
-			))
 			nextDay === max ? (nextDay = 0) : (nextDay = nextDay + 1);
 			console.log('Next Day:', nextDay);
 			console.log('CAN DELIVER:', deliveryHours[nextDay].canDeliver);
