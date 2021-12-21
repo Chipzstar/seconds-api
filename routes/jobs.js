@@ -15,7 +15,7 @@ const {
 	genOrderReference,
 	providerCreateMultiJob,
 	sendNewJobEmails,
-	cancelOrder
+	cancelOrder, geocodeAddress
 } = require('../helpers');
 const { AUTHORIZATION_KEY, PROVIDER_ID, STATUS, COMMISSION, DELIVERY_TYPES, PROVIDERS } = require('../constants');
 const moment = require('moment');
@@ -110,6 +110,17 @@ router.post('/create', async (req, res) => {
 			req.body.drops[0].dropoffAddress,
 			vehicleSpecs.travelMode
 		);
+		// get geo-coordinates of pickup + dropoff locations (if not passed in the request)
+		if(!(req.body.pickupLatitude && req.body.pickupLongitude)){
+			let { formattedAddress: { longitude, latitude } } = await geocodeAddress(req.body.pickupAddress)
+			req.body.pickupLatitude = latitude;
+			req.body.pickupLongitude = longitude;
+		}
+		if(!(req.body.drops[0].dropoffLatitude && !req.body.drops[0].dropoffLongitude)){
+			const { formattedAddress: { longitude, latitude } } = await geocodeAddress(req.body.drops[0].dropoffAddress)
+			req.body.drops[0].dropoffLatitude = latitude;
+			req.body.drops[0].dropoffLongitude = longitude;
+		}
 		// Check if a pickupStartTime was passed through, if not set it to 30 minutes ahead of current time
 		if (packageDeliveryType === DELIVERY_TYPES.ON_DEMAND.name) {
 			req.body.packagePickupStartTime = moment().add(20, 'minutes').format();
@@ -186,7 +197,7 @@ router.post('/create', async (req, res) => {
 				}
 			);
 			console.log('-------------------------------------------');
-			console.log('Payment Intent Created!', paymentIntent);
+			console.log('Payment Intent Created!', paymentIntent.id);
 			console.log('-------------------------------------------');
 			const paymentIntentId = paymentIntent ? paymentIntent.id : undefined;
 			let job = {
@@ -209,6 +220,8 @@ router.post('/create', async (req, res) => {
 						streetAddress: String(req.body.pickupAddressLine1).trim(),
 						city: String(req.body.pickupCity).trim(),
 						postcode: String(req.body.pickupPostcode).trim(),
+						latitude: req.body.pickupLatitude,
+						longitude: req.body.pickupLongitude,
 						country: 'UK',
 						phoneNumber: req.body.pickupPhoneNumber,
 						email: req.body.pickupEmailAddress,

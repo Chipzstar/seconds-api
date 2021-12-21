@@ -44,6 +44,8 @@ const jobSchema = new mongoose.Schema({
 			streetAddress: "",
 			city: "",
 			postcode: "",
+			latitude: 0,
+			longitude: 0,
 			firstName: "",
 			lastName: "",
 			email: "",

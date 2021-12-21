@@ -802,6 +802,8 @@ async function stuartJobRequest(ref, params, vehicleSpecs) {
 				streetAddress: deliveryInfo['dropoff']['address']['street'],
 				city: deliveryInfo['dropoff']['address']['city'],
 				postcode: deliveryInfo['dropoff']['address']['postcode'],
+				latitude: deliveryInfo['dropoff']['latitude'],
+				longitude: deliveryInfo['dropoff']['longitude'],
 				country: 'UK',
 				phoneNumber: deliveryInfo['dropoff']['contact']['phone'],
 				email: deliveryInfo['dropoff']['contact']['email'],
@@ -910,6 +912,8 @@ async function stuartMultiJobRequest(ref, params, vehicleSpecs) {
 				streetAddress: delivery['dropoff']['address']['street'],
 				city: delivery['dropoff']['address']['city'],
 				postcode: delivery['dropoff']['address']['postcode'],
+				latitude: delivery['dropoff']['latitude'],
+				longitude: delivery['dropoff']['longitude'],
 				country: 'UK',
 				phoneNumber: delivery['dropoff']['contact']['phone'],
 				email: delivery['dropoff']['contact']['email'],
@@ -957,6 +961,8 @@ async function gophrJobRequest(ref, params, vehicleSpecs) {
 		dropoffAddressLine2,
 		dropoffCity,
 		dropoffPostcode,
+		dropoffLatitude,
+		dropoffLongitude,
 		dropoffPhoneNumber,
 		dropoffEmailAddress,
 		dropoffBusinessName,
@@ -1030,6 +1036,8 @@ async function gophrJobRequest(ref, params, vehicleSpecs) {
 					city: dropoffCity,
 					postcode: dropoffPostcode,
 					country: 'UK',
+					latitude: dropoffLatitude,
+					longitude: dropoffLongitude,
 					phoneNumber: dropoffPhoneNumber,
 					email: dropoffEmailAddress ? dropoffEmailAddress : '',
 					firstName: dropoffFirstName,
@@ -1163,6 +1171,8 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 				city: data['dropOff']['city'],
 				postcode: data['dropOff']['postcode'],
 				country: 'UK',
+				latitude: data['dropOff']['latitude'],
+				longitude: data['dropOff']['longitude'],
 				phoneNumber: data['dropOff']['contactNumber'],
 				email: drops[0].dropoffEmailAddress ? drops[0].dropoffEmailAddress : '',
 				firstName: drops[0].dropoffFirstName,
@@ -1271,6 +1281,8 @@ async function streetStreamMultiJobRequest(ref, strategy, params, vehicleSpecs) 
 					city: delivery['city'],
 					postcode: delivery['postcode'],
 					country: 'UK',
+					latitude: delivery['latitude'],
+					longitude: delivery['longitude'],
 					phoneNumber: delivery['contactNumber'],
 					email: drops[index].dropoffEmailAddress ? drops[index].dropoffEmailAddress : '',
 					firstName: drops[index].dropoffFirstName,
@@ -1328,6 +1340,8 @@ async function ecofleetJobRequest(refNumber, params, vehicleSpecs) {
 		dropoffFirstName,
 		dropoffLastName,
 		dropoffInstructions,
+		dropoffLatitude,
+		dropoffLongitude,
 		packageDropoffStartTime,
 		packageDropoffEndTime
 	} = drops[0];
@@ -1387,6 +1401,8 @@ async function ecofleetJobRequest(refNumber, params, vehicleSpecs) {
 				streetAddress: dropoffAddressLine1 + dropoffAddressLine2,
 				city: dropoffCity,
 				postcode: dropoffPostcode,
+				latitude: dropoffLatitude,
+				longitude: dropoffLongitude,
 				country: 'UK',
 				phoneNumber: dropoffPhoneNumber,
 				email: dropoffEmailAddress ? dropoffEmailAddress : '',
@@ -1486,6 +1502,8 @@ async function ecofleetMultiJobRequest(refNumber, params, vehicleSpecs) {
 				city: task.city,
 				postcode: task.postal,
 				country: 'UK',
+				latitude: drops[index].dropoffLatitude,
+				longitude: drops[index].dropoffLongitude,
 				phoneNumber: task.phone,
 				email: task.email ? task.email : '',
 				firstName: drops[index].dropoffFirstName,
@@ -1684,6 +1702,55 @@ async function sendNewJobEmails(team, job) {
 	}
 }
 
+async function geocodeAddress(address) {
+	try {
+		const response = (
+			await client.geocode({
+				params: {
+					address,
+					key: process.env.GOOGLE_MAPS_API_KEY
+				}
+			})
+		).data;
+
+		if (response.results.length) {
+			const formattedAddress = {
+				street: '',
+				city: '',
+				postcode: '',
+				latitude: response.results[0].geometry.location.lat,
+				longitude: response.results[0].geometry.location.lng
+			};
+			let fullAddress = response.results[0].formatted_address;
+			let components = response.results[0].address_components;
+			// console.log(components)
+			components.forEach(({ long_name, types }) => {
+				switch (types[0]) {
+					case 'street_number':
+						formattedAddress.street = formattedAddress.street + long_name;
+						break;
+					case 'route':
+						formattedAddress.street = formattedAddress.street + ' ' + long_name;
+						break;
+					case 'postal_town':
+						formattedAddress.city = long_name;
+						break;
+					case 'postal_code':
+						formattedAddress.postcode = long_name;
+						break;
+					default:
+						break;
+				}
+			});
+			return { fullAddress, formattedAddress };
+		}
+		throw new Error('No Address suggestions found');
+	} catch (e) {
+		console.error(e);
+		throw e;
+	}
+}
+
 module.exports = {
 	genJobReference,
 	genOrderReference,
@@ -1699,5 +1766,6 @@ module.exports = {
 	sendNewJobEmails,
 	setNextDayDeliveryTime,
 	checkMultiDropPrice,
-	cancelOrder
+	cancelOrder,
+	geocodeAddress
 };

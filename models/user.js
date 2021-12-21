@@ -4,6 +4,7 @@ const { Schema } = require('mongoose');
 const crypto = require('crypto');
 const moment = require('moment');
 const { deliveryHoursSchema } = require('./deliveryHours');
+const addressSchema = require('./addressSchema');
 
 const userSchema = new mongoose.Schema({
 	email: {
@@ -35,24 +36,7 @@ const userSchema = new mongoose.Schema({
 		type: Array,
 		default: []
 	},
-	address: {
-		street: {
-			type: String,
-			default: ''
-		},
-		city: {
-			type: String,
-			default: ''
-		},
-		postcode: {
-			type: String,
-			default: ''
-		},
-		countryCode: {
-			type: String,
-			default: 'GB'
-		}
-	},
+	address: addressSchema,
 	password: {
 		type: String,
 		required: true
@@ -118,6 +102,20 @@ const userSchema = new mongoose.Schema({
 	selectionStrategy: {
 		type: String,
 		default: 'eta'
+	},
+	deliveryStrategies: {
+		eta: {
+			type: Boolean,
+			default: false
+		},
+		price: {
+			type: Boolean,
+			default: false
+		},
+		rating: {
+			type: Boolean,
+			default: false
+		}
 	},
 	deliveryHours: {
 		type: deliveryHoursSchema,
@@ -204,10 +202,10 @@ const userSchema = new mongoose.Schema({
 	},
 	jobs: [{ type: Schema.Types.ObjectId, ref: 'Job' }],
 	subscriptionItems: {
-		standardMonthly: "",
-		standardCommission: "",
-		multiDropCommission: ""
-	},
+		standardMonthly: '',
+		standardCommission: '',
+		multiDropCommission: ''
+	}
 });
 
 userSchema.pre('save', async function (next) {

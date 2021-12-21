@@ -13,7 +13,7 @@ const {
 	checkDeliveryHours,
 	setNextDayDeliveryTime,
 	genOrderReference,
-	sendNewJobEmails
+	sendNewJobEmails, geocodeAddress
 } = require('../helpers');
 const { VEHICLE_CODES_MAP, VEHICLE_CODES, STATUS, COMMISSION } = require('../constants');
 const moment = require('moment');
@@ -24,53 +24,6 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const orderId = require('order-id')(process.env.UID_SECRET_KEY);
 
 const client = new Client();
-
-async function geocodeAddress(address) {
-	try {
-		const response = (
-			await client.geocode({
-				params: {
-					address,
-					key: process.env.GOOGLE_MAPS_API_KEY
-				}
-			})
-		).data;
-
-		if (response.results.length) {
-			const formattedAddress = {
-				street: '',
-				city: '',
-				postcode: ''
-			};
-			let fullAddress = response.results[0].formatted_address;
-			let components = response.results[0].address_components;
-			console.log(components)
-			components.forEach(({ long_name, types }) => {
-				switch (types[0]) {
-					case 'street_number':
-						formattedAddress.street = formattedAddress.street + long_name;
-						break;
-					case 'route':
-						formattedAddress.street = formattedAddress.street + ' ' + long_name;
-						break;
-					case 'postal_town':
-						formattedAddress.city = long_name;
-						break;
-					case 'postal_code':
-						formattedAddress.postcode = long_name;
-						break;
-					default:
-						break;
-				}
-			});
-			return { fullAddress, formattedAddress };
-		}
-		throw new Error('No Address suggestions found');
-	} catch (e) {
-		console.error(e);
-		throw e;
-	}
-}
 
 function convertWeightToVehicleCode(total_weight) {
 	console.log('Total Weight:', total_weight, 'kg');
@@ -142,6 +95,8 @@ async function createNewJob(order, user) {
 			pickupAddressLine1: user.address['street'],
 			pickupCity: user.address['city'],
 			pickupPostcode: user.address['postcode'],
+			pickupLongitude: user.address['geolocation']['coordinates'][0],
+			pickupLatitude: user.address['geolocation']['coordinates'][1],
 			pickupPhoneNumber: user.phone,
 			pickupEmailAddress: user.email,
 			pickupBusinessName: user.company,
@@ -160,6 +115,8 @@ async function createNewJob(order, user) {
 					dropoffAddressLine1: formattedAddress.street,
 					dropoffCity: formattedAddress.city,
 					dropoffPostcode: formattedAddress.postcode,
+					dropoffLongitude: formattedAddress.longitude,
+					dropoffLatitude: formattedAddress.latitude,
 					dropoffPhoneNumber: order['shipping_lines'][0].phone,
 					dropoffEmailAddress: order.email ? order.email : order.customer.email,
 					dropoffBusinessName: order.shipping_address.company ? order.shipping_address.company : "",
@@ -263,7 +220,7 @@ async function createNewJob(order, user) {
 			}
 		);
 		console.log('-------------------------------------------');
-		console.log('Payment Intent Created!', paymentIntent);
+		console.log('Payment Intent Created!', paymentIntent.id);
 		console.log('-------------------------------------------');
 		const paymentIntentId = paymentIntent ? paymentIntent.id : undefined;
 		let job = {
@@ -281,6 +238,8 @@ async function createNewJob(order, user) {
 					streetAddress: payload.pickupAddressLine1,
 					city: payload.pickupCity,
 					postcode: payload.pickupPostcode,
+					latitude: payload.pickupLatitude,
+					longitude: payload.pickupLongitude,
 					country: 'UK',
 					phoneNumber: payload.pickupPhoneNumber,
 					email: payload.pickupEmailAddress,
