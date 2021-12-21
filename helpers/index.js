@@ -16,7 +16,7 @@ const {
 	VEHICLE_CODES,
 	STATUS
 } = require('../constants');
-const { STRATEGIES, CANCELLATION_REASONS } = require('../constants/streetStream');
+const { STRATEGIES } = require('../constants/streetStream');
 const { ERROR_CODES: STUART_ERROR_CODES } = require('../constants/stuart');
 const { ERROR_CODES: GOPHR_ERROR_CODES } = require('../constants/gophr');
 const { updateHerokuConfigVar } = require('./heroku');
@@ -1120,10 +1120,10 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 				city: pickupCity,
 				postcode: pickupPostcode,
 				pickUpNotes: pickupInstructions,
-				pickUpFrom: moment(packagePickupStartTime).toISOString(true),
+				pickUpFrom: moment(packagePickupStartTime).add(30, "minutes").toISOString(true),
 				pickUpTo: packagePickupEndTime
-					? moment(packagePickupEndTime).toISOString(true)
-					: moment(packagePickupStartTime).add(5, 'minutes').toISOString(true)
+					? moment(packagePickupEndTime).add(30, "minutes").toISOString(true)
+					: moment(packagePickupStartTime).add(40, 'minutes').toISOString(true)
 			},
 			dropOff: {
 				contactNumber: dropoffPhoneNumber,
@@ -1132,9 +1132,9 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 				city: dropoffCity,
 				postcode: dropoffPostcode,
 				dropOffFrom: packageDropoffStartTime
-					? moment(packageDropoffStartTime).toISOString(true)
-					: moment(packagePickupStartTime).add(5, 'minutes').toISOString(true),
-				dropOffTo: moment(packageDropoffEndTime).toISOString(true),
+					? moment(packageDropoffStartTime).add(30, "minutes").toISOString(true)
+					: moment(packagePickupStartTime).add(30, 'minutes').toISOString(true),
+				dropOffTo: moment(packageDropoffEndTime).add(30, "minutes").toISOString(true),
 				clientTag: reference,
 				deliveryNotes: dropoffInstructions
 			}
@@ -1206,7 +1206,7 @@ async function streetStreamMultiJobRequest(ref, strategy, params, vehicleSpecs) 
 	let lastDropoffTime = moment().toISOString(true);
 	const dropoffs = drops.map(drop => {
 		if (moment(drop.packageDropoffEndTime).diff(lastDropoffTime) > 0)
-			lastDropoffTime = moment(drop.packageDropoffEndTime).toISOString(true);
+			lastDropoffTime = moment(drop.packageDropoffEndTime).add(30, "minutes").toISOString(true);
 		return {
 			contactNumber: drop.dropoffPhoneNumber,
 			contactName: `${drop.dropoffFirstName} ${drop.dropoffLastName}`,
@@ -1239,10 +1239,10 @@ async function streetStreamMultiJobRequest(ref, strategy, params, vehicleSpecs) 
 				city: pickupCity,
 				postcode: pickupPostcode,
 				pickUpNotes: pickupInstructions,
-				pickUpFrom: moment(packagePickupStartTime).toISOString(true),
+				pickUpFrom: moment(packagePickupStartTime).add(30, "minutes").toISOString(true),
 				pickUpTo: packagePickupEndTime
-					? moment(packagePickupEndTime).toISOString(true)
-					: moment(packagePickupStartTime).add(5, 'minutes').toISOString(true)
+					? moment(packagePickupEndTime).add(30, "minutes").toISOString(true)
+					: moment(packagePickupStartTime).add(40, 'minutes').toISOString(true)
 			},
 			drops: dropoffs
 		};
