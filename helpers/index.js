@@ -243,7 +243,9 @@ function checkPickupHours(pickupTime, deliveryHours) {
 	console.log('DURATION:', { open: open.format('HH:mm'), timeFromOpen });
 	console.log('DURATION:', { close: close.format('HH:mm'), timeFromClose });
 	console.log('===================================================================');
-	return canDeliver && timeFromOpen >= 0 && timeFromClose <= -0.5;
+	const isValid = canDeliver && timeFromOpen >= 0 && timeFromClose <= -0.5;
+	console.log("Is pickup time valid:", isValid)
+	return isValid;
 }
 
 function setNextDayDeliveryTime(pickupTime, deliveryHours) {
@@ -258,7 +260,7 @@ function setNextDayDeliveryTime(pickupTime, deliveryHours) {
 	);
 	// check if the datetime is not in the past & if store allows delivery on that day, if not check another day
 	if (isValid) {
-		// if a day does not allow deliveries OR the day does allow delivery BUT the order's PICKUP time is PAST of the current day's CLOSING time (only when nextDay = "deliveryDay")
+		// if a day does not allow deliveries OR the day does allow delivery BUT the order's PICKUP time is PAST of the current day's OPENING time (only when nextDay = "deliveryDay")
 		// iterate over to the next day
 		// OTHERWISE set the pickup time = store open hour for current day, dropoff time = store closing hour for current day
 		console.log(
@@ -280,12 +282,22 @@ function setNextDayDeliveryTime(pickupTime, deliveryHours) {
 					y: moment(pickupTime).get('year'),
 					M: moment(pickupTime).get('month'),
 					d: moment(pickupTime).get('date'),
-					h: deliveryHours[nextDay].close['h'],
-					m: deliveryHours[nextDay].close['m']
+					h: deliveryHours[nextDay].open['h'],
+					m: deliveryHours[nextDay].open['m']
 				}).add(interval, 'days'),
 				'minutes'
-			) <= -0.5
+			) > 0
 		) {
+			console.log(moment(pickupTime).diff(
+				moment({
+					y: moment(pickupTime).get('year'),
+					M: moment(pickupTime).get('month'),
+					d: moment(pickupTime).get('date'),
+					h: deliveryHours[nextDay].open['h'],
+					m: deliveryHours[nextDay].open['m']
+				}).add(interval, 'days'),
+				'minutes'
+			))
 			nextDay === max ? (nextDay = 0) : (nextDay = nextDay + 1);
 			console.log('Next Day:', nextDay);
 			console.log('CAN DELIVER:', deliveryHours[nextDay].canDeliver);
