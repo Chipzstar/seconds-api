@@ -244,7 +244,7 @@ function checkDeliveryHours(pickupTime, deliveryHours) {
 	console.log('DURATION:', { open: open.format('HH:mm'), timeFromOpen });
 	console.log('DURATION:', { close: close.format('HH:mm'), timeFromClose });
 	console.log('===================================================================');
-	return canDeliver && timeFromClose <= -0.5;
+	return canDeliver && timeFromOpen >= 0 && timeFromClose <= -0.5;
 }
 
 function setNextDayDeliveryTime(pickupTime, deliveryHours) {
