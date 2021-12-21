@@ -10,7 +10,7 @@ const {
 	getVehicleSpecs,
 	calculateJobDistance,
 	checkAlternativeVehicles,
-	checkDeliveryHours,
+	checkPickupHours,
 	setNextDayDeliveryTime,
 	genOrderReference,
 	providerCreateMultiJob,
@@ -128,7 +128,7 @@ router.post('/create', async (req, res) => {
 		}
 		console.log(req.body);
 		// CHECK DELIVERY HOURS
-		let canDeliver = checkDeliveryHours(req.body.packagePickupStartTime, deliveryHours);
+		let canDeliver = checkPickupHours(req.body.packagePickupStartTime, deliveryHours);
 		if (!canDeliver) {
 			const { nextDayPickup, nextDayDropoff } = setNextDayDeliveryTime(
 				req.body.packagePickupStartTime,
@@ -332,7 +332,7 @@ router.post('/multi-drop', async (req, res) => {
 		//TODO - Test multi drop with dashboard -> use packageDropoffEndTime instead of packageDropoffStartTime to base dropoff windows (see line 336)
 
 		// CHECK DELIVERY HOURS
-		let canDeliver = checkDeliveryHours(req.body.packagePickupStartTime, deliveryHours);
+		let canDeliver = checkPickupHours(req.body.packagePickupStartTime, deliveryHours);
 		if (!canDeliver) {
 			const { nextDayPickup, nextDayDropoff } = setNextDayDeliveryTime(
 				req.body.packagePickupStartTime,

@@ -1,5 +1,4 @@
 const axios = require('axios');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { Client } = require('@googlemaps/google-maps-services-js');
 const { pickupSchema, dropoffSchema } = require('../schemas/stuart/CreateJob');
 const qs = require('qs');
@@ -218,7 +217,7 @@ async function checkAlternativeVehicles(pickup, dropoff, jobDistance, vehicleSpe
 	}
 }
 
-function checkDeliveryHours(pickupTime, deliveryHours) {
+function checkPickupHours(pickupTime, deliveryHours) {
 	console.log('===================================================================');
 	const deliveryDay = String(moment(pickupTime).day());
 	console.log('Current Day:', deliveryDay);
@@ -259,10 +258,11 @@ function setNextDayDeliveryTime(pickupTime, deliveryHours) {
 	);
 	// check if the datetime is not in the past & if store allows delivery on that day, if not check another day
 	if (isValid) {
-		// if a day does not allow deliveries OR if the order's PICKUP time is AHEAD of the current day's CLOSING time (only when nextDay = "deliveryDay")
+		// if a day does not allow deliveries OR the day does allow delivery BUT the order's PICKUP time is PAST of the current day's CLOSING time (only when nextDay = "deliveryDay")
 		// iterate over to the next day
+		// OTHERWISE set the pickup time = store open hour for current day, dropoff time = store closing hour for current day
 		console.log(
-			"Is past delivery day's opening hours:",
+			"Is past delivery day's closing hours:",
 			moment(pickupTime).diff(
 				moment({
 					y: moment(pickupTime).get('year'),
@@ -272,12 +272,10 @@ function setNextDayDeliveryTime(pickupTime, deliveryHours) {
 					m: deliveryHours[nextDay].close['m']
 				}),
 				'minutes'
-			) > 0
+			) <= -0.5
 		);
 		console.log('CAN DELIVER:', deliveryHours[nextDay].canDeliver);
-		while (
-			!deliveryHours[nextDay].canDeliver ||
-			moment(pickupTime).diff(
+		while (!deliveryHours[nextDay].canDeliver || moment(pickupTime).diff(
 				moment({
 					y: moment(pickupTime).get('year'),
 					M: moment(pickupTime).get('month'),
@@ -286,7 +284,7 @@ function setNextDayDeliveryTime(pickupTime, deliveryHours) {
 					m: deliveryHours[nextDay].close['m']
 				}).add(interval, 'days'),
 				'minutes'
-			) > 0
+			) <= -0.5
 		) {
 			nextDay === max ? (nextDay = 0) : (nextDay = nextDay + 1);
 			console.log('Next Day:', nextDay);
@@ -1759,7 +1757,7 @@ module.exports = {
 	calculateJobDistance,
 	checkAlternativeVehicles,
 	chooseBestProvider,
-	checkDeliveryHours,
+	checkPickupHours,
 	getResultantQuotes,
 	providerCreatesJob,
 	providerCreateMultiJob,

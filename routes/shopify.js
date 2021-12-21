@@ -10,7 +10,7 @@ const {
 	providerCreatesJob,
 	getVehicleSpecs,
 	calculateJobDistance,
-	checkDeliveryHours,
+	checkPickupHours,
 	setNextDayDeliveryTime,
 	genOrderReference,
 	sendNewJobEmails, geocodeAddress
@@ -169,7 +169,7 @@ async function createNewJob(order, user) {
 			vehicleSpecs.travelMode
 		);
 		// check delivery hours
-		let canDeliver = checkDeliveryHours(payload.packagePickupStartTime, deliveryHours);
+		let canDeliver = checkPickupHours(payload.packagePickupStartTime, deliveryHours);
 		if (!canDeliver) {
 			const { nextDayPickup, nextDayDropoff } = setNextDayDeliveryTime(payload.packagePickupStartTime, deliveryHours);
 			payload.packageDeliveryType = 'NEXT_DAY';

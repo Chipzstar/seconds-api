@@ -2,19 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const db = require('../models');
 const router = express.Router();
-const {
-	genJobReference,
-	getResultantQuotes,
-	chooseBestProvider,
-	providerCreatesJob,
-	getVehicleSpecs,
-	calculateJobDistance,
-	checkDeliveryHours,
-	setNextDayDeliveryTime,
-	genOrderReference,
-	sendNewJobEmails
-} = require('../helpers');
-const { DELIVERY_METHODS } = require('../constants/shopify');
 
 router.post('/', async (req, res) => {
 	try {
