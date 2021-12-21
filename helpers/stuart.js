@@ -182,7 +182,6 @@ async function updateDelivery(data) {
 
 async function updateDriverETA(data) {
 	try {
-		console.log(data);
 		const {
 			job: {
 				currentDelivery: { id, etaToDestination, etaToOrigin, status:deliveryStatus }
