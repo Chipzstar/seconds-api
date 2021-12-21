@@ -44,6 +44,7 @@ async function geocodeAddress(address) {
 			};
 			let fullAddress = response.results[0].formatted_address;
 			let components = response.results[0].address_components;
+			console.log(components)
 			components.forEach(({ long_name, types }) => {
 				switch (types[0]) {
 					case 'street_number':
@@ -132,7 +133,7 @@ async function createNewJob(order, user) {
 		console.log(packageDescription);
 		// geocode dropoff address
 		const { formattedAddress, fullAddress } = await geocodeAddress(
-			`${order.shipping_address['address1']} ${order.shipping_address['city']} ${order.shipping_address['zip']}`
+			`${order.shipping_address['address1']} ${order.shipping_address['address2']} ${order.shipping_address['city']} ${order.shipping_address['zip']}`
 		);
 		console.log(fullAddress);
 		console.table(formattedAddress);
@@ -161,9 +162,9 @@ async function createNewJob(order, user) {
 					dropoffPostcode: formattedAddress.postcode,
 					dropoffPhoneNumber: order['shipping_lines'][0].phone,
 					dropoffEmailAddress: order.email ? order.email : order.customer.email,
-					dropoffBusinessName: order.shipping_address.company,
-					dropoffFirstName: order.customer.first_name,
-					dropoffLastName: order.customer.last_name,
+					dropoffBusinessName: order.shipping_address.company ? order.shipping_address.company : "",
+					dropoffFirstName: order.shipping_address.first_name,
+					dropoffLastName: order.shipping_address.last_name,
 					dropoffInstructions: order.customer['note'] ? order.customer['note'] : '',
 					packageDropoffEndTime: moment().add(200, 'minutes').format(),
 					packageDescription,
