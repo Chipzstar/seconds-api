@@ -259,7 +259,7 @@ function setNextDayDeliveryTime(pickupTime, deliveryHours) {
 	);
 	// check if the datetime is not in the past & if store allows delivery on that day, if not check another day
 	if (isValid) {
-		// if a day does not allow deliveries OR if the time of the order request is AHEAD of the current day's opening time (only when nextDay = "deliveryDay")
+		// if a day does not allow deliveries OR if the order's PICKUP time is AHEAD of the current day's CLOSING time (only when nextDay = "deliveryDay")
 		// iterate over to the next day
 		console.log(
 			"Is past delivery day's opening hours:",
@@ -268,8 +268,8 @@ function setNextDayDeliveryTime(pickupTime, deliveryHours) {
 					y: moment(pickupTime).get('year'),
 					M: moment(pickupTime).get('month'),
 					d: moment(pickupTime).get('date'),
-					h: deliveryHours[nextDay].open['h'],
-					m: deliveryHours[nextDay].open['m']
+					h: deliveryHours[nextDay].close['h'],
+					m: deliveryHours[nextDay].close['m']
 				}),
 				'minutes'
 			) > 0
@@ -282,8 +282,8 @@ function setNextDayDeliveryTime(pickupTime, deliveryHours) {
 					y: moment(pickupTime).get('year'),
 					M: moment(pickupTime).get('month'),
 					d: moment(pickupTime).get('date'),
-					h: deliveryHours[nextDay].open['h'],
-					m: deliveryHours[nextDay].open['m']
+					h: deliveryHours[nextDay].close['h'],
+					m: deliveryHours[nextDay].close['m']
 				}).add(interval, 'days'),
 				'minutes'
 			) > 0
