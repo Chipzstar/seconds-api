@@ -187,7 +187,7 @@ async function updateDriverETA(data) {
 				currentDelivery: { id, etaToDestination, etaToOrigin, status:deliveryStatus, driver }
 			}
 		} = data;
-		console.table({driver})
+		console.log([Number(driver.longitude), Number(driver.latitude)])
 		const deliveryId = id.toString();
 		const job = await db.Job.findOneAndUpdate(
 			{ 'jobSpecification.deliveries.id': deliveryId },

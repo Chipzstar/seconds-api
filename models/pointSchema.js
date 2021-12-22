@@ -12,4 +12,4 @@ exports.pointSchema = new mongoose.Schema({
 		required: false,
 		default: [0,0]
 	}
-}, {_id: false});
+});
