@@ -2,7 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const db = require('../models');
 const router = express.Router();
-const { Client } = require('@googlemaps/google-maps-services-js');
 const {
 	genJobReference,
 	getResultantQuotes,
@@ -22,8 +21,6 @@ const sendEmail = require('../services/email');
 const { v4: uuidv4 } = require('uuid');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const orderId = require('order-id')(process.env.UID_SECRET_KEY);
-
-const client = new Client();
 
 function convertWeightToVehicleCode(total_weight) {
 	console.log('Total Weight:', total_weight, 'kg');
