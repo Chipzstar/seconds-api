@@ -222,6 +222,14 @@ async function createNewJob(order, user) {
 		const paymentIntentId = paymentIntent ? paymentIntent.id : undefined;
 		let job = {
 			createdAt: moment().format(),
+			driverInformation: {
+				name: 'Searching',
+				phone: 'Searching',
+				transport: vehicleSpecs.name,
+				location: {
+					type: "Point"
+				}
+			},
 			jobSpecification: {
 				id: spec_id,
 				jobReference: clientRefNumber,

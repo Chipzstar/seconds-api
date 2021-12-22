@@ -8,6 +8,6 @@ exports.pointSchema = new mongoose.Schema({
 	},
 	coordinates: {
 		type: [Number],
-		required: true
+		required: false
 	}
 }, {_id: false});
