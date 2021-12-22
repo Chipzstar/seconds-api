@@ -36,7 +36,9 @@ const userSchema = new mongoose.Schema({
 		type: Array,
 		default: []
 	},
-	address: addressSchema,
+	address: {
+		type: addressSchema
+	},
 	password: {
 		type: String,
 		required: true
