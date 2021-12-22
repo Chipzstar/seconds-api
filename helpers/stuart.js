@@ -62,13 +62,11 @@ function translateStuartStatus(value) {
 
 async function updateJob(data) {
 	try {
-		console.log(data);
 		const jobStatus = data.status;
 		const jobId = data.id.toString();
 		const {
 			id: deliveryId,
 			status: deliveryStatus,
-			client_reference,
 			etaToOrigin,
 			etaToDestination,
 			driver
@@ -216,7 +214,8 @@ async function updateDriverETA(data) {
 				}
 			},
 			{
-				new: true
+				returnOriginal: false,
+				projection: {'driverInformation.location': 1}
 			}
 		);
 		console.log(job);
