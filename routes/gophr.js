@@ -4,7 +4,7 @@ const { STATUS } = require('../constants');
 const db = require('../models');
 const moment = require('moment');
 const sendEmail = require('../services/email');
-const confirmCharge = require('../services/payments')
+const confirmCharge = require('../services/payments');
 const { v4: uuidv4 } = require('uuid');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const router = express.Router();
@@ -46,7 +46,7 @@ async function updateStatus(data) {
 			courier_name,
 			cancellation_reason
 		} = data;
-		let paymentIntentId = ""
+		let paymentIntentId = '';
 		console.log({ jobStatus, JOB_ID, clientReference });
 		// update the status for the current job
 		await db.Job.findOneAndUpdate(
@@ -70,8 +70,8 @@ async function updateStatus(data) {
 				new: true
 			}
 		);
-		const user = await db.User.findOne({"_id": job.clientId})
-		if (finished && jobStatus === JOB_STATUS.COMPLETED){
+		const user = await db.User.findOne({ _id: job.clientId });
+		if (finished && jobStatus === JOB_STATUS.COMPLETED) {
 			let idempotencyKey = uuidv4();
 			const paymentIntent = await stripe.paymentIntents.create(
 				{
@@ -86,9 +86,13 @@ async function updateStatus(data) {
 					idempotencyKey
 				}
 			);
-			paymentIntentId = paymentIntent.id
-			await db.Job.updateOne({'jobSpecification.id': JOB_ID}, {paymentIntentId: paymentIntent.id}, {new: true})
-			console.log("NEW PAYMENT INTENT:", paymentIntent)
+			paymentIntentId = paymentIntent.id;
+			await db.Job.updateOne(
+				{ 'jobSpecification.id': JOB_ID },
+				{ paymentIntentId: paymentIntent.id },
+				{ new: true }
+			);
+			console.log('NEW PAYMENT INTENT:', paymentIntent);
 		}
 		if (jobStatus === JOB_STATUS.CANCELLED) {
 			const user = await db.User.findOne({ _id: job.clientId });
@@ -126,13 +130,15 @@ async function updateETA(data) {
 		await db.Job.findOneAndUpdate(
 			{ 'jobSpecification.id': JOB_ID },
 			{
-				'driverInformation.location': {
-					type: 'Point',
-					coordinates: [Number(courier_location_lng), Number(courier_location_lat)]
+				$set: {
+					'driverInformation.location': {
+						type: 'Point',
+						coordinates: [Number(courier_location_lng), Number(courier_location_lat)]
+					}
 				}
 			},
 			{ new: true }
-		)
+		);
 	}
 	// update the status for the current job
 	let {
@@ -142,7 +148,7 @@ async function updateETA(data) {
 		{
 			$set: {
 				'jobSpecification.pickupStartTime': moment(pickup_eta).toISOString(true),
-				'jobSpecification.deliveries.$[].dropoffEndTime': moment(delivery_eta).toISOString(true),
+				'jobSpecification.deliveries.$[].dropoffEndTime': moment(delivery_eta).toISOString(true)
 			}
 		},
 		{
@@ -181,7 +187,9 @@ router.post('/', async (req, res) => {
 						paymentIntentId,
 						deliveryType,
 						deliveries.length
-					).then(res => console.log("Charge confirmed:", res)).catch(err => console.error(err));
+					)
+						.then(res => console.log('Charge confirmed:', res))
+						.catch(err => console.error(err));
 				}
 			} else if (webhook_type === WEBHOOK_TYPES.ETA) {
 				let jobETA = await updateETA(req.body);

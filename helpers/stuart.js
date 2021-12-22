@@ -184,7 +184,7 @@ async function updateDriverETA(data) {
 	try {
 		const {
 			job: {
-				currentDelivery: { id, etaToDestination, etaToOrigin, status:deliveryStatus, driver }
+				currentDelivery: { id, etaToDestination, etaToOrigin, status: deliveryStatus, driver }
 			}
 		} = data;
 		const deliveryId = id.toString();
@@ -192,13 +192,15 @@ async function updateDriverETA(data) {
 			await db.Job.findOneAndUpdate(
 				{ 'jobSpecification.id': deliveryId },
 				{
-					'driverInformation.location': {
-						type: 'Point',
-						coordinates: [Number(driver.longitude), Number(driver.latitude)]
+					$set: {
+						'driverInformation.location': {
+							type: 'Point',
+							coordinates: [Number(driver.longitude), Number(driver.latitude)]
+						}
 					}
 				},
 				{ new: true }
-			)
+			);
 		}
 		const job = await db.Job.findOneAndUpdate(
 			{ 'jobSpecification.deliveries.id': deliveryId },
@@ -207,14 +209,17 @@ async function updateDriverETA(data) {
 					'jobSpecification.pickupStartTime': moment(etaToOrigin).toISOString(),
 					'jobSpecification.deliveries.$.dropoffEndTime': moment(etaToDestination).toISOString(),
 					'jobSpecification.deliveries.$.status': translateStuartStatus(deliveryStatus),
-					'driverInformation.location': {type: 'Point', coordinates: [Number(driver.longitude), Number(driver.latitude)]},
+					'driverInformation.location': {
+						type: 'Point',
+						coordinates: [Number(driver.longitude), Number(driver.latitude)]
+					}
 				}
 			},
 			{
 				new: true
 			}
 		);
-		console.log(job)
+		console.log(job);
 	} catch (err) {
 		console.error(err);
 		throw err;
