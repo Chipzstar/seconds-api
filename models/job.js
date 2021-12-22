@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const deliverySchema = require("./deliveries");
-const pointSchema = require('./pointSchema');
+const { pointSchema } = require('./pointSchema');
 
 const jobSchema = new mongoose.Schema({
 	clientId: {
