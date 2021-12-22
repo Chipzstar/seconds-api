@@ -184,7 +184,7 @@ async function updateDriverETA(data) {
 	try {
 		const {
 			job: {
-				currentDelivery: { id, etaToDestination, etaToOrigin, status:deliveryStatus }
+				currentDelivery: { id, etaToDestination, etaToOrigin, status:deliveryStatus, driver }
 			}
 		} = data;
 		const deliveryId = id.toString();
@@ -194,7 +194,8 @@ async function updateDriverETA(data) {
 				$set: {
 					'jobSpecification.pickupStartTime': moment(etaToOrigin).toISOString(),
 					'jobSpecification.deliveries.$.dropoffEndTime': moment(etaToDestination).toISOString(),
-					'jobSpecification.deliveries.$.status': translateStuartStatus(deliveryStatus)
+					'jobSpecification.deliveries.$.status': translateStuartStatus(deliveryStatus),
+					'driverInformation.location.coordinates': [driver.longitude, driver.latitude],
 				}
 			},
 			{

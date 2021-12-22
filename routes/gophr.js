@@ -120,7 +120,7 @@ async function updateStatus(data) {
 
 async function updateETA(data) {
 	console.table(data);
-	const { job_id: JOB_ID, pickup_eta, delivery_eta } = data;
+	const { job_id: JOB_ID, pickup_eta, delivery_eta, courier_location_lat, courier_location_lng } = data;
 	// update the status for the current job
 	let {
 		_doc: { _id, ...job }
@@ -129,7 +129,8 @@ async function updateETA(data) {
 		{
 			$set: {
 				'jobSpecification.pickupStartTime': moment(pickup_eta).toISOString(true),
-				'jobSpecification.deliveries.$[].dropoffEndTime': moment(delivery_eta).toISOString(true)
+				'jobSpecification.deliveries.$[].dropoffEndTime': moment(delivery_eta).toISOString(true),
+				'driverInformation.location.coordinates': [courier_location_lng, courier_location_lat]
 			}
 		},
 		{
