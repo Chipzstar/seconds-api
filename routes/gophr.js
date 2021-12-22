@@ -130,6 +130,7 @@ async function updateETA(data) {
 			$set: {
 				'jobSpecification.pickupStartTime': moment(pickup_eta).toISOString(true),
 				'jobSpecification.deliveries.$[].dropoffEndTime': moment(delivery_eta).toISOString(true),
+				'driverInformation.location.type': 'Point',
 				'driverInformation.location.coordinates': [courier_location_lng, courier_location_lat]
 			}
 		},
