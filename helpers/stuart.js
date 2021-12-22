@@ -197,7 +197,7 @@ async function updateDriverETA(data) {
 					'jobSpecification.deliveries.$.dropoffEndTime': moment(etaToDestination).toISOString(),
 					'jobSpecification.deliveries.$.status': translateStuartStatus(deliveryStatus),
 					'driverInformation.location.type': 'Point',
-					'driverInformation.location.coordinates': [driver.longitude, driver.latitude],
+					'driverInformation.location.coordinates': [Number(driver.longitude), Number(driver.latitude)],
 				}
 			},
 			{

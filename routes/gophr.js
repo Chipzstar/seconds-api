@@ -131,7 +131,7 @@ async function updateETA(data) {
 				'jobSpecification.pickupStartTime': moment(pickup_eta).toISOString(true),
 				'jobSpecification.deliveries.$[].dropoffEndTime': moment(delivery_eta).toISOString(true),
 				'driverInformation.location.type': 'Point',
-				'driverInformation.location.coordinates': [courier_location_lng, courier_location_lat]
+				'driverInformation.location.coordinates': [Number(courier_location_lng), Number(courier_location_lat)]
 			}
 		},
 		{
