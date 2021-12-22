@@ -187,8 +187,19 @@ async function updateDriverETA(data) {
 				currentDelivery: { id, etaToDestination, etaToOrigin, status:deliveryStatus, driver }
 			}
 		} = data;
-		console.log([Number(driver.longitude), Number(driver.latitude)])
 		const deliveryId = id.toString();
+		if (driver.latitude && driver.longitude) {
+			await db.Job.findOneAndUpdate(
+				{ 'jobSpecification.id': deliveryId },
+				{
+					'driverInformation.location': {
+						type: 'Point',
+						coordinates: [Number(driver.longitude), Number(driver.latitude)]
+					}
+				},
+				{ new: true }
+			)
+		}
 		const job = await db.Job.findOneAndUpdate(
 			{ 'jobSpecification.deliveries.id': deliveryId },
 			{
