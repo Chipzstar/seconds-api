@@ -205,10 +205,7 @@ router.post('/create', async (req, res) => {
 				driverInformation: {
 					name: 'Searching',
 					phone: 'Searching',
-					transport: vehicleSpecs.name,
-					location: {
-						type: "Point"
-					}
+					transport: vehicleSpecs.name
 				},
 				jobSpecification: {
 					id: spec_id,
@@ -378,10 +375,7 @@ router.post('/multi-drop', async (req, res) => {
 				driverInformation: {
 					name: 'Searching',
 					phone: 'Searching',
-					transport: vehicleSpecs.name,
-					location: {
-						type: "Point"
-					}
+					transport: vehicleSpecs.name
 				},
 				jobSpecification: {
 					id: spec_id,
