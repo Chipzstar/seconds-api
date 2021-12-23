@@ -71,7 +71,7 @@ async function updateStatus(data) {
 			}
 		);
 		const user = await db.User.findOne({ _id: job.clientId });
-		if (finished && jobStatus === JOB_STATUS.COMPLETED) {
+		/*if (finished && jobStatus === JOB_STATUS.COMPLETED) {
 			let idempotencyKey = uuidv4();
 			const paymentIntent = await stripe.paymentIntents.create(
 				{
@@ -93,9 +93,8 @@ async function updateStatus(data) {
 				{ new: true }
 			);
 			console.log('NEW PAYMENT INTENT:', paymentIntent);
-		}
+		}*/
 		if (jobStatus === JOB_STATUS.CANCELLED) {
-			const user = await db.User.findOne({ _id: job.clientId });
 			console.log('User:', !!user);
 			// check if order status is cancelled and send out email to clients
 			let options = {
