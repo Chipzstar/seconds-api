@@ -165,7 +165,7 @@ router.post('/', async (req, res) => {
 		const { api_key, webhook_type, job_id } = req.body;
 		if (api_key === String(process.env.GOPHR_API_KEY)) {
 			if (webhook_type === WEBHOOK_TYPES.STATUS) {
-				let { jobStatus, isFinished, paymentIntentId } = await updateStatus(req.body);
+				let { jobStatus, isFinished } = await updateStatus(req.body);
 				console.log('--------------------------------');
 				console.log('NEW STATUS:', jobStatus);
 				console.log('--------------------------------');
@@ -173,6 +173,7 @@ router.post('/', async (req, res) => {
 					let {
 						clientId,
 						commissionCharge,
+						paymentIntentId,
 						jobSpecification: { deliveryType, deliveries }
 					} = await db.Job.findOne({ 'jobSpecification.id': job_id }, {});
 					console.log('****************************************************************');
