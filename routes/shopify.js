@@ -87,6 +87,7 @@ async function createNewJob(order, user) {
 		);
 		console.log(fullAddress);
 		console.table(formattedAddress);
+		console.log(user.address)
 		const payload = {
 			pickupAddress: user.fullAddress,
 			pickupAddressLine1: user.address['street'],

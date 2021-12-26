@@ -41,12 +41,10 @@ async function updateStatus(data) {
 			job_id: JOB_ID,
 			finished,
 			pickup_eta,
-			price_gross,
 			delivery_eta,
 			courier_name,
 			cancellation_reason
 		} = data;
-		let paymentIntentId = '';
 		console.log({ jobStatus, JOB_ID, clientReference });
 		// update the status for the current job
 		await db.Job.findOneAndUpdate(
@@ -114,7 +112,7 @@ async function updateStatus(data) {
 			await sendEmail(options);
 			console.log('CANCELLATION EMAIL SENT!');
 		}
-		return { jobStatus, isFinished: Number(finished), paymentIntentId };
+		return { jobStatus, isFinished: Number(finished) };
 	} catch (err) {
 		console.error(err);
 		throw err;
