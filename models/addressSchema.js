@@ -19,8 +19,7 @@ const addressSchema = new mongoose.Schema({
 		default: 'GB'
 	},
 	geolocation: {
-		type: pointSchema,
-		index: '2dsphere'
+		type: pointSchema
 	}
 }, {_id: false});
 
