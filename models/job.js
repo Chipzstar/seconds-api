@@ -77,8 +77,7 @@ const jobSchema = new mongoose.Schema({
 			default: "Searching"
 		},
 		location: {
-			type: pointSchema,
-			index: '2dsphere'
+			type: pointSchema
 		}
 	},
 	createdAt: {
