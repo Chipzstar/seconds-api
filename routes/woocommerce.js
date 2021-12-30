@@ -6,16 +6,19 @@ const router = express.Router();
 router.post('/', async (req, res) => {
 	try {
 		// filter the request topic and shop domain
-		console.table(req.headers);
-		console.log(req.body);
-		const { status, topic, secret } = req.body;
+		const topic = req.headers['x-wc-webhook-topic']
+		const domain = req.headers['x-wc-webhook-source'].endsWith('/') ? req.headers['x-wc-webhook-source'].slice(0, -1): req.headers['x-wc-webhook-source'];
+		console.table({topic, domain})
+		console.log(req.body.shipping);
+		console.log(req.body['shipping_lines'])
 		// check that the shop domain belongs to a user
-		const user = await db.User.findOne({ 'woocommerce.domain': secret });
+		const user = await db.User.findOne({ 'woocommerce.domain': domain });
 		console.log('User Found:', !!user);
 		if (user) {
 			if (topic === 'order.created') {
 				console.log('-----------------------------');
-				console.log('ORDER:');
+				console.log('ORDER ID:');
+				console.table({id: req.body.id, orderKey: req.body['order_key']});
 				console.log('-----------------------------');
 				res.status(200).json({
 					success: true,
@@ -34,7 +37,7 @@ router.post('/', async (req, res) => {
 			res.status(200).json({
 				success: false,
 				status: 'USER_NOT_FOUND',
-				message: `Failed to find a user with square shop ${secret}`
+				message: `Failed to find a user with square shop ${domain}`
 			});
 		}
 	} catch (err) {
