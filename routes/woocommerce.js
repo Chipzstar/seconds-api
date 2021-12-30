@@ -37,9 +37,9 @@ async function createNewJob(order, user) {
 		const packageDescription = order.line_items.map(item => item['name']).join('\n');
 		console.table({totalWeight, vehicleType, packageDescription})
 		// geocode dropoff address
-		const { formattedAddress, fullAddress } = await geocodeAddress(
+		/*const { formattedAddress, fullAddress } = await geocodeAddress(
 			`${order.shipping['address_1']} ${order.shipping['address_2']} ${order.shipping['city']} ${order.shipping['zip']}`
-		);
+		);*/
 	} catch (err) {
 		await sendEmail({
 			email: 'chipzstar.dev@gmail.com',
