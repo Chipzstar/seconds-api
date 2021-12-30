@@ -145,7 +145,7 @@ async function updateDelivery(data) {
 				new: true
 			}
 		);
-		console.log(job.jobSpecification);
+		console.log(job);
 		// check if order status is cancelled and send out email to clients
 		if (deliveryStatus === DELIVERY_STATUS.CANCELLED) {
 			const user = await db.User.findOne({ _id: job.clientId });
