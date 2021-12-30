@@ -14,7 +14,7 @@ const {
 	genOrderReference,
 	sendNewJobEmails, geocodeAddress
 } = require('../helpers');
-const { VEHICLE_CODES_MAP, VEHICLE_CODES, STATUS, COMMISSION } = require('../constants');
+const { VEHICLE_CODES_MAP, VEHICLE_CODES, STATUS, COMMISSION, PROVIDERS } = require('../constants');
 const moment = require('moment');
 const { DELIVERY_METHODS } = require('../constants/shopify');
 const sendEmail = require('../services/email');
@@ -85,6 +85,7 @@ async function createNewJob(order, user) {
 		const { formattedAddress, fullAddress } = await geocodeAddress(
 			`${order.shipping_address['address1']} ${order.shipping_address['address2']} ${order.shipping_address['city']} ${order.shipping_address['zip']}`
 		);
+		console.log("Geocoded results")
 		console.log(fullAddress);
 		console.table(formattedAddress);
 		const geolocation = user.address.geolocation.toObject()
@@ -110,7 +111,7 @@ async function createNewJob(order, user) {
 			parcelWeight: order['total_weight'] / 1000,
 			drops: [
 				{
-					dropoffAddress: fullAddress,
+					dropoffAddress: `${order.shipping_address['address1']} ${order.shipping_address['address2']} ${order.shipping_address['city']} ${order.shipping_address['zip']}`,
 					dropoffAddressLine1: order.shipping_address['address1'],
 					dropoffAddressLine2: order.shipping_address['address2'],
 					dropoffCity: order.shipping_address['city'] ? order.shipping_address['city'] : formattedAddress.city,
@@ -199,7 +200,8 @@ async function createNewJob(order, user) {
 			pickupAt,
 			delivery
 		} = await providerCreatesJob(
-			providerId.toLowerCase(),
+			//TODO - remove default provider
+			PROVIDERS.GOPHR,
 			clientRefNumber,
 			selectionStrategy,
 			payload,
