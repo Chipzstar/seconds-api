@@ -2,14 +2,43 @@ require('dotenv').config();
 const express = require('express');
 const db = require('../models');
 const { DELIVERY_METHODS } = require('../constants/shopify');
+const axios = require('axios');
+const sendEmail = require('../services/email');
 const router = express.Router();
 
-async function createNewJob(order, user){
+async function createNewJob(order, user) {
 	try {
-	    console.log(order)
+		console.log(order.line_items);
+		// iterate through each product and record its weight
+		const productWeights = await Promise.all(
+			order['line_items'].map(async ({ product_id }) => {
+				const endpoint = `/wp-json/wc/v3/products/${product_id}`;
+				const URL = `${user.woocommerce.domain}${endpoint}`;
+				console.log(URL);
+				let response = (
+					await axios.get(URL, {
+						auth: {
+							username: user.woocommerce.consumerKey,
+							password: user.woocommerce.consumerSecret
+						}
+					})
+				).data;
+				console.log(response);
+				return response.weight;
+			})
+		);
+		console.log(productWeights);
 		return true;
 	} catch (err) {
-	    console.error(err)
+		await sendEmail({
+			email: 'chipzstar.dev@gmail.com',
+			name: 'Chisom Oguibe',
+			subject: `Failed Shopify order #${order.id}`,
+			text: `Job could not be created. Reason: ${err.message}`,
+			html: `<p>Job could not be created. Reason: ${err.message}</p>`
+		});
+		console.error(err);
+		return err;
 	}
 }
 
