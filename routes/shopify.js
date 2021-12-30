@@ -200,8 +200,7 @@ async function createNewJob(order, user) {
 			pickupAt,
 			delivery
 		} = await providerCreatesJob(
-			//TODO - remove default provider
-			PROVIDERS.GOPHR,
+			providerId.toLowerCase(),
 			clientRefNumber,
 			selectionStrategy,
 			payload,
