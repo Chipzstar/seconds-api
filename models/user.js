@@ -77,6 +77,12 @@ const userSchema = new mongoose.Schema({
 		clientSecret: String,
 		accessToken: String
 	},
+	woocommerce: {
+		consumerKey: String,
+		consumerSecret: String,
+		domain: String,
+		shopName: String
+	},
 	createdAt: {
 		type: Date,
 		default: Date.now()
