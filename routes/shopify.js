@@ -258,7 +258,7 @@ async function createNewJob(order, user) {
 			},
 			selectedConfiguration: {
 				createdAt: moment().format(),
-				deliveryFee,
+				deliveryFee: deliveryFee.toFixed(2),
 				winnerQuote,
 				providerId,
 				quotes: QUOTES
