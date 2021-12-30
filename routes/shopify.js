@@ -111,7 +111,7 @@ async function createNewJob(order, user) {
 			parcelWeight: order['total_weight'] / 1000,
 			drops: [
 				{
-					dropoffAddress: `${order.shipping_address['address1']} ${order.shipping_address['address2']} ${order.shipping_address['city']} ${order.shipping_address['zip']}`,
+					dropoffAddress: `${order.shipping_address['address1']} ${order.shipping_address['city']} ${order.shipping_address['zip']}`,
 					dropoffAddressLine1: order.shipping_address['address1'],
 					dropoffAddressLine2: order.shipping_address['address2'],
 					dropoffCity: order.shipping_address['city'] ? order.shipping_address['city'] : formattedAddress.city,
