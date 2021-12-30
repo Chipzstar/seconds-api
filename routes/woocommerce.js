@@ -4,10 +4,11 @@ const db = require('../models');
 const { DELIVERY_METHODS } = require('../constants/shopify');
 const axios = require('axios');
 const sendEmail = require('../services/email');
-const { convertWeightToVehicleCode, geocodeAddress } = require('../helpers');
+const { convertWeightToVehicleCode, geocodeAddress, genOrderReference, createEcommerceJob } = require('../helpers');
+const moment = require('moment');
 const router = express.Router();
 
-async function createNewJob(order, user) {
+async function generatePayload(order, user) {
 	try {
 		console.log('************************************');
 		console.log(order);
@@ -37,14 +38,66 @@ async function createNewJob(order, user) {
 		const packageDescription = order.line_items.map(item => item['name']).join('\n');
 		console.table({totalWeight, vehicleType, packageDescription})
 		// geocode dropoff address
-		/*const { formattedAddress, fullAddress } = await geocodeAddress(
-			`${order.shipping['address_1']} ${order.shipping['address_2']} ${order.shipping['city']} ${order.shipping['zip']}`
-		);*/
+		const { formattedAddress, fullAddress } = await geocodeAddress(
+			`${order.shipping['address_1']} ${order.shipping['address_2']} ${order.shipping['city']} ${order.shipping['postcode']}`
+		);
+		console.log('Geocoded results');
+		console.log(fullAddress);
+		console.table(formattedAddress);
+		const geolocation = user.address.geolocation.toObject();
+		console.log(geolocation.coordinates);
+		const payload = {
+			pickupAddress: user.fullAddress,
+			pickupAddressLine1: user.address['street'],
+			pickupCity: user.address['city'],
+			pickupPostcode: user.address['postcode'],
+			pickupLongitude: geolocation.coordinates[0],
+			pickupLatitude: geolocation.coordinates[1],
+			pickupPhoneNumber: user.phone,
+			pickupEmailAddress: user.email,
+			pickupBusinessName: user.company,
+			pickupFirstName: user.firstname,
+			pickupLastName: user.lastname,
+			pickupInstructions: '',
+			packagePickupStartTime: moment().add(45, 'minutes').format(),
+			packagePickupEndTime: undefined,
+			packageDeliveryType: 'ON_DEMAND',
+			itemsCount,
+			vehicleType,
+			parcelWeight: order['total_weight'] / 1000,
+			drops: [
+				{
+					dropoffAddress: `${order.shipping['address_1']} ${order.shipping['address_2']} ${order.shipping['city']} ${order.shipping['zip']}`,
+					dropoffAddressLine1: order.shipping['address_1'],
+					dropoffAddressLine2: order.shipping['address_2'],
+					dropoffCity: order.shipping['city']
+						? order.shipping['city']
+						: formattedAddress.city,
+					dropoffPostcode: order.shipping['zip'] ? order.shipping['zip'] : formattedAddress.postcode ,
+					dropoffLongitude: formattedAddress.longitude,
+					dropoffLatitude: formattedAddress.latitude,
+					dropoffPhoneNumber: order.shipping['phone'],
+					dropoffEmailAddress: order.billing.email ? order.billing.email : "",
+					dropoffBusinessName: order.shipping.company ? order.shipping.company : '',
+					dropoffFirstName: order.shipping.first_name,
+					dropoffLastName: order.shipping.last_name,
+					dropoffInstructions: order['customer_note'] ? order['customer_note'] : '',
+					packageDropoffEndTime: moment().add(200, 'minutes').format(),
+					packageDescription,
+					reference: genOrderReference()
+				}
+			]
+		};
+		console.log('-----------------------------------------------------------------');
+		console.log('Payload');
+		console.log(payload);
+		console.log('-----------------------------------------------------------------');
+		return payload;
 	} catch (err) {
 		await sendEmail({
 			email: 'chipzstar.dev@gmail.com',
 			name: 'Chisom Oguibe',
-			subject: `Failed Shopify order #${order.id}`,
+			subject: `Failed Woocommerce order #${order['order_key']}`,
 			text: `Job could not be created. Reason: ${err.message}`,
 			html: `<p>Job could not be created. Reason: ${err.message}</p>`
 		});
@@ -76,7 +129,10 @@ router.post('/', async (req, res) => {
 				console.log('isLocalDelivery:', isLocalDelivery);
 				if (isLocalDelivery) {
 					if (isSubscribed) {
-						createNewJob(req.body, user);
+						generatePayload(req.body, user).then(payload => {
+							const ids = { shopifyId: null, woocommerceId: req.body['order_key']}
+							createEcommerceJob(payload, ids, user)
+						}).catch(err => console.error(err));
 						res.status(200).json({
 							success: true,
 							status: 'ORDER_RECEIVED',

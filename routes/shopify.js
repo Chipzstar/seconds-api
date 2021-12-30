@@ -12,7 +12,10 @@ const {
 	checkPickupHours,
 	setNextDayDeliveryTime,
 	genOrderReference,
-	sendNewJobEmails, geocodeAddress, convertWeightToVehicleCode
+	sendNewJobEmails,
+	geocodeAddress,
+	convertWeightToVehicleCode,
+	createEcommerceJob
 } = require('../helpers');
 const { STATUS, COMMISSION } = require('../constants');
 const moment = require('moment');
@@ -39,22 +42,22 @@ function validateDeliveryDate(date, time, deliveryHours) {
 			return { deliverFrom, deliverTo, isValid: deliverTo.isValid() && deliverFrom.isValid() };
 		} else {
 			// else use the shop's delivery hours to set the pickup / dropoff time window
-			const dayOfMonth = moment(`${date}`).get('date')
-			const dayOfWeek = moment(`${date}`, "DD-MM=YYYY").day()
-			const openHour = deliveryHours[dayOfWeek].open.h
-			const openMinute = deliveryHours[dayOfWeek].open.m
-			const closeHour = deliveryHours[dayOfWeek].close.h
-			const closeMinute = deliveryHours[dayOfWeek].close.m
-			console.table({dayOfMonth, dayOfWeek, openHour, openMinute, closeHour, closeMinute})
-			deliverFrom = moment({d: dayOfMonth, h: openHour, m: openMinute})
-			deliverTo = moment({d: dayOfMonth, h: closeHour, m: closeMinute})
+			const dayOfMonth = moment(`${date}`).get('date');
+			const dayOfWeek = moment(`${date}`, 'DD-MM=YYYY').day();
+			const openHour = deliveryHours[dayOfWeek].open.h;
+			const openMinute = deliveryHours[dayOfWeek].open.m;
+			const closeHour = deliveryHours[dayOfWeek].close.h;
+			const closeMinute = deliveryHours[dayOfWeek].close.m;
+			console.table({ dayOfMonth, dayOfWeek, openHour, openMinute, closeHour, closeMinute });
+			deliverFrom = moment({ d: dayOfMonth, h: openHour, m: openMinute });
+			deliverTo = moment({ d: dayOfMonth, h: closeHour, m: closeMinute });
 			return { deliverFrom, deliverTo, isValid: deliverTo.isValid() && deliverFrom.isValid() };
 		}
 	}
 	return { deliverFrom: null, deliverTo: null, isValid: false };
 }
 
-async function createNewJob(order, user) {
+async function generatePayload(order, user) {
 	try {
 		console.log('************************************');
 		console.log(order);
@@ -70,10 +73,10 @@ async function createNewJob(order, user) {
 		const { formattedAddress, fullAddress } = await geocodeAddress(
 			`${order.shipping_address['address1']} ${order.shipping_address['address2']} ${order.shipping_address['city']} ${order.shipping_address['zip']}`
 		);
-		console.log("Geocoded results")
+		console.log('Geocoded results');
 		console.log(fullAddress);
 		console.table(formattedAddress);
-		const geolocation = user.address.geolocation.toObject()
+		const geolocation = user.address.geolocation.toObject();
 		console.log(geolocation.coordinates);
 		const payload = {
 			pickupAddress: user.fullAddress,
@@ -96,16 +99,20 @@ async function createNewJob(order, user) {
 			parcelWeight: order['total_weight'] / 1000,
 			drops: [
 				{
-					dropoffAddress: `${order.shipping_address['address1']} ${order.shipping_address['city']} ${order.shipping_address['zip']}`,
+					dropoffAddress: `${order.shipping_address['address1']} ${order.shipping_address['address2']} ${order.shipping_address['city']} ${order.shipping_address['zip']}`,
 					dropoffAddressLine1: order.shipping_address['address1'],
 					dropoffAddressLine2: order.shipping_address['address2'],
-					dropoffCity: order.shipping_address['city'] ? order.shipping_address['city'] : formattedAddress.city,
-					dropoffPostcode: order.shipping_address['zip'],
+					dropoffCity: order.shipping_address['city']
+						? order.shipping_address['city']
+						: formattedAddress.city,
+					dropoffPostcode: order.shipping_address['zip']
+						? order.shipping_address['zip']
+						: formattedAddress.postcode,
 					dropoffLongitude: formattedAddress.longitude,
 					dropoffLatitude: formattedAddress.latitude,
 					dropoffPhoneNumber: order['shipping_lines'][0].phone,
 					dropoffEmailAddress: order.email ? order.email : order.customer.email,
-					dropoffBusinessName: order.shipping_address.company ? order.shipping_address.company : "",
+					dropoffBusinessName: order.shipping_address.company ? order.shipping_address.company : '',
 					dropoffFirstName: order.shipping_address.first_name,
 					dropoffLastName: order.shipping_address.last_name,
 					dropoffInstructions: order.customer['note'] ? order.customer['note'] : '',
@@ -138,123 +145,7 @@ async function createNewJob(order, user) {
 		console.log('Payload');
 		console.log(payload);
 		console.log('-----------------------------------------------------------------');
-		let commissionCharge = false;
-		let paymentIntent;
-		const clientRefNumber = genJobReference();
-		const { _id: clientId, selectionStrategy, deliveryHours } = user;
-		// get specifications for the vehicle
-		let vehicleSpecs = getVehicleSpecs(payload.vehicleType);
-		console.log('=====================================');
-		console.log('VEHICLE SPECS');
-		console.log(vehicleSpecs);
-		console.log('=====================================');
-		// calculate job distance
-		const jobDistance = await calculateJobDistance(
-			payload.pickupAddress,
-			payload.drops[0].dropoffAddress,
-			vehicleSpecs.travelMode
-		);
-		// check delivery hours
-		let canDeliver = checkPickupHours(payload.packagePickupStartTime, deliveryHours);
-		if (!canDeliver) {
-			const { nextDayPickup, nextDayDropoff } = setNextDayDeliveryTime(payload.packagePickupStartTime, deliveryHours);
-			payload.packageDeliveryType = 'NEXT_DAY';
-			payload.packagePickupStartTime = nextDayPickup;
-			payload.drops[0].packageDropoffEndTime = nextDayDropoff;
-		}
-		console.log('-----------------------------------------------------------------');
-		console.log(payload.packagePickupStartTime);
-		console.log('-----------------------------------------------------------------');
-		const QUOTES = await getResultantQuotes(payload, vehicleSpecs, jobDistance);
-		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
-		const providerId = bestQuote.providerId;
-		const winnerQuote = bestQuote.id;
-		// check the payment plan and lookup the associated commission fee
-		let { fee, limit } = COMMISSION[user.subscriptionPlan.toUpperCase()];
-		console.log('--------------------------------');
-		console.log('COMMISSION FEE:', fee);
-		// check whether the client number of orders has exceeded the limit
-		const numOrders = await db.Job.where({ clientId: clientId, status: 'COMPLETED' }).countDocuments();
-		console.log('NUM COMPLETED ORDERS:', numOrders);
-		console.log('--------------------------------');
-		// if the order limit is exceeded, mark the job with a commission fee charge
-		if (numOrders >= limit) commissionCharge = true;
-		const {
-			id: spec_id,
-			deliveryFee,
-			pickupAt,
-			delivery
-		} = await providerCreatesJob(
-			providerId.toLowerCase(),
-			clientRefNumber,
-			selectionStrategy,
-			payload,
-			vehicleSpecs
-		);
-		let idempotencyKey = uuidv4();
-		paymentIntent = await stripe.paymentIntents.create(
-			{
-				amount: Math.round(deliveryFee * 100),
-				customer: user.stripeCustomerId,
-				currency: 'GBP',
-				setup_future_usage: 'off_session',
-				payment_method: user.paymentMethodId,
-				payment_method_types: ['card']
-			},
-			{
-				idempotencyKey
-			}
-		);
-		console.log('-------------------------------------------');
-		console.log('Payment Intent Created!', paymentIntent.id);
-		console.log('-------------------------------------------');
-		const paymentIntentId = paymentIntent ? paymentIntent.id : undefined;
-		let job = {
-			createdAt: moment().format(),
-			driverInformation: {
-				name: 'Searching',
-				phone: 'Searching',
-				transport: vehicleSpecs.name
-			},
-			jobSpecification: {
-				id: spec_id,
-				jobReference: clientRefNumber,
-				shopifyId: order.id,
-				orderNumber: orderId.generate(),
-				deliveryType: payload.packageDeliveryType,
-				pickupStartTime: pickupAt,
-				pickupEndTime: payload.packagePickupEndTime,
-				pickupLocation: {
-					fullAddress: payload.pickupAddress,
-					streetAddress: payload.pickupAddressLine1,
-					city: payload.pickupCity,
-					postcode: payload.pickupPostcode,
-					latitude: payload.pickupLatitude,
-					longitude: payload.pickupLongitude,
-					country: 'UK',
-					phoneNumber: payload.pickupPhoneNumber,
-					email: payload.pickupEmailAddress,
-					firstName: payload.pickupFirstName,
-					lastName: payload.pickupLastName,
-					businessName: payload.pickupBusinessName,
-					instructions: payload.pickupInstructions
-				},
-				deliveries: [delivery]
-			},
-			selectedConfiguration: {
-				createdAt: moment().format(),
-				deliveryFee: deliveryFee.toFixed(2),
-				winnerQuote,
-				providerId,
-				quotes: QUOTES
-			},
-			status: STATUS.NEW
-		};
-		// Append the selected provider job to the jobs database
-		const createdJob = await db.Job.create({ ...job, clientId, commissionCharge, paymentIntentId });
-		console.log(createdJob);
-		await sendNewJobEmails(user.team, job);
-		return true;
+		return payload;
 	} catch (err) {
 		await sendEmail({
 			email: 'chipzstar.dev@gmail.com',
@@ -289,7 +180,12 @@ router.post('/', async (req, res) => {
 				console.log('isLocalDelivery:', isLocalDelivery);
 				if (isLocalDelivery) {
 					if (isSubscribed) {
-						createNewJob(req.body, user);
+						generatePayload(req.body, user)
+							.then(payload => {
+								const ids = { shopifyId: req.body.id, woocommerceId: null };
+								createEcommerceJob(payload, ids, user).then(() => console.log("SUCCESS"));
+							})
+							.catch(err => console.error(err));
 						res.status(200).json({
 							success: true,
 							status: 'DELIVERY_JOB_CREATED',

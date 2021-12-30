@@ -26,6 +26,10 @@ const jobSchema = new mongoose.Schema({
 			type: String,
 			default: null
 		},
+		woocommerceId: {
+			type: String,
+			default: null
+		},
 		orderNumber: {
 			type: String,
 			unique: true,

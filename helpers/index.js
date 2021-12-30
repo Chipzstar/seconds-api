@@ -13,7 +13,7 @@ const {
 	VEHICLE_CODES_MAP,
 	DELIVERY_TYPES,
 	VEHICLE_CODES,
-	STATUS
+	STATUS, COMMISSION
 } = require('../constants');
 const { STRATEGIES } = require('../constants/streetStream');
 const { ERROR_CODES: STUART_ERROR_CODES } = require('../constants/stuart');
@@ -22,6 +22,9 @@ const { updateHerokuConfigVar } = require('./heroku');
 const { getStuartAuthToken } = require('./stuart');
 const { authStreetStream } = require('./streetStream');
 const sendEmail = require('../services/email');
+const { v4: uuidv4 } = require('uuid');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const orderId = require('order-id')(process.env.UID_SECRET_KEY);
 
 // google maps api client
 const client = new Client();
@@ -1766,6 +1769,141 @@ function convertWeightToVehicleCode(total_weight) {
 	return { vehicleName, vehicleCode };
 }
 
+async function createEcommerceJob(payload, ecommerceIds, user){
+	try {
+		let commissionCharge = false;
+		let paymentIntent;
+		const clientRefNumber = genJobReference();
+		const { _id: clientId, selectionStrategy, deliveryHours } = user;
+		// get specifications for the vehicle
+		let vehicleSpecs = getVehicleSpecs(payload.vehicleType);
+		console.log('=====================================');
+		console.log('VEHICLE SPECS');
+		console.log(vehicleSpecs);
+		console.log('=====================================');
+		// calculate job distance
+		const jobDistance = await calculateJobDistance(
+			payload.pickupAddress,
+			payload.drops[0].dropoffAddress,
+			vehicleSpecs.travelMode
+		);
+		// check delivery hours
+		let canDeliver = checkPickupHours(payload.packagePickupStartTime, deliveryHours);
+		if (!canDeliver) {
+			const { nextDayPickup, nextDayDropoff } = setNextDayDeliveryTime(
+				payload.packagePickupStartTime,
+				deliveryHours
+			);
+			payload.packageDeliveryType = 'NEXT_DAY';
+			payload.packagePickupStartTime = nextDayPickup;
+			payload.drops[0].packageDropoffEndTime = nextDayDropoff;
+		}
+		console.log('-----------------------------------------------------------------');
+		console.log(payload.packagePickupStartTime);
+		console.log('-----------------------------------------------------------------');
+		const QUOTES = await getResultantQuotes(payload, vehicleSpecs, jobDistance);
+		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
+		const providerId = bestQuote.providerId;
+		const winnerQuote = bestQuote.id;
+		// check the payment plan and lookup the associated commission fee
+		let { fee, limit } = COMMISSION[user.subscriptionPlan.toUpperCase()];
+		console.log('--------------------------------');
+		console.log('COMMISSION FEE:', fee);
+		// check whether the client number of orders has exceeded the limit
+		const numOrders = await db.Job.where({ clientId: clientId, status: 'COMPLETED' }).countDocuments();
+		console.log('NUM COMPLETED ORDERS:', numOrders);
+		console.log('--------------------------------');
+		// if the order limit is exceeded, mark the job with a commission fee charge
+		if (numOrders >= limit) commissionCharge = true;
+		const {
+			id: spec_id,
+			deliveryFee,
+			pickupAt,
+			delivery
+		} = await providerCreatesJob(
+			providerId.toLowerCase(),
+			clientRefNumber,
+			selectionStrategy,
+			payload,
+			vehicleSpecs
+		);
+		let idempotencyKey = uuidv4();
+		paymentIntent = await stripe.paymentIntents.create(
+			{
+				amount: Math.round(deliveryFee * 100),
+				customer: user.stripeCustomerId,
+				currency: 'GBP',
+				setup_future_usage: 'off_session',
+				payment_method: user.paymentMethodId,
+				payment_method_types: ['card']
+			},
+			{
+				idempotencyKey
+			}
+		);
+		console.log('-------------------------------------------');
+		console.log('Payment Intent Created!', paymentIntent.id);
+		console.log('-------------------------------------------');
+		const paymentIntentId = paymentIntent ? paymentIntent.id : undefined;
+		let job = {
+			createdAt: moment().format(),
+			driverInformation: {
+				name: 'Searching',
+				phone: 'Searching',
+				transport: vehicleSpecs.name
+			},
+			jobSpecification: {
+				id: spec_id,
+				jobReference: clientRefNumber,
+				...ecommerceIds,
+				orderNumber: orderId.generate(),
+				deliveryType: payload.packageDeliveryType,
+				pickupStartTime: pickupAt,
+				pickupEndTime: payload.packagePickupEndTime,
+				pickupLocation: {
+					fullAddress: payload.pickupAddress,
+					streetAddress: payload.pickupAddressLine1,
+					city: payload.pickupCity,
+					postcode: payload.pickupPostcode,
+					latitude: payload.pickupLatitude,
+					longitude: payload.pickupLongitude,
+					country: 'UK',
+					phoneNumber: payload.pickupPhoneNumber,
+					email: payload.pickupEmailAddress,
+					firstName: payload.pickupFirstName,
+					lastName: payload.pickupLastName,
+					businessName: payload.pickupBusinessName,
+					instructions: payload.pickupInstructions
+				},
+				deliveries: [delivery]
+			},
+			selectedConfiguration: {
+				createdAt: moment().format(),
+				deliveryFee: deliveryFee.toFixed(2),
+				winnerQuote,
+				providerId,
+				quotes: QUOTES
+			},
+			status: STATUS.NEW
+		};
+		// Append the selected provider job to the jobs database
+		const createdJob = await db.Job.create({ ...job, clientId, commissionCharge, paymentIntentId });
+		console.log(createdJob);
+		await sendNewJobEmails(user.team, job);
+		return true;
+	} catch (err) {
+		await sendEmail({
+			email: 'chipzstar.dev@gmail.com',
+			name: 'Chisom Oguibe',
+			subject: `Failed Woocommerce order #${ecommerceIds.woocommerceId}`,
+			text: `Job could not be created. Reason: ${err.message}`,
+			html: `<p>Job could not be created. Reason: ${err.message}</p>`
+		});
+		console.error(err);
+		return err;
+	}
+}
+
 module.exports = {
 	genJobReference,
 	genOrderReference,
@@ -1783,5 +1921,6 @@ module.exports = {
 	checkMultiDropPrice,
 	cancelOrder,
 	geocodeAddress,
-	convertWeightToVehicleCode
+	convertWeightToVehicleCode,
+	createEcommerceJob
 };
