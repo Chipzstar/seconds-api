@@ -111,9 +111,10 @@ async function createNewJob(order, user) {
 			drops: [
 				{
 					dropoffAddress: fullAddress,
-					dropoffAddressLine1: formattedAddress.street,
-					dropoffCity: formattedAddress.city,
-					dropoffPostcode: formattedAddress.postcode,
+					dropoffAddressLine1: order.shipping_address['address1'],
+					dropoffAddressLine2: order.shipping_address['address2'],
+					dropoffCity: order.shipping_address['city'] ? order.shipping_address['city'] : formattedAddress.city,
+					dropoffPostcode: order.shipping_address['zip'],
 					dropoffLongitude: formattedAddress.longitude,
 					dropoffLatitude: formattedAddress.latitude,
 					dropoffPhoneNumber: order['shipping_lines'][0].phone,
