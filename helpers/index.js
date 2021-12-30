@@ -1723,7 +1723,7 @@ async function geocodeAddress(address) {
 			};
 			let fullAddress = response.results[0].formatted_address;
 			let components = response.results[0].address_components;
-			// console.log(components)
+			console.log(components)
 			components.forEach(({ long_name, types }) => {
 				switch (types[0]) {
 					case 'street_number':
