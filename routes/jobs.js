@@ -402,7 +402,7 @@ router.post('/multi-drop', async (req, res) => {
 				},
 				selectedConfiguration: {
 					createdAt: moment().format(),
-					deliveryFee,
+					deliveryFee: deliveryFee.toFixed(2),
 					winnerQuote: '',
 					providerId,
 					quotes: []

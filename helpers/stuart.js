@@ -218,7 +218,7 @@ async function updateDriverETA(data) {
 				projection: {'driverInformation.location': 1}
 			}
 		);
-		console.log(job);
+		console.log(job.driverInformation.location);
 	} catch (err) {
 		console.error(err);
 		throw err;
