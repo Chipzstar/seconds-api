@@ -4,13 +4,17 @@ const db = require('../models');
 const { DELIVERY_METHODS } = require('../constants/shopify');
 const axios = require('axios');
 const sendEmail = require('../services/email');
+const { convertWeightToVehicleCode, geocodeAddress } = require('../helpers');
 const router = express.Router();
 
 async function createNewJob(order, user) {
 	try {
-		console.log(order.line_items);
+		console.log('************************************');
+		console.log(order);
+		console.log('************************************');
+		const itemsCount = order.line_items.reduce((prev, curr) => prev + curr.quantity, 0)
 		// iterate through each product and record its weight
-		const productWeights = await Promise.all(
+		const weights = await Promise.all(
 			order['line_items'].map(async ({ product_id }) => {
 				const endpoint = `/wp-json/wc/v3/products/${product_id}`;
 				const URL = `${user.woocommerce.domain}${endpoint}`;
@@ -24,11 +28,18 @@ async function createNewJob(order, user) {
 					})
 				).data;
 				console.log(response);
-				return response.weight;
+				return Number(response.weight);
 			})
 		);
-		console.log(productWeights);
-		return true;
+		console.log(weights);
+		const totalWeight = weights.reduce((prev, curr) => prev + curr, 0)
+		const vehicleType = convertWeightToVehicleCode(totalWeight).vehicleCode
+		const packageDescription = order.line_items.map(item => item['name']).join('\n');
+		console.table({totalWeight, vehicleType, packageDescription})
+		// geocode dropoff address
+		const { formattedAddress, fullAddress } = await geocodeAddress(
+			`${order.shipping['address_1']} ${order.shipping['address_2']} ${order.shipping['city']} ${order.shipping['zip']}`
+		);
 	} catch (err) {
 		await sendEmail({
 			email: 'chipzstar.dev@gmail.com',
@@ -50,8 +61,6 @@ router.post('/', async (req, res) => {
 			? req.headers['x-wc-webhook-source'].slice(0, -1)
 			: req.headers['x-wc-webhook-source'];
 		console.table({ topic, domain });
-		console.log(req.body.shipping);
-		console.log(req.body['shipping_lines']);
 		// check that the shop domain belongs to a user
 		const user = await db.User.findOne({ 'woocommerce.domain': domain });
 		console.log('User Found:', !!user);

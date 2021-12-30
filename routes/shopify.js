@@ -12,30 +12,15 @@ const {
 	checkPickupHours,
 	setNextDayDeliveryTime,
 	genOrderReference,
-	sendNewJobEmails, geocodeAddress
+	sendNewJobEmails, geocodeAddress, convertWeightToVehicleCode
 } = require('../helpers');
-const { VEHICLE_CODES_MAP, VEHICLE_CODES, STATUS, COMMISSION, PROVIDERS } = require('../constants');
+const { STATUS, COMMISSION } = require('../constants');
 const moment = require('moment');
 const { DELIVERY_METHODS } = require('../constants/shopify');
 const sendEmail = require('../services/email');
 const { v4: uuidv4 } = require('uuid');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const orderId = require('order-id')(process.env.UID_SECRET_KEY);
-
-function convertWeightToVehicleCode(total_weight) {
-	console.log('Total Weight:', total_weight, 'kg');
-	let vehicleName;
-	let vehicleCode;
-	for (let code of VEHICLE_CODES) {
-		console.log("switching vehicle...")
-		const { name, weight } = VEHICLE_CODES_MAP[code];
-		console.table({code, name, weight})
-		vehicleCode = code;
-		vehicleName = name;
-		if (total_weight < weight) break;
-	}
-	return { vehicleName, vehicleCode };
-}
 
 function validateDeliveryDate(date, time, deliveryHours) {
 	console.table({ date, time });

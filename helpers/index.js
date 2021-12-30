@@ -1751,6 +1751,21 @@ async function geocodeAddress(address) {
 	}
 }
 
+function convertWeightToVehicleCode(total_weight) {
+	console.log('Total Weight:', total_weight, 'kg');
+	let vehicleName;
+	let vehicleCode;
+	for (let code of VEHICLE_CODES) {
+		console.log("switching vehicle...")
+		const { name, weight } = VEHICLE_CODES_MAP[code];
+		console.table({code, name, weight})
+		vehicleCode = code;
+		vehicleName = name;
+		if (total_weight < weight) break;
+	}
+	return { vehicleName, vehicleCode };
+}
+
 module.exports = {
 	genJobReference,
 	genOrderReference,
@@ -1767,5 +1782,6 @@ module.exports = {
 	setNextDayDeliveryTime,
 	checkMultiDropPrice,
 	cancelOrder,
-	geocodeAddress
+	geocodeAddress,
+	convertWeightToVehicleCode
 };
