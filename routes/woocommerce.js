@@ -4,6 +4,15 @@ const db = require('../models');
 const { DELIVERY_METHODS } = require('../constants/shopify');
 const router = express.Router();
 
+async function createNewJob(order, user){
+	try {
+	    console.log(order)
+		return true;
+	} catch (err) {
+	    console.error(err)
+	}
+}
+
 router.post('/', async (req, res) => {
 	try {
 		// filter the request topic and shop domain
@@ -19,16 +28,17 @@ router.post('/', async (req, res) => {
 		console.log('User Found:', !!user);
 		if (user) {
 			if (topic === 'order.created') {
+				console.log('-----------------------------');
+				console.log('ORDER ID:');
+				console.table({ id: req.body.id, orderKey: req.body['order_key'] });
+				console.log('-----------------------------');
 				// CHECK if the incoming delivery is a local delivery
 				const isLocalDelivery = req.body['shipping_lines'][0]['method_title'] === DELIVERY_METHODS.LOCAL;
 				const isSubscribed = !!user.subscriptionId & !!user.subscriptionPlan;
 				console.log('isLocalDelivery:', isLocalDelivery);
 				if (isLocalDelivery) {
 					if (isSubscribed) {
-						console.log('-----------------------------');
-						console.log('ORDER ID:');
-						console.table({ id: req.body.id, orderKey: req.body['order_key'] });
-						console.log('-----------------------------');
+						createNewJob(req.body, user);
 						res.status(200).json({
 							success: true,
 							status: 'ORDER_RECEIVED',
