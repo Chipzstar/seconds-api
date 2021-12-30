@@ -131,7 +131,7 @@ router.post('/', async (req, res) => {
 					if (isSubscribed) {
 						generatePayload(req.body, user).then(payload => {
 							const ids = { shopifyId: null, woocommerceId: req.body['order_key']}
-							createEcommerceJob(payload, ids, user)
+							createEcommerceJob("WooCommerce", req.body['order_key'], payload, ids, user)
 						}).catch(err => console.error(err));
 						res.status(200).json({
 							success: true,

@@ -3,27 +3,14 @@ const express = require('express');
 const db = require('../models');
 const router = express.Router();
 const {
-	genJobReference,
-	getResultantQuotes,
-	chooseBestProvider,
-	providerCreatesJob,
-	getVehicleSpecs,
-	calculateJobDistance,
-	checkPickupHours,
-	setNextDayDeliveryTime,
 	genOrderReference,
-	sendNewJobEmails,
 	geocodeAddress,
 	convertWeightToVehicleCode,
 	createEcommerceJob
 } = require('../helpers');
-const { STATUS, COMMISSION } = require('../constants');
 const moment = require('moment');
 const { DELIVERY_METHODS } = require('../constants/shopify');
 const sendEmail = require('../services/email');
-const { v4: uuidv4 } = require('uuid');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const orderId = require('order-id')(process.env.UID_SECRET_KEY);
 
 function validateDeliveryDate(date, time, deliveryHours) {
 	console.table({ date, time });
@@ -183,7 +170,7 @@ router.post('/', async (req, res) => {
 						generatePayload(req.body, user)
 							.then(payload => {
 								const ids = { shopifyId: req.body.id, woocommerceId: null };
-								createEcommerceJob(payload, ids, user).then(() => console.log("SUCCESS"));
+								createEcommerceJob("Shopify", req.body.id, payload, ids, user).then(() => console.log("SUCCESS"));
 							})
 							.catch(err => console.error(err));
 						res.status(200).json({

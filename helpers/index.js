@@ -1769,7 +1769,7 @@ function convertWeightToVehicleCode(total_weight) {
 	return { vehicleName, vehicleCode };
 }
 
-async function createEcommerceJob(payload, ecommerceIds, user){
+async function createEcommerceJob(type, id, payload, ecommerceIds, user){
 	try {
 		let commissionCharge = false;
 		let paymentIntent;
@@ -1895,7 +1895,7 @@ async function createEcommerceJob(payload, ecommerceIds, user){
 		await sendEmail({
 			email: 'chipzstar.dev@gmail.com',
 			name: 'Chisom Oguibe',
-			subject: `Failed Woocommerce order #${ecommerceIds.woocommerceId}`,
+			subject: `Failed ${type} order #${id}`,
 			text: `Job could not be created. Reason: ${err.message}`,
 			html: `<p>Job could not be created. Reason: ${err.message}</p>`
 		});
