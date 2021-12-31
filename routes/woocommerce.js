@@ -14,9 +14,9 @@ async function generatePayload(order, user) {
 		console.log(order);
 		console.log('************************************');
 		const itemsCount = order.line_items.reduce((prev, curr) => prev + curr.quantity, 0)
-		// iterate through each product and record its weight
+		// iterate through each product and record its weight multiplied by the quantity
 		const weights = await Promise.all(
-			order['line_items'].map(async ({ product_id }) => {
+			order['line_items'].map(async ({ product_id, quantity }) => {
 				const endpoint = `/wp-json/wc/v3/products/${product_id}`;
 				const URL = `${user.woocommerce.domain}${endpoint}`;
 				console.log(URL);
@@ -29,7 +29,7 @@ async function generatePayload(order, user) {
 					})
 				).data;
 				console.log(response);
-				return Number(response.weight);
+				return Number(response.weight) * Number(quantity);
 			})
 		);
 		console.log(weights);
@@ -45,7 +45,6 @@ async function generatePayload(order, user) {
 		console.log(fullAddress);
 		console.table(formattedAddress);
 		const geolocation = user.address.geolocation.toObject();
-		console.log(geolocation.coordinates);
 		const payload = {
 			pickupAddress: user.fullAddress,
 			pickupAddressLine1: user.address['street'],

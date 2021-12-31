@@ -129,10 +129,8 @@ async function updateJob(data) {
 async function updateDelivery(data) {
 	try {
 		const { status: deliveryStatus, id, clientReference, etaToOrigin, etaToDestination } = data;
-		const deliveryId = id.toString();
-		console.table({ deliveryStatus, deliveryId, clientReference, etaToOrigin, etaToDestination });
 		const job = await db.Job.findOneAndUpdate(
-			{ 'jobSpecification.deliveries.id': deliveryId },
+			{ 'jobSpecification.deliveries.id': id.toString() },
 			{
 				$set: {
 					status: translateStuartStatus(deliveryStatus),

@@ -64,7 +64,6 @@ async function generatePayload(order, user) {
 		console.log(fullAddress);
 		console.table(formattedAddress);
 		const geolocation = user.address.geolocation.toObject();
-		console.log(geolocation.coordinates);
 		const payload = {
 			pickupAddress: user.fullAddress,
 			pickupAddressLine1: user.address['street'],
