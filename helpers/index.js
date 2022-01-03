@@ -342,8 +342,8 @@ async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance) {
 			let stuartQuote = await getStuartQuote(genJobReference(), requestBody, vehicleSpecs);
 			QUOTES.push(stuartQuote);
 		}
-		//let gophrQuote = await getGophrQuote(requestBody, vehicleSpecs);
-		//QUOTES.push(gophrQuote);
+		let gophrQuote = await getGophrQuote(requestBody, vehicleSpecs);
+		QUOTES.push(gophrQuote);
 		let streetStreamQuote = await getStreetStreamQuote(requestBody, vehicleSpecs);
 		if (streetStreamQuote) QUOTES.push(streetStreamQuote);
 		if (vehicleSpecs.ecofleetVehicle) {
