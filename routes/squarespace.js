@@ -22,9 +22,19 @@ async function refreshSquarespaceToken(refreshToken) {
 		const { access_token, access_token_expires_at, refresh_token, refresh_token_expires_at } = (
 			await axios.post(URL, payload, { headers: { Authorization: `Basic ${token}` } })
 		).data;
-		return { access_token, access_token_expires_at, refresh_token, refresh_token_expires_at }
+		db.User.findOneAndUpdate(
+			{ 'squarespace.refreshToken': refreshToken },
+			{
+				'squarespace.accessToken': access_token,
+				'squarespace.refreshToken': refresh_token,
+				'squarespace.accessTokenExpireTime' : access_token_expires_at,
+				'squarespace.refreshTokenExpireTime' : refresh_token_expires_at
+			}
+		).then(() => console.log("Squarespace credentials updated!"));
+		return { access_token, access_token_expires_at, refresh_token, refresh_token_expires_at };
 	} catch (err) {
 		console.error(err);
+		throw err
 	}
 }
 
@@ -42,7 +52,7 @@ squarespaceAxios.interceptors.response.use(
 			return refreshSquarespaceToken(error.config['RefreshToken'])
 				.then(({ refresh_token, access_token }) => {
 					error.config.headers['Authorization'] = `Bearer ${access_token}`;
-					error.config.headers['RefreshToken'] = refresh_token
+					error.config.headers['RefreshToken'] = refresh_token;
 					return squarespaceAxios.request(error.config);
 				})
 				.catch(err => Promise.reject(err));
