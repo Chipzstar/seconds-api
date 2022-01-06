@@ -7,18 +7,64 @@ const sendEmail = require('../services/email');
 const { convertWeightToVehicleCode, geocodeAddress, genOrderReference, createEcommerceJob } = require('../helpers');
 const moment = require('moment');
 const router = express.Router();
+const squarespaceAxios = axios.create();
 
-async function generatePayload(order, user){
+async function refreshSquarespaceToken(refreshToken) {
 	try {
-		// console.log('************************************');
-		// console.log(order);
-		// console.log('************************************');
-		const itemsCount = order['lineItems'].reduce((prev, curr) => prev + curr.quantity, 0)
+		const URL = 'https://login.squarespace.com/api/1/login/oauth/provider/tokens';
+		const payload = {
+			grant_type: 'refresh_token',
+			refresh_token: refreshToken
+		};
+		const token = Buffer.from(`${process.env.SQUARESPACE_CLIENT_ID}:${process.env.SQUARESPACE_SECRET}`).toString(
+			'base64'
+		);
+		const { access_token, access_token_expires_at, refresh_token, refresh_token_expires_at } = (
+			await axios.post(URL, payload, { headers: { Authorization: `Basic ${token}` } })
+		).data;
+		return { access_token, access_token_expires_at, refresh_token, refresh_token_expires_at }
+	} catch (err) {
+		console.error(err);
+	}
+}
+
+squarespaceAxios.interceptors.response.use(
+	response => {
+		return response;
+	},
+	error => {
+		console.log(error.response.data);
+		if (
+			error.response &&
+			error.response.status === 401 &&
+			error.response.data.message === 'You are not authorized to do that.'
+		) {
+			return refreshSquarespaceToken(error.config['RefreshToken'])
+				.then(({ refresh_token, access_token }) => {
+					error.config.headers['Authorization'] = `Bearer ${access_token}`;
+					error.config.headers['RefreshToken'] = refresh_token
+					return squarespaceAxios.request(error.config);
+				})
+				.catch(err => Promise.reject(err));
+		}
+		return Promise.reject(error);
+	}
+);
+
+async function generatePayload(order, user) {
+	try {
+		console.log('************************************');
+		console.log(order);
+		console.log('************************************');
+		const itemsCount = order['lineItems'].reduce((prev, curr) => prev + curr.quantity, 0);
 		// iterate through each product and record its weight multiplied by the quantity
-		const totalWeight = order['lineItems'].reduce((prev, curr) => prev + Number(curr.weight) * Number(curr.quantity), 0);
-		const vehicleType = convertWeightToVehicleCode(totalWeight).vehicleCode
+		const totalWeight = order['lineItems'].reduce(
+			(prev, curr) => prev + Number(curr.weight) * Number(curr.quantity),
+			0
+		);
+		const vehicleType = convertWeightToVehicleCode(totalWeight).vehicleCode;
 		const packageDescription = order['lineItems'].map(item => item['productName']).join('\n');
-		console.table({totalWeight, vehicleType, packageDescription})
+		console.table({ totalWeight, vehicleType, packageDescription });
 		// geocode dropoff address
 		const { formattedAddress, fullAddress } = await geocodeAddress(
 			`${order.shippingAddress['address1']} ${order.shippingAddress['address2']} ${order.shippingAddress['city']} ${order.shippingAddress['postalCode']}`
@@ -51,14 +97,14 @@ async function generatePayload(order, user){
 					dropoffAddress: `${order.shippingAddress['address1']} ${order.shippingAddress['address2']} ${order.shippingAddress['city']} ${order.shippingAddress['postalCode']}`,
 					dropoffAddressLine1: order.shippingAddress['address1'],
 					dropoffAddressLine2: order.shippingAddress['address2'],
-					dropoffCity: order.shippingAddress['city']
-						? order.shippingAddress['city']
-						: formattedAddress.city,
-					dropoffPostcode: order.shippingAddress['postalCode'] ? order.shippingAddress['postalCode'] : formattedAddress.postcode ,
+					dropoffCity: order.shippingAddress['city'] ? order.shippingAddress['city'] : formattedAddress.city,
+					dropoffPostcode: order.shippingAddress['postalCode']
+						? order.shippingAddress['postalCode']
+						: formattedAddress.postcode,
 					dropoffLongitude: formattedAddress.longitude,
 					dropoffLatitude: formattedAddress.latitude,
 					dropoffPhoneNumber: order.shippingAddress['phone'],
-					dropoffEmailAddress: order.customerEmail ? order.customerEmail : "",
+					dropoffEmailAddress: order.customerEmail ? order.customerEmail : '',
 					dropoffBusinessName: order.shippingAddress.company ? order.shippingAddress.company : '',
 					dropoffFirstName: order.shippingAddress.first_name,
 					dropoffLastName: order.shippingAddress.last_name,
@@ -96,14 +142,20 @@ router.post('/', async (req, res) => {
 		const user = await db.User.findOne({ 'squarespace.siteId': websiteId });
 		console.log('User Found:', !!user);
 		if (user) {
-			console.log(data)
+			console.log(data);
 			if (topic === 'order.create') {
 				console.log('-----------------------------');
 				console.log('ORDER ID:', data['orderId']);
 				// retrieve full order information
-				let URL = "https://api.squarespace.com/1.0/commerce/orders/61d706a024f21c6f666ba1de"
-				const order = (await axios.get(URL, { headers: { Authorization: `Bearer ${user.squarespace.accessToken}`}})).data
-				console.log(order)
+				let URL = `https://api.squarespace.com/1.0/commerce/orders/${data['orderId']}`;
+				const order = (
+					await squarespaceAxios.get(URL, {
+						headers: {
+							Authorization: `Bearer ${user.squarespace.accessToken}`,
+							RefreshToken: user.squarespace.refreshToken
+						}
+					})
+				).data;
 				console.log('-----------------------------');
 				// CHECK if the incoming delivery is a local delivery
 				const isLocalDelivery = order['shippingLines'][0]['method'] === DELIVERY_METHODS.LOCAL;
@@ -111,10 +163,12 @@ router.post('/', async (req, res) => {
 				console.log('isLocalDelivery:', isLocalDelivery);
 				if (isLocalDelivery) {
 					if (isSubscribed) {
-						generatePayload(order, user).then(payload => {
-							const ids = { shopifyId: null, woocommerceId: null, squarespaceId: data['orderId']}
-							createEcommerceJob("Squarespace", data['orderId'], payload, ids, user)
-						}).catch(err => console.error(err));
+						generatePayload(order, user)
+							.then(payload => {
+								const ids = { shopifyId: null, woocommerceId: null, squarespaceId: data['orderId'] };
+								createEcommerceJob('Squarespace', data['orderId'], payload, ids, user);
+							})
+							.catch(err => console.error(err));
 						res.status(200).json({
 							success: true,
 							status: 'ORDER_RECEIVED',
