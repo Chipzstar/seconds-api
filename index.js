@@ -12,6 +12,7 @@ const quoteRoutes = require('./routes/quotes');
 const shopifyRoutes = require('./routes/shopify');
 const squareRoutes = require('./routes/square');
 const woocommerceRoutes = require('./routes/woocommerce');
+const squarespaceRoutes = require('./routes/squarespace');
 const stuartRoutes = require('./routes/stuart');
 const gophrRoutes = require('./routes/gophr');
 const streetStreamRoutes = require('./routes/streetStream');
@@ -71,6 +72,7 @@ app.use('/api/v1/street-stream', streetStreamRoutes);
 app.use('/api/v1/shopify', shopifyRoutes);
 app.use('/api/v1/square', squareRoutes);
 app.use('/api/v1/woocommerce', woocommerceRoutes);
+app.use('/api/v1/squarespace', squarespaceRoutes);
 
 // EMAIL
 app.post('/test/mail', async (req, res) => {
