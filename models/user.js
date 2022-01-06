@@ -83,6 +83,15 @@ const userSchema = new mongoose.Schema({
 		domain: String,
 		shopName: String
 	},
+	squarespace: {
+		accessToken: String,
+		refreshToken: String,
+		secretKey: String,
+		state: String,
+		siteId: String,
+		domain: String,
+		storeName: String
+	},
 	createdAt: {
 		type: Date,
 		default: Date.now()
@@ -208,7 +217,6 @@ const userSchema = new mongoose.Schema({
 			}
 		}
 	},
-	jobs: [{ type: Schema.Types.ObjectId, ref: 'Job' }],
 	subscriptionItems: {
 		standardMonthly: '',
 		standardCommission: '',
