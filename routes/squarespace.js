@@ -34,7 +34,6 @@ async function refreshSquarespaceToken(refreshToken) {
 		).then(() => console.log("Squarespace credentials updated!"));
 		return { access_token, access_token_expires_at, refresh_token, refresh_token_expires_at };
 	} catch (err) {
-		console.error(err);
 		throw err
 	}
 }
@@ -44,7 +43,8 @@ squarespaceAxios.interceptors.response.use(
 		return response;
 	},
 	error => {
-		console.log(error.response.data);
+		console.log("CONFIG", error.config)
+		console.log("DATA", error.response.data);
 		if (
 			error.response &&
 			error.response.status === 401 &&
@@ -153,7 +153,6 @@ router.post('/', async (req, res) => {
 		const user = await db.User.findOne({ 'squarespace.siteId': websiteId });
 		console.log('User Found:', !!user);
 		if (user) {
-			console.log(data);
 			if (topic === 'order.create') {
 				console.log('-----------------------------');
 				console.log('ORDER ID:', data['orderId']);
