@@ -58,11 +58,11 @@ async function generatePayload(order, user){
 					dropoffLongitude: formattedAddress.longitude,
 					dropoffLatitude: formattedAddress.latitude,
 					dropoffPhoneNumber: order.shippingAddress['phone'],
-					dropoffEmailAddress: order.billing.email ? order.billing.email : "",
+					dropoffEmailAddress: order.customerEmail ? order.customerEmail : "",
 					dropoffBusinessName: order.shippingAddress.company ? order.shippingAddress.company : '',
 					dropoffFirstName: order.shippingAddress.first_name,
 					dropoffLastName: order.shippingAddress.last_name,
-					dropoffInstructions: order['customer_note'] ? order['customer_note'] : '',
+					dropoffInstructions: order['internalNotes'] ? order['internalNotes'] : '',
 					packageDropoffEndTime: moment().add(200, 'minutes').format(),
 					packageDescription,
 					reference: genOrderReference()
@@ -78,7 +78,7 @@ async function generatePayload(order, user){
 		await sendEmail({
 			email: 'chipzstar.dev@gmail.com',
 			name: 'Chisom Oguibe',
-			subject: `Failed Woocommerce order #${order['order_key']}`,
+			subject: `Failed Squarespace order #${order.id}`,
 			text: `Job could not be created. Reason: ${err.message}`,
 			html: `<p>Job could not be created. Reason: ${err.message}</p>`
 		});
