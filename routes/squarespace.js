@@ -10,16 +10,17 @@ const router = express.Router();
 
 router.post('/', async (req, res) => {
 	try {
+		console.log(req.body);
 		// filter the request topic and shop domain
-		const topic = req.headers['x-wc-webhook-topic'];
+		/*const topic = req.headers['x-wc-webhook-topic'];
 		const domain = req.headers['x-wc-webhook-source'].endsWith('/')
 			? req.headers['x-wc-webhook-source'].slice(0, -1)
 			: req.headers['x-wc-webhook-source'];
-		console.table({ topic, domain });
+		console.table({ topic, domain });*/
 		// check that the shop domain belongs to a user
-		const user = await db.User.findOne({ 'woocommerce.domain': domain });
-		console.log('User Found:', !!user);
-		if (user) {
+		/*const user = await db.User.findOne({ 'woocommerce.domain': domain });
+		console.log('User Found:', !!user);*/
+		/*if (user) {
 			if (topic === 'order.created') {
 				console.log('-----------------------------');
 				console.log('ORDER ID:');
@@ -64,13 +65,12 @@ router.post('/', async (req, res) => {
 					message: `Webhook topic ${topic} is not recognised`
 				});
 			}
-		} else {
-			res.status(200).json({
-				success: false,
-				status: 'USER_NOT_FOUND',
-				message: `Failed to find a user with square shop ${domain}`
-			});
-		}
+		} else {*/
+		res.status(200).json({
+			success: false,
+			status: 'USER_NOT_FOUND',
+			message: `Failed to find a user with square shop`
+		});
 	} catch (err) {
 		console.error(err);
 		res.status(200).json({
