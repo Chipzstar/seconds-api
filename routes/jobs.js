@@ -475,33 +475,6 @@ router.get('/:job_id', async (req, res) => {
 	}
 });
 
-router.post('/:job_id', async (req, res) => {
-	const { status } = req.body;
-	const { job_id } = req.params;
-	try {
-		console.log(req.body);
-		if (!Object.keys(req.body).length) {
-			return res.status(400).json({
-				code: 400,
-				description: 'Your payload has no properties to update the job',
-				message: 'Missing Payload!'
-			});
-		}
-		await db.Job.findByIdAndUpdate(job_id, { status: status }, { new: true });
-		let jobs = await db.Job.find({}, {}, { new: true });
-		return res.status(200).json({
-			updatedJobs: jobs,
-			message: 'Job status updated!'
-		});
-	} catch (e) {
-		return res.status(404).json({
-			code: 404,
-			description: `No job found with ID: ${job_id}`,
-			message: 'Not Found'
-		});
-	}
-});
-
 /**
  * Update Job - The API endpoint for updating details of a delivery job
  * @param req - request object
