@@ -8,17 +8,88 @@ const { convertWeightToVehicleCode, geocodeAddress, genOrderReference, createEco
 const moment = require('moment');
 const router = express.Router();
 
-async function generatePayload(){
+async function generatePayload(order, user){
 	try {
-	    return true
+		// console.log('************************************');
+		// console.log(order);
+		// console.log('************************************');
+		const itemsCount = order['lineItems'].reduce((prev, curr) => prev + curr.quantity, 0)
+		// iterate through each product and record its weight multiplied by the quantity
+		const totalWeight = order['lineItems'].reduce((prev, curr) => prev + Number(curr.weight) * Number(curr.quantity), 0);
+		const vehicleType = convertWeightToVehicleCode(totalWeight).vehicleCode
+		const packageDescription = order.line_items.map(item => item['name']).join('\n');
+		console.table({totalWeight, vehicleType, packageDescription})
+		// geocode dropoff address
+		const { formattedAddress, fullAddress } = await geocodeAddress(
+			`${order.shippingAddress['address1']} ${order.shippingAddress['address2']} ${order.shippingAddress['city']} ${order.shippingAddress['postalCode']}`
+		);
+		console.log('Geocoded results');
+		console.log(fullAddress);
+		console.table(formattedAddress);
+		const geolocation = user.address.geolocation.toObject();
+		const payload = {
+			pickupAddress: user.fullAddress,
+			pickupAddressLine1: user.address['street'],
+			pickupCity: user.address['city'],
+			pickupPostcode: user.address['postcode'],
+			pickupLongitude: geolocation.coordinates[0],
+			pickupLatitude: geolocation.coordinates[1],
+			pickupPhoneNumber: user.phone,
+			pickupEmailAddress: user.email,
+			pickupBusinessName: user.company,
+			pickupFirstName: user.firstname,
+			pickupLastName: user.lastname,
+			pickupInstructions: '',
+			packagePickupStartTime: moment().add(45, 'minutes').format(),
+			packagePickupEndTime: undefined,
+			packageDeliveryType: 'ON_DEMAND',
+			itemsCount,
+			vehicleType,
+			parcelWeight: totalWeight,
+			drops: [
+				{
+					dropoffAddress: `${order.shippingAddress['address1']} ${order.shippingAddress['address2']} ${order.shippingAddress['city']} ${order.shippingAddress['postalCode']}`,
+					dropoffAddressLine1: order.shippingAddress['address1'],
+					dropoffAddressLine2: order.shippingAddress['address2'],
+					dropoffCity: order.shippingAddress['city']
+						? order.shippingAddress['city']
+						: formattedAddress.city,
+					dropoffPostcode: order.shippingAddress['postalCode'] ? order.shippingAddress['postalCode'] : formattedAddress.postcode ,
+					dropoffLongitude: formattedAddress.longitude,
+					dropoffLatitude: formattedAddress.latitude,
+					dropoffPhoneNumber: order.shippingAddress['phone'],
+					dropoffEmailAddress: order.billing.email ? order.billing.email : "",
+					dropoffBusinessName: order.shippingAddress.company ? order.shippingAddress.company : '',
+					dropoffFirstName: order.shippingAddress.first_name,
+					dropoffLastName: order.shippingAddress.last_name,
+					dropoffInstructions: order['customer_note'] ? order['customer_note'] : '',
+					packageDropoffEndTime: moment().add(200, 'minutes').format(),
+					packageDescription,
+					reference: genOrderReference()
+				}
+			]
+		};
+		console.log('-----------------------------------------------------------------');
+		console.log('Payload');
+		console.log(payload);
+		console.log('-----------------------------------------------------------------');
+		return payload;
 	} catch (err) {
-	    console.error(err)
+		await sendEmail({
+			email: 'chipzstar.dev@gmail.com',
+			name: 'Chisom Oguibe',
+			subject: `Failed Woocommerce order #${order['order_key']}`,
+			text: `Job could not be created. Reason: ${err.message}`,
+			html: `<p>Job could not be created. Reason: ${err.message}</p>`
+		});
+		console.error(err);
+		return err;
 	}
 }
 
 router.post('/', async (req, res) => {
 	try {
-		// filter the request topic and shop site Id
+		// filter the request topic and shop siteId
 		const { topic, websiteId, data } = req.body;
 		console.table({ topic, websiteId });
 		// check that the shop domain belongs to a user
@@ -28,18 +99,21 @@ router.post('/', async (req, res) => {
 			console.log(data)
 			if (topic === 'order.create') {
 				console.log('-----------------------------');
-				console.log('ORDER ID:');
-				console.log(data['orderId'])
+				console.log('ORDER ID:', data['orderId']);
+				// retrieve full order information
+				let URL = "https://api.squarespace.com/1.0/commerce/orders/61d706a024f21c6f666ba1de"
+				const order = (await axios.get(URL, { headers: { Authorization: `Bearer ${user.squarespace.accessToken}`}})).data
+				console.log(order)
 				console.log('-----------------------------');
 				// CHECK if the incoming delivery is a local delivery
-				const isLocalDelivery = req.body['shipping_lines'][0]['method_title'] === DELIVERY_METHODS.LOCAL;
+				const isLocalDelivery = order['shippingAddressLines'][0]['method'] === DELIVERY_METHODS.LOCAL;
 				const isSubscribed = !!user.subscriptionId & !!user.subscriptionPlan;
 				console.log('isLocalDelivery:', isLocalDelivery);
 				if (isLocalDelivery) {
 					if (isSubscribed) {
-						generatePayload(req.body, user).then(payload => {
-							const ids = { shopifyId: null, woocommerceId: req.body['order_key']}
-							createEcommerceJob("WooCommerce", req.body['order_key'], payload, ids, user)
+						generatePayload(order, user).then(payload => {
+							const ids = { shopifyId: null, woocommerceId: null, squarespaceId: data['orderId']}
+							createEcommerceJob("Squarespace", data['orderId'], payload, ids, user)
 						}).catch(err => console.error(err));
 						res.status(200).json({
 							success: true,

@@ -63,16 +63,16 @@ async function generatePayload(order, user) {
 			packageDeliveryType: 'ON_DEMAND',
 			itemsCount,
 			vehicleType,
-			parcelWeight: order['total_weight'] / 1000,
+			parcelWeight: totalWeight,
 			drops: [
 				{
-					dropoffAddress: `${order.shipping['address_1']} ${order.shipping['address_2']} ${order.shipping['city']} ${order.shipping['zip']}`,
+					dropoffAddress: `${order.shipping['address_1']} ${order.shipping['address_2']} ${order.shipping['city']} ${order.shipping['postcode']}`,
 					dropoffAddressLine1: order.shipping['address_1'],
 					dropoffAddressLine2: order.shipping['address_2'],
 					dropoffCity: order.shipping['city']
 						? order.shipping['city']
 						: formattedAddress.city,
-					dropoffPostcode: order.shipping['zip'] ? order.shipping['zip'] : formattedAddress.postcode ,
+					dropoffPostcode: order.shipping['postcode'] ? order.shipping['postcode'] : formattedAddress.postcode ,
 					dropoffLongitude: formattedAddress.longitude,
 					dropoffLatitude: formattedAddress.latitude,
 					dropoffPhoneNumber: order.shipping['phone'],
