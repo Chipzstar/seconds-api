@@ -49,10 +49,10 @@ squarespaceAxios.interceptors.response.use(
 			error.response.status === 401 &&
 			error.response.data.message === 'You are not authorized to do that.'
 		) {
-			return refreshSquarespaceToken(error.config['RefreshToken'])
+			return refreshSquarespaceToken(error.config['X-Refresh-Token'])
 				.then(({ refresh_token, access_token }) => {
 					error.config.headers['Authorization'] = `Bearer ${access_token}`;
-					error.config.headers['RefreshToken'] = refresh_token;
+					error.config.headers['X-Refresh-Token'] = refresh_token;
 					return squarespaceAxios.request(error.config);
 				})
 				.catch(err => Promise.reject(err));
@@ -162,7 +162,7 @@ router.post('/', async (req, res) => {
 					await squarespaceAxios.get(URL, {
 						headers: {
 							Authorization: `Bearer ${user.squarespace.accessToken}`,
-							RefreshToken: user.squarespace.refreshToken
+							"X-Refresh-Token": user.squarespace.refreshToken
 						}
 					})
 				).data;
@@ -194,6 +194,7 @@ router.post('/', async (req, res) => {
 						});
 					}
 				} else {
+					console.error("Non Local Delivery")
 					res.status(200).json({
 						success: false,
 						status: 'NON_LOCAL_DELIVERY',
@@ -201,7 +202,7 @@ router.post('/', async (req, res) => {
 					});
 				}
 			} else {
-				console.log('Unknown topic');
+				console.error('Unknown topic');
 				res.status(200).json({
 					success: false,
 					status: 'UNKNOWN_TOPIC',
@@ -209,6 +210,7 @@ router.post('/', async (req, res) => {
 				});
 			}
 		} else {
+			console.error("User not found")
 			res.status(200).json({
 				success: false,
 				status: 'USER_NOT_FOUND',
