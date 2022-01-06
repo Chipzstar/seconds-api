@@ -8,24 +8,28 @@ const { convertWeightToVehicleCode, geocodeAddress, genOrderReference, createEco
 const moment = require('moment');
 const router = express.Router();
 
+async function generatePayload(){
+	try {
+	    return true
+	} catch (err) {
+	    console.error(err)
+	}
+}
+
 router.post('/', async (req, res) => {
 	try {
-		console.log(req.headers)
-		console.log(req.body);
-		// filter the request topic and shop domain
-		/*const topic = req.headers['x-wc-webhook-topic'];
-		const domain = req.headers['x-wc-webhook-source'].endsWith('/')
-			? req.headers['x-wc-webhook-source'].slice(0, -1)
-			: req.headers['x-wc-webhook-source'];
-		console.table({ topic, domain });*/
+		// filter the request topic and shop site Id
+		const { topic, websiteId, data } = req.body;
+		console.table({ topic, websiteId });
 		// check that the shop domain belongs to a user
-		/*const user = await db.User.findOne({ 'woocommerce.domain': domain });
-		console.log('User Found:', !!user);*/
-		/*if (user) {
-			if (topic === 'order.created') {
+		const user = await db.User.findOne({ 'squarespace.siteId': websiteId });
+		console.log('User Found:', !!user);
+		if (user) {
+			console.log(data)
+			if (topic === 'order.create') {
 				console.log('-----------------------------');
 				console.log('ORDER ID:');
-				console.table({ id: req.body.id, orderKey: req.body['order_key'] });
+				console.log(data['orderId'])
 				console.log('-----------------------------');
 				// CHECK if the incoming delivery is a local delivery
 				const isLocalDelivery = req.body['shipping_lines'][0]['method_title'] === DELIVERY_METHODS.LOCAL;
@@ -66,12 +70,13 @@ router.post('/', async (req, res) => {
 					message: `Webhook topic ${topic} is not recognised`
 				});
 			}
-		} else {*/
-		res.status(200).json({
-			success: false,
-			status: 'USER_NOT_FOUND',
-			message: `Failed to find a user with square shop`
-		});
+		} else {
+			res.status(200).json({
+				success: false,
+				status: 'USER_NOT_FOUND',
+				message: `Failed to find a user with squarespace siteId ${websiteId}`
+			});
+		}
 	} catch (err) {
 		console.error(err);
 		res.status(200).json({
