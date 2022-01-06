@@ -160,9 +160,11 @@ router.post('/', async (req, res) => {
 				let URL = `https://api.squarespace.com/1.0/commerce/orders/${data['orderId']}`;
 				const order = (
 					await squarespaceAxios.get(URL, {
+						data: {
+							"X-Refresh-Token": user.squarespace.refreshToken
+						},
 						headers: {
 							Authorization: `Bearer ${user.squarespace.accessToken}`,
-							"X-Refresh-Token": user.squarespace.refreshToken
 						}
 					})
 				).data;
