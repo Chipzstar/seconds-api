@@ -50,10 +50,10 @@ squarespaceAxios.interceptors.response.use(
 			error.response.status === 401 &&
 			error.response.data.message === 'You are not authorized to do that.'
 		) {
-			return refreshSquarespaceToken(error.config.data['X-Refresh-Token'])
+			return refreshSquarespaceToken(error.config.headers['X-Refresh-Token'])
 				.then(({ refresh_token, access_token }) => {
 					error.config.headers['Authorization'] = `Bearer ${access_token}`;
-					error.config.data['X-Refresh-Token'] = refresh_token;
+					error.config.headers['X-Refresh-Token'] = refresh_token;
 					return squarespaceAxios.request(error.config);
 				})
 				.catch(err => Promise.reject(err));
@@ -160,11 +160,9 @@ router.post('/', async (req, res) => {
 				let URL = `https://api.squarespace.com/1.0/commerce/orders/${data['orderId']}`;
 				const order = (
 					await squarespaceAxios.get(URL, {
-						data: {
-							"X-Refresh-Token": user.squarespace.refreshToken
-						},
 						headers: {
 							Authorization: `Bearer ${user.squarespace.accessToken}`,
+							"X-Refresh-Token": user.squarespace.refreshToken
 						}
 					})
 				).data;
