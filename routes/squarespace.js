@@ -10,6 +10,7 @@ const router = express.Router();
 
 router.post('/', async (req, res) => {
 	try {
+		console.log(req.headers)
 		console.log(req.body);
 		// filter the request topic and shop domain
 		/*const topic = req.headers['x-wc-webhook-topic'];
