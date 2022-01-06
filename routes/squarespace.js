@@ -117,8 +117,8 @@ async function generatePayload(order, user) {
 					dropoffPhoneNumber: order.shippingAddress['phone'],
 					dropoffEmailAddress: order.customerEmail ? order.customerEmail : '',
 					dropoffBusinessName: order.shippingAddress.company ? order.shippingAddress.company : '',
-					dropoffFirstName: order.shippingAddress.first_name,
-					dropoffLastName: order.shippingAddress.last_name,
+					dropoffFirstName: order.shippingAddress.firstName,
+					dropoffLastName: order.shippingAddress.lastName,
 					dropoffInstructions: order['internalNotes'] ? order['internalNotes'] : '',
 					packageDropoffEndTime: moment().add(200, 'minutes').format(),
 					packageDescription,
@@ -175,7 +175,7 @@ router.post('/', async (req, res) => {
 					if (isSubscribed) {
 						generatePayload(order, user)
 							.then(payload => {
-								const ids = { shopifyId: null, woocommerceId: null, squarespaceId: data['orderId'] };
+								const ids = { squarespaceId: data['orderId'] };
 								createEcommerceJob('Squarespace', data['orderId'], payload, ids, user);
 							})
 							.catch(err => console.error(err));

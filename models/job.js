@@ -30,6 +30,10 @@ const jobSchema = new mongoose.Schema({
 			type: String,
 			default: null
 		},
+		squarespaceId: {
+			type: String,
+			default: null
+		},
 		orderNumber: {
 			type: String,
 			unique: true,
