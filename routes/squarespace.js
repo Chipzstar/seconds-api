@@ -11,6 +11,7 @@ const squarespaceAxios = axios.create();
 
 async function refreshSquarespaceToken(refreshToken) {
 	try {
+		console.log("REFRESH TOKEN", refreshToken)
 		const URL = 'https://login.squarespace.com/api/1/login/oauth/provider/tokens';
 		const payload = {
 			grant_type: 'refresh_token',
@@ -49,10 +50,10 @@ squarespaceAxios.interceptors.response.use(
 			error.response.status === 401 &&
 			error.response.data.message === 'You are not authorized to do that.'
 		) {
-			return refreshSquarespaceToken(error.config['X-Refresh-Token'])
+			return refreshSquarespaceToken(error.config.data['X-Refresh-Token'])
 				.then(({ refresh_token, access_token }) => {
 					error.config.headers['Authorization'] = `Bearer ${access_token}`;
-					error.config.headers['X-Refresh-Token'] = refresh_token;
+					error.config.data['X-Refresh-Token'] = refresh_token;
 					return squarespaceAxios.request(error.config);
 				})
 				.catch(err => Promise.reject(err));
