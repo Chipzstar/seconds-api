@@ -133,5 +133,4 @@ app.post('/test/stripe/confirm-payment', async (req, res) => {
 // starting the server
 app.listen(port, () => {
 	console.log(`listening on port ${port}`);
-	console.log(process.env.HEROKU_APP_NAME)
 });

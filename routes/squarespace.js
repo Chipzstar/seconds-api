@@ -161,7 +161,7 @@ router.post('/', async (req, res) => {
 				const order = (
 					await squarespaceAxios.get(URL, {
 						headers: {
-							Authorization: `Bearer ${user.squarespace.accessToken}`,
+							Authorization: `Bearer ${user.squarespace.secretKey}`,
 							"X-Refresh-Token": user.squarespace.refreshToken
 						}
 					})
