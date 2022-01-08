@@ -115,7 +115,13 @@ function chooseBestProvider(strategy, quotes) {
 	let bestEtaIndex;
 	let bestPrice = Infinity;
 	let bestEta = Infinity;
-	// console.log(quotes);
+	// check that at least 1 quote was generated,
+	// if no quotes then skip the courier optimization and return undefined
+	console.log(quotes.length)
+	if (!quotes.length){
+		console.log("No quotes available")
+		return undefined
+	}
 	quotes.forEach(({ priceExVAT, dropoffEta, providerId }, index) => {
 		// console.log('------------------------');
 		// console.log(providerId);
@@ -190,9 +196,9 @@ function getVehicleSpecs(vehicleCode) {
 	if (VEHICLE_CODES.includes(vehicleCode)) {
 		return VEHICLE_CODES_MAP[vehicleCode];
 	} else {
-		throw new Error(
-			`Vehicle code ${vehicleCode} is not recognized. Please check our list of allowed vehicle codes`
-		);
+		const error = new Error(`Vehicle code ${vehicleCode} is not recognized. Please check our list of allowed vehicle codes`);
+		error.code = 400
+		throw error
 	}
 }
 
@@ -338,15 +344,19 @@ async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance) {
 			console.table(vehicleSpecs);
 		}
 		// check if the current vehicle is supported by Stuart and if the job distance is within the maximum limit
-		if (vehicleSpecs.stuart.packageType) {
+		if (vehicleSpecs.stuart.packageType && process.env.STUART_STATUS === "active") {
 			let stuartQuote = await getStuartQuote(genJobReference(), requestBody, vehicleSpecs);
 			QUOTES.push(stuartQuote);
 		}
-		let gophrQuote = await getGophrQuote(requestBody, vehicleSpecs);
-		QUOTES.push(gophrQuote);
-		let streetStreamQuote = await getStreetStreamQuote(requestBody, vehicleSpecs);
-		if (streetStreamQuote) QUOTES.push(streetStreamQuote);
-		if (vehicleSpecs.ecofleetVehicle) {
+		if (process.env.GOPHR_STATUS === "active") {
+			let gophrQuote = await getGophrQuote(requestBody, vehicleSpecs);
+			QUOTES.push(gophrQuote);
+		}
+		if (process.env.STREET_STREAM_STATUS === "active") {
+			let streetStreamQuote = await getStreetStreamQuote(requestBody, vehicleSpecs);
+			if (streetStreamQuote) QUOTES.push(streetStreamQuote);
+		}
+		if (vehicleSpecs.ecofleetVehicle && process.env.ECOFLEET_STATUS === "active") {
 			let ecoFleetQuote = {
 				...quoteSchema,
 				id: `quote_${nanoid(15)}`,

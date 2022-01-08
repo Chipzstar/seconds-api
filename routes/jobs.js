@@ -144,7 +144,9 @@ router.post('/create', async (req, res) => {
 		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
 		// checks if the fleet provider for the delivery was manually selected or not
 		let providerId, winnerQuote;
-		if (selectedProvider === undefined) {
+		if (!bestQuote){
+			throw new Error('No couriers available at this time. Please try again later!');
+		} else if (selectedProvider === undefined) {
 			providerId = bestQuote.providerId;
 			winnerQuote = bestQuote.id;
 		} else {

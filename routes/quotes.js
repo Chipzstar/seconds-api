@@ -19,8 +19,8 @@ const router = express.Router();
  */
 router.post('/', async (req, res) => {
 	try {
-		console.table(req.body)
-		console.table(req.body.drops[0])
+		console.table(req.body);
+		console.table(req.body.drops[0]);
 		const user = await getClientDetails(req.headers[AUTHORIZATION_KEY]);
 		console.log('Strategy: ', user['selectionStrategy']);
 		// check that the vehicleType is valid and return the vehicle's specifications
@@ -39,21 +39,28 @@ router.post('/', async (req, res) => {
 		}
 		const quotes = await getResultantQuotes(req.body, vehicleSpecs, jobDistance);
 		const bestQuote = chooseBestProvider(user['selectionStrategy'], quotes);
+		if (!bestQuote) {
+			throw new Error('No couriers available at this time. Please try again later!');
+		}
 		return res.status(200).json({
 			quotes,
-			bestQuote,
+			bestQuote
 		});
 	} catch (err) {
-		console.error('ERROR:', err);
-		if (err.message) {
-			return res.status(err.code).json({
-				error: err,
-			});
-		}
-		return res.status(500).json({
-			code: 500,
-			message: 'Unknown error occurred!',
-		});
+		console.log(err);
+		return err.message
+			? res.status(500).json({
+					error: {
+						code: 500,
+						message: err.message
+					}
+			  })
+			: res.status(500).json({
+					error: {
+						code: 500,
+						message: 'Unknown error occurred!'
+					}
+			  });
 	}
 });
 
