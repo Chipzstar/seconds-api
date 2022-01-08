@@ -40,7 +40,9 @@ router.post('/', async (req, res) => {
 		const quotes = await getResultantQuotes(req.body, vehicleSpecs, jobDistance);
 		const bestQuote = chooseBestProvider(user['selectionStrategy'], quotes);
 		if (!bestQuote) {
-			throw new Error('No couriers available at this time. Please try again later!');
+			const error = new Error('No couriers available at this time. Please try again later!');
+			error.status = 500;
+			throw error
 		}
 		return res.status(200).json({
 			quotes,
@@ -49,9 +51,9 @@ router.post('/', async (req, res) => {
 	} catch (err) {
 		console.log(err);
 		return err.message
-			? res.status(500).json({
+			? res.status(err.status).json({
 					error: {
-						code: 500,
+						code: err.status,
 						message: err.message
 					}
 			  })

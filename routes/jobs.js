@@ -144,8 +144,10 @@ router.post('/create', async (req, res) => {
 		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
 		// checks if the fleet provider for the delivery was manually selected or not
 		let providerId, winnerQuote;
-		if (!bestQuote){
-			throw new Error('No couriers available at this time. Please try again later!');
+		if (!bestQuote) {
+			const error = new Error('No couriers available at this time. Please try again later!')
+			error.status = 500
+			throw error
 		} else if (selectedProvider === undefined) {
 			providerId = bestQuote.providerId;
 			winnerQuote = bestQuote.id;
@@ -278,8 +280,10 @@ router.post('/create', async (req, res) => {
 			});
 		}
 		return res.status(500).json({
-			code: 500,
-			message: 'Unknown error occurred!'
+			error: {
+				code: 500,
+				message: 'Unknown error occurred!'
+			}
 		});
 	}
 });

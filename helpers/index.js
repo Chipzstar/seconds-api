@@ -1,3 +1,4 @@
+const express = require('express');
 const axios = require('axios');
 const { Client } = require('@googlemaps/google-maps-services-js');
 const { pickupSchema, dropoffSchema } = require('../schemas/stuart/CreateJob');
@@ -117,7 +118,6 @@ function chooseBestProvider(strategy, quotes) {
 	let bestEta = Infinity;
 	// check that at least 1 quote was generated,
 	// if no quotes then skip the courier optimization and return undefined
-	console.log(quotes.length)
 	if (!quotes.length){
 		console.log("No quotes available")
 		return undefined
@@ -1813,6 +1813,11 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user){
 		console.log('-----------------------------------------------------------------');
 		const QUOTES = await getResultantQuotes(payload, vehicleSpecs, jobDistance);
 		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
+		if (!bestQuote) {
+			const error = new Error('No couriers available at this time. Please try again later!')
+			error.status = 500
+			throw error
+		}
 		const providerId = bestQuote.providerId;
 		const winnerQuote = bestQuote.id;
 		// check the payment plan and lookup the associated commission fee
@@ -1902,6 +1907,7 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user){
 		await sendNewJobEmails(user.team, job);
 		return true;
 	} catch (err) {
+		console.error(err);
 		await sendEmail({
 			email: 'chipzstar.dev@gmail.com',
 			name: 'Chisom Oguibe',
@@ -1909,7 +1915,6 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user){
 			text: `Job could not be created. Reason: ${err.message}`,
 			html: `<p>Job could not be created. Reason: ${err.message}</p>`
 		});
-		console.error(err);
 		return err;
 	}
 }
