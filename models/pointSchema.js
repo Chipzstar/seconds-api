@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-exports.pointSchema = new mongoose.Schema({
+exports.userPointSchema = new mongoose.Schema({
 	type: {
 		type: String,
 		enum: ['Point'],
@@ -12,3 +12,16 @@ exports.pointSchema = new mongoose.Schema({
 		required: true,
 	}
 });
+
+exports.jobPointSchema = new mongoose.Schema({
+	type: {
+		type: String,
+		enum: ['Point'],
+		required: true,
+		default: 'Point'
+	},
+	coordinates: {
+		type: [Number],
+		required: true,
+	}
+}, {_id: false});

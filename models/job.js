@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const deliverySchema = require("./deliveries");
-const { pointSchema } = require('./pointSchema');
+const { jobPointSchema } = require('./pointSchema');
 
 const jobSchema = new mongoose.Schema({
 	clientId: {
@@ -85,7 +85,7 @@ const jobSchema = new mongoose.Schema({
 			default: "Searching"
 		},
 		location: {
-			type: pointSchema
+			type: jobPointSchema
 		}
 	},
 	createdAt: {

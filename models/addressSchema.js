@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const pointSchema = require('./pointSchema');
+const { userPointSchema } = require('./pointSchema');
 
 const addressSchema = new mongoose.Schema({
 	street: {
@@ -19,7 +19,7 @@ const addressSchema = new mongoose.Schema({
 		default: 'GB'
 	},
 	geolocation: {
-		type: pointSchema
+		type: userPointSchema
 	}
 }, {_id: false});
 
