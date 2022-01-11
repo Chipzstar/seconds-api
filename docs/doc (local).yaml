@@ -1,0 +1,962 @@
+openapi: 3.0.0
+info:
+  title: Seconds API
+  version: 1.0.0
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+  contact:
+    name: Seconds Support
+    url: https://useseconds.com
+    email: secondsdelivery@gmail.com
+  termsOfService: https://seconds.notion.site/Terms-of-Use-a0c41b327ae54d118185a11d939ffc0a
+servers:
+  - url: 'https://sandbox.useseconds.com'
+    description: Staging environment
+  - url: 'https://api.useseconds.com'
+    description: Production environment
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-Seconds-Api-Key
+      description: |-
+        After setting up a seconds account, you will be able to generate an api key through our dashboard. When making request to our endpoints. Please attach the field name `X-Seconds-Api-Key` to the request header passing your api key as its value.
+  schemas:
+    DeliveryRequirements:
+      $ref: ../schemas/JobRequirements.json
+    Job:
+      $ref: ../schemas/Job.json
+    UpdateRequirements:
+      $ref: ../schemas/JobUpdateRequirements.json
+    DeletedJob:
+      type: object
+      properties:
+        code:
+          type: integer
+        jobId:
+          type: string
+        cancelled:
+          type: boolean
+    Quote:
+      $ref: ../schemas/Quote.json
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+  parameters:
+    JobId:
+      in: path
+      name: job_id
+      required: true
+      description: The id of the requested delivery job
+      schema:
+        type: string
+        example: '61570d979250d1aaa8daca82'
+  requestBodies:
+    createJobRequest:
+      description: Request body of delivery properties
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DeliveryRequirements'
+          example:
+            pickupAddress: '250 Reede Rd, Dagenham RM10 8EH'
+            pickupAddressLine1: '250 Reede Road'
+            pickupAddressLine2: ''
+            pickupCity: 'Dagenham'
+            pickupPostcode: 'RM10 8EH'
+            pickupPhoneNumber: '+447507210809'
+            pickupEmailAddress: 'chisom.oguibe@googlemail.com'
+            pickupBusinessName: 'Humandroid'
+            pickupFirstName: 'Chisom'
+            pickupLastName: 'Oguibe'
+            pickupInstructions: 'N/A'
+            packageDeliveryType: 'scheduled'
+            packagePickupStartTime: '2021-09-30T15:15:14+0000'
+            packagePickupEndTime: '2021-09-30T15:21:14+0000'
+            packageDescription: 'Xbox One S Console'
+            drops:
+              -
+                dropoffAddress: '35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS'
+                dropoffAddressLine1: '42 Linton Road'
+                dropoffAddressLine2: '35 Forresters Apartments'
+                dropoffCity: 'Barking'
+                dropoffPostcode: 'IG11 8FS'
+                dropoffPhoneNumber: '+447523958055'
+                dropoffEmailAddress: 'olaoladapo7@gmail.com'
+                dropoffBusinessName: 'Seconds'
+                dropoffFirstName: 'Ola'
+                dropoffLastName: 'Oladapo'
+                dropoffInstructions: 'Leave in the front porch, if not available'
+                packageDropoffStartTime: '2021-09-30T15:45:14+0000'
+                packageDropoffEndTime: '2021-09-30T16:00:14+0000'
+            packageSizeX: 10
+            packageSizeY: 10
+            packageSizeZ: 30
+            packageWeight: 20
+            vehicleType: "BIC"
+            itemsCount: 1
+    updateJobRequest:
+      description: Request body of delivery properties
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UpdateRequirements'
+    multiDropJobRequest:
+      description: Request body for multiple dropoffs
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DeliveryRequirements'
+          example:
+            pickupAddress: '250 Reede Rd, Dagenham RM10 8EH'
+            pickupAddressLine1: '250 Reede Road'
+            pickupAddressLine2: ''
+            pickupCity: 'Dagenham'
+            pickupPostcode: 'RM10 8EH'
+            pickupPhoneNumber: '+447507210809'
+            pickupEmailAddress: 'chisom.oguibe@googlemail.com'
+            pickupBusinessName: 'Humandroid'
+            pickupFirstName: 'Chisom'
+            pickupLastName: 'Oguibe'
+            pickupInstructions: 'N/A'
+            packageDeliveryType: 'scheduled'
+            packagePickupStartTime: '2021-09-30T15:15:14+0000'
+            packagePickupEndTime: '2021-09-30T15:21:14+0000'
+            packageDescription: 'Xbox One S Console'
+            drops:
+              - dropoffAddress: '35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS'
+                dropoffAddressLine1: '42 Linton Road'
+                dropoffAddressLine2: '35 Forresters Apartments'
+                dropoffCity: 'Barking'
+                dropoffPostcode: 'IG11 8FS'
+                dropoffPhoneNumber: '+447523958055'
+                dropoffEmailAddress: 'olaoladapo7@gmail.com'
+                dropoffBusinessName: 'Seconds'
+                dropoffFirstName: 'Ola'
+                dropoffLastName: 'Oladapo'
+                dropoffInstructions: 'Leave in the front porch, if not available'
+                packageDropoffStartTime: '2021-09-30T15:45:14+0000'
+                packageDropoffEndTime: '2021-09-30T16:00:14+0000'
+              - dropoffAddress: '22 St Pauls Rd, Barking IG11 7AF'
+                dropoffAddressLine1: '22 St Pauls Rd'
+                dropoffAddressLine2: ''
+                dropoffCity: 'Barking'
+                dropoffPostcode: 'IG11 7AF'
+                dropoffPhoneNumber: '+447523958055'
+                dropoffEmailAddress: 'olaoladapo7@gmail.com'
+                dropoffBusinessName: 'Seconds'
+                dropoffFirstName: 'Ola'
+                dropoffLastName: 'Oladapo'
+                dropoffInstructions: 'Leave in the front porch, if not available'
+                packageDropoffStartTime: '2021-09-30T15:45:14+0000'
+                packageDropoffEndTime: '2021-09-30T16:00:14+0000'
+              - dropoffAddress: '134 Dawson Ave, Barking IG11 9QQ'
+                dropoffAddressLine1: '134 Dawson Ave'
+                dropoffAddressLine2: ''
+                dropoffCity: 'Barking'
+                dropoffPostcode: 'IG11 9QQ'
+                dropoffPhoneNumber: '+447523958055'
+                dropoffEmailAddress: 'olaoladapo7@gmail.com'
+                dropoffBusinessName: 'Seconds'
+                dropoffFirstName: 'Ola'
+                dropoffLastName: 'Oladapo'
+                dropoffInstructions: 'Leave in the front porch, if not available'
+                packageDropoffStartTime: '2021-09-30T15:45:14+0000'
+                packageDropoffEndTime: '2021-09-30T16:00:14+0000'
+            packageSizeX: 10
+            packageSizeY: 10
+            packageSizeZ: 30
+            packageWeight: 20
+            vehicleType: "BIC"
+            itemsCount: 1
+  responses:
+    createJobResponse:
+      description: The created job
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Job'
+          example:
+            createdAt: '2021-09-27T13:06:59.560Z'
+            jobId: 6151c1f38a9660a0241d2e06
+            driverInformation:
+              name: 'Searching'
+              phone: 'Searching'
+              transport: 'Searching'
+            jobSpecification:
+              id: 100172991
+              shopifyId: null
+              jobReference: 'SECONDS-JOB#6WYXPNKCB6E6XZDJ'
+              orderNumber: '9812-2561-9025'
+              deliveryType: 'on-demand'
+              pickupStartTime: '2021-09-10T15:15:14+0000'
+              pickupEndTime: '2021-09-10T15:21:14+0000'
+              pickupLocation:
+                fullAddress: '250 Reede Rd, Dagenham RM10 8EH'
+                city: 'Dagenham'
+                postcode: 'RM10 8EH'
+                country: 'UK'
+                phoneNumber: '+447507210809'
+                email: 'chisom.oguibe@googlemail.com'
+                firstName: 'Chisom'
+                lastName: 'Oguibe'
+                businessName: 'Seconds Technologies'
+                instructions: 'N/A'
+              deliveries:
+                - id: 1820123
+                  orderReference: 'SECONDS-ORDER#USF1P26J78DFAO78'
+                  description: 'Xbox One S Console'
+                  dropoffLocation:
+                    fullAddress: '35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS'
+                    streetAddress: '42 Linton Road'
+                    city: 'Barking'
+                    postcode: 'IG11 8FS'
+                    country: 'UK'
+                    phoneNumber: '+447523958055'
+                    email: 'olaoladapo7@gmail.com'
+                    firstName: 'Ola'
+                    lastName: 'Oladapo'
+                    businessName: 'Weezy'
+                    instructions: 'Leave in the front porch, if not available'
+                  dropoffStartTime: '2021-09-10T15:45:14+0000'
+                  dropoffEndTime: '2021-09-10T16:00:14+0000'
+                  transport: 'Bicycle'
+                  trackingURL: 'https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b'
+                  status: 'PENDING'
+            selectedConfiguration:
+              createdAt: '2021-06-22T18:16:54.025917'
+              deliveryFee: 14.9
+              winnerQuote: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
+              providerId: 'stuart'
+              quotes:
+                - createdTime: '2021-06-22T18:16:56'
+                  currency: GBP
+                  dropoffEta: '2021-09-22T19:52:56'
+                  expireTime: '2021-09-22T18:21:56'
+                  id: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
+                  priceExVAT: 13.04
+                  providerId: 'stuart'
+                - createdTime: '2021-06-22T18:16:56'
+                  currency: GBP
+                  dropoffEta: '2021-09-22T19:52:56'
+                  expireTime: '2021-09-22T18:21:56'
+                  id: 'quote_4scqrEA@bItf21cewaxc'
+                  priceExVAT: 12.80
+                  providerId: 'gophr'
+                - createdTime: '2021-06-22T18:16:56'
+                  currency: GBP
+                  dropoffEta: '2021-09-22T19:52:56'
+                  expireTime: '2021-09-22T18:21:56'
+                  id: 'quote_4scqthaB61oasna7c1at'
+                  priceExVAT: 14.15
+                  providerId: 'street_stream'
+            status: 'NEW'
+    multiDropJobResponse:
+      description: The created multi drop job
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Job'
+          example:
+            createdAt: '2021-09-27T13:06:59.560Z'
+            jobId: 6151c1f38a9660a0241d2e06
+            driverInformation:
+              name: 'Searching'
+              phone: 'Searching'
+              transport: 'Searching'
+            jobSpecification:
+              id: 100172991
+              shopifyId: null
+              jobReference: 'SECONDS-JOB#6WYXPNKCB6E6XZDJ'
+              orderNumber: '9812-2561-9025'
+              deliveryType: 'on-demand'
+              pickupStartTime: '2021-09-10T15:15:14+0000'
+              pickupEndTime: '2021-09-10T15:21:14+0000'
+              pickupLocation:
+                fullAddress: '250 Reede Rd, Dagenham RM10 8EH'
+                city: 'Dagenham'
+                postcode: 'RM10 8EH'
+                country: 'UK'
+                phoneNumber: '+447507210809'
+                email: 'chisom.oguibe@googlemail.com'
+                firstName: 'Chisom'
+                lastName: 'Oguibe'
+                businessName: 'Seconds Technologies'
+                instructions: 'N/A'
+              deliveries:
+                - id: 1820123
+                  orderReference: 'SECONDS-ORDER#USF1P26J78DFAO78'
+                  description: 'Xbox One S Console'
+                  dropoffLocation:
+                    fullAddress: '35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS'
+                    streetAddress: '42 Linton Road'
+                    city: 'Barking'
+                    postcode: 'IG11 8FS'
+                    country: 'UK'
+                    phoneNumber: '+447523958055'
+                    email: 'olaoladapo7@gmail.com'
+                    firstName: 'Ola'
+                    lastName: 'Oladapo'
+                    businessName: 'Weezy'
+                    instructions: 'Leave in the front porch, if not available'
+                  dropoffStartTime: '2021-09-10T15:45:14+0000'
+                  dropoffEndTime: '2021-09-10T16:00:14+0000'
+                  transport: 'Bicycle'
+                  trackingURL: 'https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b'
+                  status: 'PENDING'
+                - id: 1820123
+                  orderReference: 'SECONDS-ORDER#USF1P26J78DFAO78'
+                  description: 'Xbox One S Console'
+                  dropoffLocation:
+                    fullAddress: '22 St Pauls Rd, Barking IG11 7AF'
+                    streetAddress: '22 St Pauls Rd'
+                    city: 'Barking'
+                    postcode: 'IG11 7AF'
+                    country: 'UK'
+                    phoneNumber: '+447523958055'
+                    email: 'olaoladapo7@gmail.com'
+                    firstName: 'Ola'
+                    lastName: 'Oladapo'
+                    businessName: 'Weezy'
+                    instructions: 'Leave in the front porch, if not available'
+                  dropoffStartTime: '2021-09-10T15:45:14+0000'
+                  dropoffEndTime: '2021-09-10T16:00:14+0000'
+                  transport: 'Bicycle'
+                  trackingURL: 'https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b'
+                  status: 'PENDING'
+                - id: 1820123
+                  orderReference: 'SECONDS-ORDER#USF1P26J78DFAO78'
+                  description: 'Xbox One S Console'
+                  dropoffLocation:
+                    fullAddress: '134 Dawson Ave, Barking IG11 9QQ'
+                    streetAddress: '134 Dawson Ave'
+                    city: 'Barking'
+                    postcode: 'IG11 9QQ'
+                    country: 'UK'
+                    phoneNumber: '+447523958055'
+                    email: 'olaoladapo7@gmail.com'
+                    firstName: 'Ola'
+                    lastName: 'Oladapo'
+                    businessName: 'Weezy'
+                    instructions: 'Leave in the front porch, if not available'
+                  dropoffStartTime: '2021-09-10T15:45:14+0000'
+                  dropoffEndTime: '2021-09-10T16:00:14+0000'
+                  transport: 'Bicycle'
+                  trackingURL: 'https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b'
+                  status: 'PENDING'
+            selectedConfiguration:
+              createdAt: '2021-06-22T18:16:54.025917'
+              deliveryFee: 14.9
+              winnerQuote: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
+              providerId: 'stuart'
+              quotes:
+                - createdTime: '2021-06-22T18:16:56'
+                  currency: GBP
+                  dropoffEta: '2021-09-22T19:52:56'
+                  expireTime: '2021-09-22T18:21:56'
+                  id: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
+                  priceExVAT: 13.04
+                  providerId: 'stuart'
+                - createdTime: '2021-06-22T18:16:56'
+                  currency: GBP
+                  dropoffEta: '2021-09-22T19:52:56'
+                  expireTime: '2021-09-22T18:21:56'
+                  id: 'quote_4scqrEA@bItf21cewaxc'
+                  priceExVAT: 12.80
+                  providerId: 'gophr'
+                - createdTime: '2021-06-22T18:16:56'
+                  currency: GBP
+                  dropoffEta: '2021-09-22T19:52:56'
+                  expireTime: '2021-09-22T18:21:56'
+                  id: 'quote_4scqthaB61oasna7c1at'
+                  priceExVAT: 14.15
+                  providerId: 'street_stream'
+            status: 'NEW'
+    requestedJobResponse:
+      description: The requested job
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Job'
+          example:
+            createdAt: '2021-09-27T13:06:59.560Z'
+            jobId: 6151c1f38a9660a0241d2e06
+            driverInformation:
+              name: 'David Willis'
+              phone: '07534670805'
+              transport: 'bike'
+            jobSpecification:
+              id: 100172991
+              shopifyId: null
+              orderNumber: 30
+              jobReference: 'SECONDS-JOB#6WYXPNKCB6E6XZDJ'
+              deliveryType: 'on-demand'
+              pickupStartTime: '2021-09-30T15:15:14+0000'
+              pickupEndTime: '2021-09-30T15:21:14+0000'
+              pickupLocation:
+                fullAddress: '250 Reede Rd, Dagenham RM10 8EH'
+                city: 'Dagenham'
+                postcode: 'RM10 8EH'
+                country: 'UK'
+                phoneNumber: '+447507210809'
+                email: 'chisom.oguibe@googlemail.com'
+                firstName: 'Chisom'
+                lastName: 'Oguibe'
+                businessName: 'Seconds Technologies'
+                instructions: 'N/A'
+              deliveries:
+                - id: 1820123
+                  orderReference: 'SECONDS-Order#USF1P26J78DFAO78'
+                  description: 'Xbox One S Console'
+                  dropoffLocation:
+                    fullAddress: '35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS'
+                    streetAddress: '42 Linton Road'
+                    city: 'Barking'
+                    postcode: 'IG11 8FS'
+                    country: 'UK'
+                    phoneNumber: '+447523958055'
+                    email: 'olaoladapo7@gmail.com'
+                    firstName: 'Ola'
+                    lastName: 'Oladapo'
+                    businessName: 'Weezy'
+                    instructions: 'Leave in the front porch, if not available'
+                  dropoffStartTime: '2021-09-30T15:45:14+0000'
+                  dropoffEndTime: '2021-09-30T16:00:14+0000'
+                  transport: 'Bicycle'
+                  trackingURL: 'https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b'
+                  status: 'PENDING'
+            selectedConfiguration:
+              createdAt: '2021-06-22T18:16:54.025917'
+              deliveryFee: 14.9
+              winnerQuote: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
+              providerId: 'stuart'
+              quotes:
+                - createdTime: '2021-06-22T18:16:56'
+                  currency: GBP
+                  dropoffEta: '2021-09-22T19:52:56'
+                  expireTime: '2021-09-22T18:21:56'
+                  id: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
+                  priceExVAT: 13.04
+                  providerId: 'stuart'
+                - createdTime: '2021-06-22T18:16:56'
+                  currency: GBP
+                  dropoffEta: '2021-09-22T19:52:56'
+                  expireTime: '2021-09-22T18:21:56'
+                  id: 'quote_4scqrEA@bItf21cewaxc'
+                  priceExVAT: 12.80
+                  providerId: 'gophr'
+                - createdTime: '2021-06-22T18:16:56'
+                  currency: GBP
+                  dropoffEta: '2021-09-22T19:52:56'
+                  expireTime: '2021-09-22T18:21:56'
+                  id: 'quote_4scqthaB61oasna7c1at'
+                  priceExVAT: 14.15
+                  providerId: 'street_stream'
+            status: 'NEW'
+    updatedJobResponse:
+      description: The updated job
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Job'
+          example:
+            createdAt: '2021-09-27T13:06:59.560Z'
+            jobId: 6151c1f38a9660a0241d2e06
+            driverInformation:
+              name: 'Lucy Baker'
+              phone: '07595217501'
+              transport: 'bike'
+            jobSpecification:
+              id: '100172991'
+              shopifyId: null
+              orderNumber: 30
+              jobReference: 'SECONDS-JOB#6WYXPNKCB6E6XZDJ'
+              deliveryType: 'on-demand'
+              pickupStartTime: '2021-09-10T15:15:14+0000'
+              pickupEndTime: '2021-09-10T15:21:14+0000'
+              pickupLocation:
+                fullAddress: '250 Reede Rd, Dagenham RM10 8EH'
+                city: 'Dagenham'
+                postcode: 'RM10 8EH'
+                country: 'UK'
+                phoneNumber: '+447507210809'
+                email: 'chisom.oguibe@googlemail.com'
+                firstName: 'Chisom'
+                lastName: 'Oguibe'
+                businessName: 'Seconds Technologies'
+                instructions: 'N/A'
+              deliveries:
+                - id: 1820123
+                  orderReference: 'SECONDS-Order#USF1P26J78DFAO78'
+                  description: 'Xbox One S Console'
+                  dropoffLocation:
+                    fullAddress: '35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS'
+                    streetAddress: '42 Linton Road'
+                    city: 'Barking'
+                    postcode: 'IG11 8FS'
+                    country: 'UK'
+                    phoneNumber: '+447523958055'
+                    email: 'olaoladapo7@gmail.com'
+                    firstName: 'Ola'
+                    lastName: 'Oladapo'
+                    businessName: 'Weezy'
+                    instructions: 'Enter reception area'
+                  dropoffStartTime: '2021-09-10T15:45:14+0000'
+                  dropoffEndTime: '2021-09-10T16:00:14+0000'
+                  transport: 'Bicycle'
+                  trackingURL: 'https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b'
+                  status: 'DISPATCHING'
+            selectedConfiguration:
+              createdAt: '2021-06-22T18:16:54.025917'
+              deliveryFee: 14.9
+              winnerQuote: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
+              providerId: 'stuart'
+              quotes:
+                - createdTime: '2021-06-22T18:16:56'
+                  currency: GBP
+                  dropoffEta: '2021-09-22T19:52:56'
+                  expireTime: '2021-09-22T18:21:56'
+                  id: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
+                  priceExVAT: 13.04
+                  providerId: 'stuart'
+                - createdTime: '2021-06-22T18:16:56'
+                  currency: GBP
+                  dropoffEta: '2021-09-22T19:52:56'
+                  expireTime: '2021-09-22T18:21:56'
+                  id: 'quote_4scqrEA@bItf21cewaxc'
+                  priceExVAT: 12.80
+                  providerId: 'gophr'
+                - createdTime: '2021-06-22T18:16:56'
+                  currency: GBP
+                  dropoffEta: '2021-09-22T19:52:56'
+                  expireTime: '2021-09-22T18:21:56'
+                  id: 'quote_4scqthaB61oasna7c1at'
+                  priceExVAT: 14.15
+                  providerId: 'street_stream'
+            status: 'DISPATCHING'
+    deletedJobResponse:
+      description: Confirmation of cancelled job
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DeletedJob'
+          example:
+            code: 200
+            jobId: '61570d979250d1aaa8daca82'
+            cancelled: true
+    quotesResponse:
+      description: List of quotes and the best quote based on the user's delivery strategy
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              quotes:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Quote'
+                maxItems: 10
+              bestQuote:
+                $ref: '#/components/schemas/Quote'
+          example:
+            quotes:
+              - id: quote_9zzEuIPvkXMSHP5
+                createdAt: '2021-10-03T15:34:33.339Z'
+                currency: GBP
+                dropoffEta: '2021-10-03T16:14:33.335Z'
+                expireTime: '2021-10-03T15:39:33.339Z'
+                priceExVAT: 11.9
+                providerId: stuart
+              - id: quote_UyOup8TQQ5FB0r7
+                createdAt: '2021-10-03T15:34:33.719Z'
+                currency: GBP
+                dropoffEta: '2021-10-04T16:14:13.000Z'
+                expireTime: '2021-10-03T15:39:33.719Z'
+                priceExVAT: 11.03
+                providerId: gophr
+              - id: quote_0f_QsVEzKhXPy5Z
+                createdAt: '2021-10-03T15:34:33.719Z'
+                currency: GBP
+                dropoffEta: '2021-10-04T16:39:13.000Z'
+                expireTime: '2021-10-03T15:39:33.719Z'
+                priceExVAT: 13.18
+                providerId: street_stream
+            bestQuote:
+              id: quote_9zzEuIPvkXMSHP5
+              createdAt: '2021-10-03T15:34:33.339Z'
+              currency: GBP
+              dropoffEta: '2021-10-03T16:14:33.335Z'
+              expireTime: '2021-10-03T15:39:33.339Z'
+              priceExVAT: 11.9
+              providerId: stuart
+    401Unauthorized:
+      description: The API key is missing in the request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: 401
+            message: No valid API key provided!
+    403Forbidden:
+      description: The API key passed is invalid or does not have the right permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: 403
+            message: Invalid API Key!
+    404NotFound:
+      description: The requested delivery job could not be found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: 404
+            message: 'No job found with ID: job_SKDo1qRpUveLU8@NWZ3:ofsC'
+security:
+  - ApiKeyAuth: [ ]
+tags:
+  - name: Token
+  - name: Jobs
+    description: API endpoints for delivery jobs
+  - name: Quotes
+    description: API endpoints for delivery quotes
+paths:
+  /api/v1/token:
+    post:
+      tags:
+        - Token
+      security: [ ]
+      description: Retrieve your api key using your account credentials
+      summary: API endpoint to fetch a user's API key
+      requestBody:
+        description: Request body of delivery properties
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        200:
+          description: Response for valid credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  token:
+                    type: string
+              example:
+                message: 'SUCCESS'
+                token: 'CxeHbzgyk9m4SQCtGpPiSoFm'
+        400:
+          description: Missing email or password properties
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: 400
+                message: 'Bad request. Email or password is missing'
+        401:
+          description: User has passed invalid password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: 401
+                message: 'Wrong password'
+        404:
+          description: Email does not belong to a user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: 404
+                message: 'No user found with that email address'
+  /api/v1/jobs:
+    get:
+      tags:
+        - Jobs
+      description: Lists all delivery jobs under a given client
+      summary: API endpoint to retrieve all delivery jobs.
+      parameters:
+        - in: query
+          name: email
+          schema:
+            type: string
+          description: client's email address
+          example: "secondsdelivery@gmail.com"
+      responses:
+        200:
+          description: Array of delivery jobs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Job'
+              example:
+                - createdAt: '2021-09-27T13:06:59.560Z'
+                  jobId: 6151c1f38a9660a0241d2e06
+                  driverInformation:
+                    name: 'Searching'
+                    phone: 'Searching'
+                    transport: 'Searching'
+                  jobSpecification:
+                    id: 100172991
+                    shopifyId: null
+                    orderNumber: 30
+                    jobReference: '6WYXPNKCB6E6XZDJ'
+                    deliveryType: 'on-demand'
+                    pickupStartTime: '2021-09-30T15:15:14+0000'
+                    pickupEndTime: '2021-09-30T15:21:14+0000'
+                    pickupLocation:
+                      fullAddress: '250 Reede Rd, Dagenham RM10 8EH'
+                      city: 'Dagenham'
+                      postcode: 'RM10 8EH'
+                      country: 'UK'
+                      phoneNumber: '+447507210809'
+                      email: 'chisom.oguibe@googlemail.com'
+                      firstName: 'Chisom'
+                      lastName: 'Oguibe'
+                      businessName: 'Seconds Technologies'
+                      instructions: 'N/A'
+                    deliveries:
+                      - description: 'Xbox One S Console'
+                        dropoffLocation:
+                          fullAddress: '35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS'
+                          streetAddress: '42 Linton Road'
+                          city: 'Barking'
+                          postcode: 'IG11 8FS'
+                          country: 'UK'
+                          phoneNumber: '+447523958055'
+                          email: 'olaoladapo7@gmail.com'
+                          firstName: 'Ola'
+                          lastName: 'Oladapo'
+                          businessName: 'Weezy'
+                          instructions: 'Leave in the front porch, if not available'
+                        dropoffStartTime: '2021-09-30T15:45:14+0000'
+                        dropoffEndTime: '2021-09-30T16:00:14+0000'
+                        transport: 'Motorbike'
+                        trackingURL: 'https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b'
+                  selectedConfiguration:
+                    createdAt: '2021-06-22T18:16:54.025917'
+                    deliveryFee: 14.9
+                    winnerQuote: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
+                    providerId: 'stuart'
+                    quotes:
+                      - createdTime: '2021-06-22T18:16:56'
+                        currency: GBP
+                        dropoffEta: '2021-09-22T19:52:56'
+                        expireTime: '2021-09-22T18:21:56'
+                        id: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
+                        priceExVAT: 13.04
+                        providerId: 'stuart'
+                      - createdTime: '2021-06-22T18:16:56'
+                        currency: GBP
+                        dropoffEta: '2021-09-22T19:52:56'
+                        expireTime: '2021-09-22T18:21:56'
+                        id: 'quote_4scqrEA@bItf21cewaxc'
+                        priceExVAT: 13.04
+                        providerId: 'gophr'
+                  status: CREATED
+                - createdAt: '2021-09-27T13:06:59.560Z'
+                  jobId: 6151c1f38a9660a0241d2e06
+                  driverInformation:
+                    name: 'Searching'
+                    phone: 'Searching'
+                    transport: 'Searching'
+                  jobSpecification:
+                    id: 100172991
+                    shopifyId: null
+                    orderNumber: 30
+                    jobReference: "6WYXPNKCB6E6XZDJ"
+                    deliveryType: 'on-demand'
+                    pickupStartTime: '2021-09-10T15:15:14+0000'
+                    pickupEndTime: '2021-09-10T15:21:14+0000'
+                    pickupLocation:
+                      fullAddress: '250 Reede Rd, Dagenham RM10 8EH'
+                      city: 'Dagenham'
+                      postcode: 'RM10 8EH'
+                      country: 'UK'
+                      phoneNumber: '+447507210809'
+                      email: 'chisom.oguibe@googlemail.com'
+                      firstName: 'Chisom'
+                      lastName: 'Oguibe'
+                      businessName: 'Seconds Technologies'
+                      instructions: 'N/A'
+                    deliveries:
+                      - description: 'Xbox One S Console'
+                        dropoffLocation:
+                          fullAddress: '35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS'
+                          streetAddress: '42 Linton Road'
+                          city: 'Barking'
+                          postcode: 'IG11 8FS'
+                          country: 'UK'
+                          phoneNumber: '+447523958055'
+                          email: 'olaoladapo7@gmail.com'
+                          firstName: 'Ola'
+                          lastName: 'Oladapo'
+                          businessName: 'Weezy'
+                          instructions: 'Enter reception area'
+                        dropoffStartTime: '2021-09-10T15:45:14+0000'
+                        dropoffEndTime: '2021-09-10T16:00:14+0000'
+                        trackingURL: 'https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b'
+                        transport: 'Bicycle'
+                  selectedConfiguration:
+                    createdAt: '2021-06-22T18:16:54.025917'
+                    deliveryFee: 14.9
+                    winnerQuote: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
+                    providerId: 'stuart'
+                    quotes:
+                      - createdTime: '2021-06-22T18:16:56'
+                        currency: GBP
+                        dropoffEta: '2021-09-22T19:52:56'
+                        expireTime: '2021-09-22T18:21:56'
+                        id: 'quote_4scqrEA,bItf||O9!0c1Qc1k'
+                        priceExVAT: 13.04
+                        providerId: 'stuart'
+                      - createdTime: '2021-06-22T18:16:56'
+                        currency: GBP
+                        dropoffEta: '2021-09-22T19:52:56'
+                        expireTime: '2021-09-22T18:21:56'
+                        id: 'quote_4scqrEA@bItf21cewaxc'
+                        priceExVAT: 13.04
+                        providerId: 'gophr'
+                  status: DISPATCHING
+        '400':
+          description: email paramenter missing from the endpoint URL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: 400
+                message: "'email' parameter missing. Please append your email address as a query parameter"
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          description: The email passed does not belong to a user account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                code: 404
+                message: "No user found with that email address"
+  /api/v1/jobs/create:
+    post:
+      tags:
+        - Jobs
+      description: Creates a new delivery job. Delivery jobs are assigned with a status to indicate the stage of the delivery process
+      summary: API endpoint for creating new delivery jobs.
+      requestBody:
+        $ref: '#/components/requestBodies/createJobRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/createJobResponse'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+  /api/v1/jobs/multi-drop:
+    post:
+      tags:
+        - Jobs
+      summary: API endpoint for creating a multi drop job.
+      description: Create a delivery job with multiple dropoffs. A maximum of 8 dropoffs are allowed
+      requestBody:
+        $ref: '#/components/requestBodies/multiDropJobRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/multiDropJobResponse'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+  '/api/v1/jobs/{job_id}':
+    get:
+      tags:
+        - Jobs
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      summary: API endpoint for retrieving a specific delivery job
+      description: ''
+      responses:
+        '200':
+          $ref: '#/components/responses/requestedJobResponse'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+    patch:
+      tags:
+        - Jobs
+      description: ''
+      summary: API endpoint for updating details of a delivery job
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      requestBody:
+        $ref: '#/components/requestBodies/updateJobRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/updatedJobResponse'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+    delete:
+      tags:
+        - Jobs
+      description: ''
+      summary: API endpoint for cancelling a delivery job
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          $ref: '#/components/responses/deletedJobResponse'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+  /api/v1/quotes:
+    post:
+      tags:
+        - Quotes
+      description: Returns a list of delivery quotes for a specified delivery. Each quote includes the delivery price, the dropoff ETA, and the fleet provider. Response also includes the best quote according to the client's delivery strategy
+      summary: API endpoint for getting delivery quotes
+      requestBody:
+        $ref: '#/components/requestBodies/createJobRequest'
+      responses:
+        200:
+          $ref: '#/components/responses/quotesResponse'
+        401:
+          $ref: '#/components/responses/401Unauthorized'
+        "403":
+          $ref: '#/components/responses/403Forbidden'
