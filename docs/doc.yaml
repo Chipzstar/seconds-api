@@ -8,7 +8,7 @@ info:
   contact:
     name: "Seconds Support"
     url: "https://useseconds.com"
-    email: "secondsdelivery@gmail.com"
+    email: "chisom@useseconds.com"
   termsOfService: "https://seconds.notion.site/Terms-of-Use-a0c41b327ae54d118185a11d939ffc0a"
 servers:
   - url: "https://sandbox.useseconds.com"
