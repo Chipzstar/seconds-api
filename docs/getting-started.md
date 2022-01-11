@@ -18,7 +18,7 @@ Setting up your client account at Seconds is a fundamental step for using the se
 
 During setup, the best strategy and configuration of delivery fleet providers will be chosen.
 
-> We are in beta and our services are with limited access at this time. Contact us at [secondsdelivery@gmail.com](mailto:secondsdelivery@gmail.com) requesting access
+> We are in beta and our services are with limited access at this time. Contact us at [chisom@useseconds.com](mailto:chisom@useseconds.com) requesting access
 
 #### Environments
 
