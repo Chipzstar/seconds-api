@@ -4,7 +4,7 @@ const { Client } = require('@googlemaps/google-maps-services-js');
 const { pickupSchema, dropoffSchema } = require('../schemas/stuart/CreateJob');
 const qs = require('qs');
 const db = require('../models');
-const crypto = require('crypto');
+const HmacSHA256 = require("crypto-js/hmac-sha256");
 const moment = require('moment-timezone');
 const { nanoid } = require('nanoid');
 const { quoteSchema } = require('../schemas/quote');
@@ -84,7 +84,7 @@ streetStreamAxios.interceptors.response.use(
 );
 
 function genOrderReference() {
-	const rand = crypto.randomBytes(16);
+	const rand = CryptoJS.randomBytes(16);
 	let chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.repeat(2);
 
 	let str = 'SECONDS-Order#';
@@ -98,7 +98,7 @@ function genOrderReference() {
 }
 
 function genJobReference() {
-	const rand = crypto.randomBytes(12);
+	const rand = CryptoJS.randomBytes(12);
 	let chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.repeat(2);
 
 	let str = 'SECONDS-JOB#';
@@ -1925,13 +1925,32 @@ async function sendWebhookUpdate(payload, topic){
 		const webhook = await db.Webhook.findOne({ clientId })
 		// check if the current webhook topic is listed under the client's webhook topic list
 		if (Array.from(webhook.topics).includes(topic)){
-			await axios.post(webhook.endpointURL, payload)
+			const signature = generateToken(payload, webhook.secret)
+			console.log(signature)
+			const config = {
+				headers: {
+					'x-seconds-signature': signature
+				}
+			}
+			await axios.post(webhook.endpointURL, payload, config)
 		}
 		return true
 	} catch (err) {
 	    console.error(err)
 		throw err
 	}
+}
+
+function generateToken(payload, secret) {
+	const header = JSON.stringify(
+		{
+			"alg": "HS256",
+			"typ": "JWT"
+		});
+	const headerBase64 = Buffer.from(header).toString('base64').replace(/=/g, '');
+	const payloadBase64 = Buffer.from(payload).toString('base64').replace(/=/g, '');
+	const signature = new HmacSHA256(headerBase64 + '.' + payloadBase64, secret);
+	return headerBase64 + '.' + payloadBase64 + '.' + signature;
 }
 
 module.exports = {
