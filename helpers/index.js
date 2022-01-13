@@ -4,6 +4,7 @@ const { Client } = require('@googlemaps/google-maps-services-js');
 const { pickupSchema, dropoffSchema } = require('../schemas/stuart/CreateJob');
 const qs = require('qs');
 const db = require('../models');
+const CryptoJS = require('crypto-js')
 const Base64 = require('crypto-js/enc-base64')
 const HmacSHA256 = require("crypto-js/hmac-sha256");
 const moment = require('moment-timezone');
