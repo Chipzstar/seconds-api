@@ -198,7 +198,7 @@ async function updateDriverETA(data) {
 				{ new: true }
 			);
 		}
-		const job = await db.Job.findOneAndUpdate(
+		return await db.Job.findOneAndUpdate(
 			{ 'jobSpecification.deliveries.id': deliveryId },
 			{
 				$set: {
@@ -212,12 +212,9 @@ async function updateDriverETA(data) {
 				}
 			},
 			{
-				returnOriginal: false,
-				projection: {'driverInformation.location': 1}
+				returnOriginal: false
 			}
-		);
-		console.log(job.driverInformation.location);
-		return job
+		)
 	} catch (err) {
 		console.error(err);
 		throw err;
