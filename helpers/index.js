@@ -1919,6 +1919,17 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user){
 	}
 }
 
+async function sendWebhookUpdate(payload){
+	try {
+		console.log(payload)
+		const clientId = payload.clientId;
+		return await db.Webhook.findOne({ clientId })
+	} catch (err) {
+	    console.error(err)
+		throw err
+	}
+}
+
 module.exports = {
 	genJobReference,
 	genOrderReference,
@@ -1937,5 +1948,6 @@ module.exports = {
 	cancelOrder,
 	geocodeAddress,
 	convertWeightToVehicleCode,
-	createEcommerceJob
+	createEcommerceJob,
+	sendWebhookUpdate
 };

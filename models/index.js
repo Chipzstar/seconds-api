@@ -12,3 +12,4 @@ mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/seconds",
 
 module.exports.User = require("./user");
 module.exports.Job = require("./job");
+module.exports.Webhook = require("./webhook");

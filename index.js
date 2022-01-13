@@ -7,6 +7,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const authRoutes = require('./routes/auth');
+const webhookRoutes = require('./routes/webhooks')
 const jobRoutes = require('./routes/jobs');
 const quoteRoutes = require('./routes/quotes');
 const shopifyRoutes = require('./routes/shopify');
@@ -59,6 +60,7 @@ app.use('/ping', (req, res) => {
 
 // CORE ROUTES
 app.use('/api/v1/token', authRoutes);
+app.use('/api/v1/webhooks', webhookRoutes);
 app.use('/api/v1/jobs', validateApiKey, jobRoutes);
 app.use('/api/v1/quotes', validateApiKey, quoteRoutes);
 

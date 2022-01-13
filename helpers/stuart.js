@@ -119,7 +119,7 @@ async function updateJob(data) {
 				.then(res => console.log('Charge confirmed:', res))
 				.catch(err => console.error(err));
 		}
-		return jobStatus;
+		return job;
 	} catch (err) {
 		console.error(err);
 		throw err;
@@ -169,7 +169,7 @@ async function updateDelivery(data) {
 			await sendEmail(options);
 			console.log('CANCELLATION EMAIL SENT!');
 		}
-		return deliveryStatus;
+		return job;
 	} catch (err) {
 		console.error(err);
 		throw err;
@@ -217,6 +217,7 @@ async function updateDriverETA(data) {
 			}
 		);
 		console.log(job.driverInformation.location);
+		return job
 	} catch (err) {
 		console.error(err);
 		throw err;

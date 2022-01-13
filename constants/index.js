@@ -161,6 +161,15 @@ exports.GOOGLE_MAPS_TRAVEL_MODES = {
 	TRANSIT: 'transit',
 };
 
+exports.VERSIONS = ['v1', 'v2', 'v3']
+exports.WEBHOOK_TOPICS = [
+	'job.created',
+	'job.updated',
+	'delivery.created',
+	'delivery.updated',
+	'driver.updated',
+]
+
 const numbers = '1234567890';
 const lowerCase = 'abcdefghijklmnopqrstuvwxyz';
 const upperCase = lowerCase.toUpperCase();
