@@ -4,6 +4,7 @@ const { Client } = require('@googlemaps/google-maps-services-js');
 const { pickupSchema, dropoffSchema } = require('../schemas/stuart/CreateJob');
 const qs = require('qs');
 const db = require('../models');
+const Base64 = require('crypto-js/enc-base64')
 const HmacSHA256 = require("crypto-js/hmac-sha256");
 const moment = require('moment-timezone');
 const { nanoid } = require('nanoid');
@@ -1925,7 +1926,7 @@ async function sendWebhookUpdate(payload, topic){
 		const webhook = await db.Webhook.findOne({ clientId })
 		// check if the current webhook topic is listed under the client's webhook topic list
 		if (Array.from(webhook.topics).includes(topic)){
-			const signature = generateToken(payload, webhook.secret)
+			const signature = generateSignature(payload, webhook.secret)
 			console.log(signature)
 			const config = {
 				headers: {
@@ -1941,16 +1942,9 @@ async function sendWebhookUpdate(payload, topic){
 	}
 }
 
-function generateToken(payload, secret) {
-	const header = JSON.stringify(
-		{
-			"alg": "HS256",
-			"typ": "JWT"
-		});
-	const headerBase64 = Buffer.from(header).toString('base64').replace(/=/g, '');
-	const payloadBase64 = Buffer.from(payload).toString('base64').replace(/=/g, '');
-	const signature = new HmacSHA256(headerBase64 + '.' + payloadBase64, secret);
-	return headerBase64 + '.' + payloadBase64 + '.' + signature;
+function generateSignature(payload, secret) {
+	const payloadBase64 = Buffer.from(JSON.string(payload)).toString('base64').replace(/=/g, '');
+	return Base64.stringify(HmacSHA256(payloadBase64, secret));
 }
 
 module.exports = {
