@@ -1927,7 +1927,9 @@ async function sendWebhookUpdate(payload, topic){
 		// check if the current webhook topic is listed under the client's webhook topic list
 		if (Array.from(webhook.topics).includes(topic)){
 			const signature = generateSignature(payload, webhook.secret)
-			console.log(signature)
+			console.log("------------------------------------------")
+			console.log("SIGNATURE:", signature)
+			console.log("------------------------------------------")
 			const config = {
 				headers: {
 					'x-seconds-signature': signature
@@ -1943,7 +1945,7 @@ async function sendWebhookUpdate(payload, topic){
 }
 
 function generateSignature(payload, secret) {
-	const payloadBase64 = Buffer.from(JSON.string(payload)).toString('base64').replace(/=/g, '');
+	const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString('base64').replace(/=/g, '');
 	return Base64.stringify(HmacSHA256(payloadBase64, secret));
 }
 
