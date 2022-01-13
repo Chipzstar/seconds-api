@@ -17,14 +17,14 @@ router.post('/delivery-update', async (req, res) => {
 			if (type && type === 'update') {
 				console.log('JOB UPDATE');
 				job = await updateJob(data);
-				sendWebhookUpdate(job).then().catch()
+				sendWebhookUpdate(job, event, type).then().catch()
 			}
 		} else if (event && event === 'delivery') {
 			if (type && type === 'create') {
 				console.log('DELIVERY CREATE');
 				console.log(data);
 				job = await updateDelivery(data);
-				sendWebhookUpdate(job).then().catch()
+				sendWebhookUpdate(job, `${event}.${type}`).then().catch()
 			}
 			if (type && type === 'update') {
 				console.log('DELIVERY UPDATE');

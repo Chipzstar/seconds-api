@@ -1919,10 +1919,11 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user){
 	}
 }
 
-async function sendWebhookUpdate(payload){
+async function sendWebhookUpdate(payload, topic){
 	try {
 		console.log(payload)
 		const clientId = payload.clientId;
+		console.log("SENDING WEBHOOK UPDATE")
 		return await db.Webhook.findOne({ clientId })
 	} catch (err) {
 	    console.error(err)

@@ -163,11 +163,11 @@ exports.GOOGLE_MAPS_TRAVEL_MODES = {
 
 exports.VERSIONS = ['v1', 'v2', 'v3']
 exports.WEBHOOK_TOPICS = [
-	'job.created',
-	'job.updated',
-	'delivery.created',
-	'delivery.updated',
-	'driver.updated',
+	'job.create',
+	'job.update',
+	'delivery.create',
+	'delivery.update',
+	'driver.update',
 ]
 
 const numbers = '1234567890';
