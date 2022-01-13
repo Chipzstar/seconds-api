@@ -1936,6 +1936,9 @@ async function sendWebhookUpdate(payload, topic){
 				}
 			}
 			await axios.post(webhook.endpointURL, payload, config)
+			// update the lastUsed property of the webhook to current timestamp
+			webhook.update({lastUsed: moment().toISOString(true)})
+			await webhook.save();
 		}
 		return true
 	} catch (err) {
