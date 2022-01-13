@@ -1935,6 +1935,7 @@ async function sendWebhookUpdate(payload, topic){
 					'x-seconds-signature': signature
 				}
 			}
+			// send request to client's endpoint
 			await axios.post(webhook.endpointURL, payload, config)
 			// update the lastUsed property of the webhook to current timestamp
 			webhook.update({lastUsed: moment().toISOString(true)})

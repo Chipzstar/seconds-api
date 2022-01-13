@@ -103,7 +103,33 @@ router.post('/', async (req, res) => {
 	}
 });
 
-router.get('/');
+router.get('/', async (req, res) => {
+	try {
+	    const { email } = req.query;
+		const user = await db.User.findOne({ "email": email})
+		if (user){
+			let webhooks = await db.Webhook.find({"clientId": user._id})
+			return res.status(200).json(webhooks)
+		} else {
+			let error = new Error(`No user found with email ${email}`)
+			error.status = 404
+			throw error
+		}
+	} catch (err) {
+		console.error(err);
+		err && err.status
+			? res.status(err.status).json({
+				code: err.status,
+				success: false,
+				message: err.message
+			})
+			: res.status(500).json({
+				success: false,
+				code: 500,
+				message: err.message
+			});
+	}
+});
 router.get('/:id');
 router.post('/:id');
 router.delete('/:id');
