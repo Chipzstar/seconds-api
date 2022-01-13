@@ -72,17 +72,17 @@ router.post('/', async (req, res) => {
 					});
 				} else {
 					const error = new Error(`Endpoint URL did not respond with 200 status code`);
-					error.response.status = 400;
+					error.status = 400;
 					throw error;
 				}
 			} else {
 				const error = new Error(`Please enter a valid endpoint URL prefixed with "https://"`);
-				error.response.status = 400;
+				error.status = 400;
 				throw error;
 			}
 		} else {
 			const error = new Error(`No user found with email address ${email}`);
-			error.response.status = 404;
+			error.status = 404;
 			throw error;
 		}
 	} catch (err) {
