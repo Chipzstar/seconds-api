@@ -20,11 +20,11 @@ function stringIsAValidUrl(s, protocols) {
 	}
 }
 
-function genWebhookSecret() {
+function genUniqueId(prefix="", size=24) {
 	// generate the apiKey using random byte sequences
-	const rand = crypto.randomBytes(24);
+	const rand = crypto.randomBytes(size);
 	let chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'.repeat(2);
-	let secret = 'whsec_';
+	let secret = prefix ? prefix : "";
 
 	for (let i = 0; i < rand.length; i++) {
 		let index = rand[i] % chars.length;
@@ -43,7 +43,8 @@ router.post('/', async (req, res) => {
 		const { email, topics, endpointURL } = req.body;
 		const user = await db.User.findOne({ email });
 		if (user) {
-			const secret = genWebhookSecret();
+			const webhookId = genUniqueId("we_", 16)
+			const secret = genUniqueId("whsec_");
 			// validate the endpoint URL is a valid format with https protocol
 			let isValid = stringIsAValidUrl(endpointURL, ['https']);
 			// send test message to endpoint to check it is working
@@ -57,6 +58,7 @@ router.post('/', async (req, res) => {
 					let lastUsed = moment().toISOString(true);
 					// store the webhook details as a new recorded in the database
 					const result = {
+						id: webhookId,
 						clientId: user._id,
 						topics,
 						endpointURL,

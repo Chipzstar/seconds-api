@@ -6,6 +6,11 @@ const { VERSIONS, WEBHOOK_TOPICS } = require('../constants');
 const topicValidator = topics => topics.every(topic => WEBHOOK_TOPICS.includes(topic));
 
 const webhookSchema = new Schema({
+	id: {
+		type: String,
+		unique: true,
+		required: true
+	},
 	endpointURL: {
 		type: String,
 		required: true
