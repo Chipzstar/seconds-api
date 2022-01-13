@@ -106,6 +106,15 @@ app.post('/test/mail', async (req, res) => {
 });
 
 // TEST ENDPOINTS
+app.post('/test/webhook', async(req, res, next) => {
+	try {
+		console.log(req.query)
+	    console.log(req.body)
+		res.status(200).json({success: true})
+	} catch (err) {
+	    console.error(err)
+	}
+})
 /*app.get('/test/stripe/report-usage', async (req, res) => {
 	try {
 		const { deliveryType, quantity } = req.query;
