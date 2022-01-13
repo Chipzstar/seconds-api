@@ -4,7 +4,7 @@ const { Client } = require('@googlemaps/google-maps-services-js');
 const { pickupSchema, dropoffSchema } = require('../schemas/stuart/CreateJob');
 const qs = require('qs');
 const db = require('../models');
-const CryptoJS = require('crypto-js')
+const crypto = require('crypto')
 const Base64 = require('crypto-js/enc-base64')
 const HmacSHA256 = require("crypto-js/hmac-sha256");
 const moment = require('moment-timezone');
@@ -86,7 +86,7 @@ streetStreamAxios.interceptors.response.use(
 );
 
 function genOrderReference() {
-	const rand = CryptoJS.randomBytes(16);
+	const rand = crypto.randomBytes(16);
 	let chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.repeat(2);
 
 	let str = 'SECONDS-Order#';
@@ -100,7 +100,7 @@ function genOrderReference() {
 }
 
 function genJobReference() {
-	const rand = CryptoJS.randomBytes(12);
+	const rand = crypto.randomBytes(12);
 	let chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.repeat(2);
 
 	let str = 'SECONDS-JOB#';
