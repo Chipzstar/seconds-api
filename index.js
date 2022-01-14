@@ -106,7 +106,7 @@ app.post('/test/mail', async (req, res) => {
 });
 
 // TEST ENDPOINTS
-app.post('/test/webhook', async(req, res, next) => {
+app.get('/test/webhook', async(req, res, next) => {
 	try {
 		console.log("------------------------------------------------")
 		console.log("SIGNATURE", req.headers['x-seconds-signature'])
@@ -115,6 +115,7 @@ app.post('/test/webhook', async(req, res, next) => {
 		res.status(200).json({success: true})
 	} catch (err) {
 	    console.error(err)
+		res.status(400).json({success: false, message: err.message})
 	}
 })
 /*app.get('/test/stripe/report-usage', async (req, res) => {
