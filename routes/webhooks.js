@@ -49,11 +49,7 @@ router.post('/', async (req, res) => {
 			let isValid = stringIsAValidUrl(endpointURL, ['https']);
 			// send test message to endpoint to check it is working
 			if (isValid) {
-				let response = await axios.get(endpointURL, {
-					params: {
-						token: secret
-					}
-				});
+				let response = await axios.post(endpointURL, {token: secret});
 				if (response.status === 200) {
 					let lastUsed = moment().toISOString(true);
 					// store the webhook details as a new recorded in the database

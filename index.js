@@ -106,7 +106,7 @@ app.post('/test/mail', async (req, res) => {
 });
 
 // TEST ENDPOINTS
-app.get('/test/webhook', async(req, res, next) => {
+app.post('/test/webhook', async(req, res, next) => {
 	try {
 		console.log("------------------------------------------------")
 		console.log("SIGNATURE", req.headers['x-seconds-signature'])
