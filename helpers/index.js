@@ -1,12 +1,13 @@
 const express = require('express');
 const axios = require('axios');
+const axiosRetry = require('axios-retry');
 const { Client } = require('@googlemaps/google-maps-services-js');
 const { pickupSchema, dropoffSchema } = require('../schemas/stuart/CreateJob');
 const qs = require('qs');
 const db = require('../models');
-const crypto = require('crypto')
-const Base64 = require('crypto-js/enc-base64')
-const HmacSHA256 = require("crypto-js/hmac-sha256");
+const crypto = require('crypto');
+const Base64 = require('crypto-js/enc-base64');
+const HmacSHA256 = require('crypto-js/hmac-sha256');
 const moment = require('moment-timezone');
 const { nanoid } = require('nanoid');
 const { quoteSchema } = require('../schemas/quote');
@@ -16,7 +17,8 @@ const {
 	VEHICLE_CODES_MAP,
 	DELIVERY_TYPES,
 	VEHICLE_CODES,
-	STATUS, COMMISSION
+	STATUS,
+	COMMISSION
 } = require('../constants');
 const { STRATEGIES } = require('../constants/streetStream');
 const { ERROR_CODES: STUART_ERROR_CODES } = require('../constants/stuart');
@@ -34,8 +36,11 @@ const client = new Client();
 // setup axios instances
 const stuartAxios = axios.create();
 const streetStreamAxios = axios.create();
+const webhookAxios = axios.create();
 stuartAxios.defaults.headers.common['Authorization'] = `Bearer ${process.env.STUART_API_KEY}`;
 streetStreamAxios.defaults.headers.common['Authorization'] = `Bearer ${process.env.STREET_STREAM_API_KEY}`;
+// if fails, retry request with exponential backoff
+axiosRetry(webhookAxios, { retries: 3, retryDelay: axiosRetry.exponentialDelay, retryCondition: _error => true });
 
 stuartAxios.interceptors.response.use(
 	response => {
@@ -120,9 +125,9 @@ function chooseBestProvider(strategy, quotes) {
 	let bestEta = Infinity;
 	// check that at least 1 quote was generated,
 	// if no quotes then skip the courier optimization and return undefined
-	if (!quotes.length){
-		console.log("No quotes available")
-		return undefined
+	if (!quotes.length) {
+		console.log('No quotes available');
+		return undefined;
 	}
 	quotes.forEach(({ priceExVAT, dropoffEta, providerId }, index) => {
 		// console.log('------------------------');
@@ -198,9 +203,11 @@ function getVehicleSpecs(vehicleCode) {
 	if (VEHICLE_CODES.includes(vehicleCode)) {
 		return VEHICLE_CODES_MAP[vehicleCode];
 	} else {
-		const error = new Error(`Vehicle code ${vehicleCode} is not recognized. Please check our list of allowed vehicle codes`);
-		error.code = 400
-		throw error
+		const error = new Error(
+			`Vehicle code ${vehicleCode} is not recognized. Please check our list of allowed vehicle codes`
+		);
+		error.code = 400;
+		throw error;
 	}
 }
 
@@ -255,7 +262,7 @@ function checkPickupHours(pickupTime, deliveryHours) {
 	console.log('DURATION:', { close: close.format('HH:mm'), timeFromClose });
 	console.log('===================================================================');
 	const isValid = canDeliver && timeFromOpen >= 0 && timeFromClose <= -0.5;
-	console.log("Is pickup time valid:", isValid)
+	console.log('Is pickup time valid:', isValid);
 	return isValid;
 }
 
@@ -288,7 +295,9 @@ function setNextDayDeliveryTime(pickupTime, deliveryHours) {
 			) > 0
 		);
 		console.log('CAN DELIVER:', deliveryHours[nextDay].canDeliver);
-		while (!deliveryHours[nextDay].canDeliver || moment(pickupTime).diff(
+		while (
+			!deliveryHours[nextDay].canDeliver ||
+			moment(pickupTime).diff(
 				moment({
 					y: moment(pickupTime).get('year'),
 					M: moment(pickupTime).get('month'),
@@ -346,19 +355,19 @@ async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance) {
 			console.table(vehicleSpecs);
 		}
 		// check if the current vehicle is supported by Stuart and if the job distance is within the maximum limit
-		if (vehicleSpecs.stuart.packageType && process.env.STUART_STATUS === "active") {
+		if (vehicleSpecs.stuart.packageType && process.env.STUART_STATUS === 'active') {
 			let stuartQuote = await getStuartQuote(genJobReference(), requestBody, vehicleSpecs);
 			QUOTES.push(stuartQuote);
 		}
-		if (process.env.GOPHR_STATUS === "active") {
+		if (process.env.GOPHR_STATUS === 'active') {
 			let gophrQuote = await getGophrQuote(requestBody, vehicleSpecs);
 			QUOTES.push(gophrQuote);
 		}
-		if (process.env.STREET_STREAM_STATUS === "active") {
+		if (process.env.STREET_STREAM_STATUS === 'active') {
 			let streetStreamQuote = await getStreetStreamQuote(requestBody, vehicleSpecs);
 			if (streetStreamQuote) QUOTES.push(streetStreamQuote);
 		}
-		if (vehicleSpecs.ecofleetVehicle && process.env.ECOFLEET_STATUS === "active") {
+		if (vehicleSpecs.ecofleetVehicle && process.env.ECOFLEET_STATUS === 'active') {
 			let ecoFleetQuote = {
 				...quoteSchema,
 				id: `quote_${nanoid(15)}`,
@@ -800,7 +809,7 @@ async function stuartJobRequest(ref, params, vehicleSpecs) {
 		let data = (await stuartAxios.post(URL, payload)).data;
 		const deliveryInfo = data['deliveries'][0];
 		console.log('----------------------------');
-		console.log(data)
+		console.log(data);
 		console.log(deliveryInfo);
 		console.log('----------------------------');
 		const delivery = {
@@ -1143,9 +1152,9 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 				city: pickupCity,
 				postcode: pickupPostcode,
 				pickUpNotes: pickupInstructions,
-				pickUpFrom: moment(packagePickupStartTime).add(30, "minutes").toISOString(true),
+				pickUpFrom: moment(packagePickupStartTime).add(30, 'minutes').toISOString(true),
 				pickUpTo: packagePickupEndTime
-					? moment(packagePickupEndTime).add(30, "minutes").toISOString(true)
+					? moment(packagePickupEndTime).add(30, 'minutes').toISOString(true)
 					: moment(packagePickupStartTime).add(40, 'minutes').toISOString(true)
 			},
 			dropOff: {
@@ -1155,9 +1164,9 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 				city: dropoffCity,
 				postcode: dropoffPostcode,
 				dropOffFrom: packageDropoffStartTime
-					? moment(packageDropoffStartTime).add(30, "minutes").toISOString(true)
+					? moment(packageDropoffStartTime).add(30, 'minutes').toISOString(true)
 					: moment(packagePickupStartTime).add(30, 'minutes').toISOString(true),
-				dropOffTo: moment(packageDropoffEndTime).add(30, "minutes").toISOString(true),
+				dropOffTo: moment(packageDropoffEndTime).add(30, 'minutes').toISOString(true),
 				clientTag: reference,
 				deliveryNotes: dropoffInstructions
 			}
@@ -1231,7 +1240,7 @@ async function streetStreamMultiJobRequest(ref, strategy, params, vehicleSpecs) 
 	let lastDropoffTime = moment().toISOString(true);
 	const dropoffs = drops.map(drop => {
 		if (moment(drop.packageDropoffEndTime).diff(lastDropoffTime) > 0)
-			lastDropoffTime = moment(drop.packageDropoffEndTime).add(30, "minutes").toISOString(true);
+			lastDropoffTime = moment(drop.packageDropoffEndTime).add(30, 'minutes').toISOString(true);
 		return {
 			contactNumber: drop.dropoffPhoneNumber,
 			contactName: `${drop.dropoffFirstName} ${drop.dropoffLastName}`,
@@ -1264,9 +1273,9 @@ async function streetStreamMultiJobRequest(ref, strategy, params, vehicleSpecs) 
 				city: pickupCity,
 				postcode: pickupPostcode,
 				pickUpNotes: pickupInstructions,
-				pickUpFrom: moment(packagePickupStartTime).add(30, "minutes").toISOString(true),
+				pickUpFrom: moment(packagePickupStartTime).add(30, 'minutes').toISOString(true),
 				pickUpTo: packagePickupEndTime
-					? moment(packagePickupEndTime).add(30, "minutes").toISOString(true)
+					? moment(packagePickupEndTime).add(30, 'minutes').toISOString(true)
 					: moment(packagePickupStartTime).add(40, 'minutes').toISOString(true)
 			},
 			drops: dropoffs
@@ -1738,7 +1747,7 @@ async function geocodeAddress(address) {
 			};
 			let fullAddress = response.results[0].formatted_address;
 			let components = response.results[0].address_components;
-			console.log(components)
+			console.log(components);
 			components.forEach(({ long_name, types }) => {
 				switch (types[0]) {
 					case 'street_number':
@@ -1771,9 +1780,9 @@ function convertWeightToVehicleCode(total_weight) {
 	let vehicleName;
 	let vehicleCode;
 	for (let code of VEHICLE_CODES) {
-		console.log("switching vehicle...")
+		console.log('switching vehicle...');
 		const { name, weight } = VEHICLE_CODES_MAP[code];
-		console.table({code, name, weight})
+		console.table({ code, name, weight });
 		vehicleCode = code;
 		vehicleName = name;
 		if (total_weight < weight) break;
@@ -1781,7 +1790,7 @@ function convertWeightToVehicleCode(total_weight) {
 	return { vehicleName, vehicleCode };
 }
 
-async function createEcommerceJob(type, id, payload, ecommerceIds, user){
+async function createEcommerceJob(type, id, payload, ecommerceIds, user) {
 	try {
 		let commissionCharge = false;
 		let paymentIntent;
@@ -1816,9 +1825,9 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user){
 		const QUOTES = await getResultantQuotes(payload, vehicleSpecs, jobDistance);
 		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
 		if (!bestQuote) {
-			const error = new Error('No couriers available at this time. Please try again later!')
-			error.status = 500
-			throw error
+			const error = new Error('No couriers available at this time. Please try again later!');
+			error.status = 500;
+			throw error;
 		}
 		const providerId = bestQuote.providerId;
 		const winnerQuote = bestQuote.id;
@@ -1921,31 +1930,31 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user){
 	}
 }
 
-async function sendWebhookUpdate(payload, topic){
+async function sendWebhookUpdate(payload, topic) {
 	try {
 		const clientId = payload.clientId;
-		const webhook = await db.Webhook.findOne({ clientId })
+		const webhook = await db.Webhook.findOne({ clientId });
 		// check if the current webhook topic is listed under the client's webhook topic list
-		if (Array.from(webhook.topics).includes(topic)){
-			const signature = generateSignature(payload, webhook.secret)
-			console.log("------------------------------------------")
-			console.log("SIGNATURE:", signature)
-			console.log("------------------------------------------")
+		if (Array.from(webhook.topics).includes(topic)) {
+			const signature = generateSignature(payload, webhook.secret);
+			console.log('------------------------------------------');
+			console.log('SIGNATURE:', signature);
+			console.log('------------------------------------------');
 			const config = {
 				headers: {
 					'x-seconds-signature': signature
 				}
-			}
+			};
 			// send request to client's endpoint
-			await axios.post(webhook.endpointURL, payload, config)
+			await webhookAxios.post(webhook.endpointURL, payload, config);
 			// update the lastUsed property of the webhook to current timestamp
-			webhook.update({lastUsed: moment().toISOString(true)})
+			webhook.update({ lastUsed: moment().toISOString(true) });
 			await webhook.save();
 		}
-		return true
+		return true;
 	} catch (err) {
-	    console.error(err)
-		throw err
+		console.error(err);
+		throw err;
 	}
 }
 

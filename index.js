@@ -108,7 +108,9 @@ app.post('/test/mail', async (req, res) => {
 // TEST ENDPOINTS
 app.post('/test/webhook', async(req, res, next) => {
 	try {
-		console.log(req.headers)
+		console.log("------------------------------------------------")
+		console.log("SIGNATURE", req.headers['x-seconds-signature'])
+		console.log("------------------------------------------------")
 	    console.log(req.body)
 		res.status(200).json({success: true})
 	} catch (err) {
