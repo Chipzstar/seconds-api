@@ -2,6 +2,7 @@
 
 * [About Seconds](README.md)
 * [Getting Started](getting-started.md)
+* [Job Statuses](job-statuses.md)
 
 ## API Reference
 
