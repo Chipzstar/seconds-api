@@ -1456,6 +1456,8 @@ paths:
       summary: "API endpoint for updating a webhook"
       parameters:
         - $ref: "#/components/parameters/WebhookId"
+      requestBody:
+        $ref: '#/components/requestBodies/createWebhookRequest'
       responses:
         "200":
           $ref: "#/components/responses/webhookResponse"
