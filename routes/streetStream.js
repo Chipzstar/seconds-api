@@ -43,7 +43,6 @@ async function update(data) {
 	try {
 		console.log(data);
 		const { status: jobStatus, jobId: ID } = data;
-		console.log({ jobStatus, ID });
 		// update the status for the current job
 		let job = await db.Job.findOneAndUpdate(
 			{ 'jobSpecification.id': ID },
@@ -54,7 +53,6 @@ async function update(data) {
 			{ new: true }
 		);
 		if (job) {
-			console.log(job.toObject());
 			if (
 				jobStatus === JOB_STATUS.ADMIN_CANCELLED ||
 				jobStatus === JOB_STATUS.NO_RESPONSE ||
@@ -91,6 +89,7 @@ async function update(data) {
 router.post('/', async (req, res) => {
 	try {
 		let job = await update(req.body);
+		console.log(job);
 		sendWebhookUpdate(job, "delivery.update").then(() => "STREET_STREAM JOB UPDATE SENT TO CLIENT").catch();
 		if (req.body.status === JOB_STATUS.COMPLETED_SUCCESSFULLY) {
 			let {
