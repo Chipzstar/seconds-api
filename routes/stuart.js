@@ -22,22 +22,18 @@ router.post('/delivery-update', async (req, res) => {
 		} else if (event && event === 'delivery') {
 			if (type && type === 'create') {
 				console.log('DELIVERY CREATE');
-				console.log(data);
 				job = await updateDelivery(data);
 				sendWebhookUpdate(job, `${event}.${type}`).then().catch()
 			}
 			if (type && type === 'update') {
 				console.log('DELIVERY UPDATE');
-				console.log(data);
 				job = await updateDelivery(data);
-				console.log(job)
 				sendWebhookUpdate(job, `${event}.${type}`).then().catch()
 			}
 		} else if (event && event === 'driver'){
 			if (type && type === 'update'){
 				console.log('DRIVER UPDATE')
 				job = await updateDriverETA(data)
-				console.log(job)
 				sendWebhookUpdate(job, `${event}.${type}`).then().catch()
 			}
 		}
