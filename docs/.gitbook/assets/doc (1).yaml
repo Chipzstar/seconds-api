@@ -8,7 +8,7 @@ info:
   contact:
     name: "Seconds Support"
     url: "https://useseconds.com"
-    email: "chisom@useseconds.com"
+    email: "secondsdelivery@gmail.com"
   termsOfService: "https://seconds.notion.site/Terms-of-Use-a0c41b327ae54d118185a11d939ffc0a"
 servers:
   - url: "https://sandbox.useseconds.com"
@@ -21,10 +21,7 @@ components:
       type: "apiKey"
       in: "header"
       name: "X-Seconds-Api-Key"
-      description: "After setting up a seconds account, you will be able to generate\
-        \ an api key through our dashboard. When making request to our endpoints.\
-        \ Please attach the field name `X-Seconds-Api-Key` to the request header passing\
-        \ your api key as its value."
+      description: "After setting up a seconds account, you will be able to generate an api key through our dashboard. When making request to our endpoints. Please attach the field name `X-Seconds-Api-Key` to the request header passing your api key as its value."
   schemas:
     DeliveryRequirements:
       $ref: "#/components/schemas/JobRequirements"
@@ -333,49 +330,7 @@ components:
           minimum: 0
         providerId:
           type: "string"
-    Webhook:
-      type: object
-      properties:
-        webhookId:
-          type: string
-        endpointURL:
-          type: string
-          pattern: 'we_^\[a-z0-9]{16}$'
-        clientId:
-          type: string
-        lastUsed:
-          type: string
-          format: date-time
-        isBroken:
-          type: boolean
-        apiVersion:
-          type: string
-          enum:
-            - v1
-            - v2
-            - v3
-        secret:
-          type: string
-          pattern: 'whsec_^\[a-z0-9]{24}$'
-        topics:
-          type: array
-          items:
-            type: string
-            enum:
-              - job.create
-              - job.update
-              - delivery.update
-              - delivery.create
-              - driver.update
   parameters:
-    WebhookId:
-      in: "path"
-      name: "webhook_id"
-      description: "id of the webhook"
-      required: true
-      schema:
-        type: "string"
-        example: "we_Lse7SSX7XsD0mfY4"
     JobId:
       in: "path"
       name: "job_id"
@@ -408,8 +363,7 @@ components:
             packagePickupEndTime: "2021-09-30T15:21:14+0000"
             packageDescription: "Xbox One S Console"
             drops:
-              - dropoffAddress: "35 Forresters Apartments 42 Linton Road, Barking, England,\
-                \ IG11 8FS"
+              - dropoffAddress: "35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS"
                 dropoffAddressLine1: "42 Linton Road"
                 dropoffAddressLine2: "35 Forresters Apartments"
                 dropoffCity: "Barking"
@@ -457,8 +411,7 @@ components:
             packagePickupEndTime: "2021-09-30T15:21:14+0000"
             packageDescription: "Xbox One S Console"
             drops:
-              - dropoffAddress: "35 Forresters Apartments 42 Linton Road, Barking, England,\
-                \ IG11 8FS"
+              - dropoffAddress: "35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS"
                 dropoffAddressLine1: "42 Linton Road"
                 dropoffAddressLine2: "35 Forresters Apartments"
                 dropoffCity: "Barking"
@@ -503,27 +456,6 @@ components:
             packageWeight: 20
             vehicleType: "BIC"
             itemsCount: 1
-    createWebhookRequest:
-      description: "Request body for creating a webhook"
-      content:
-        application/json:
-          schema:
-            type: "object"
-            required:
-              - "endpointURL"
-            properties:
-              endpointURL:
-                type: "string"
-              topics:
-                type: "array"
-                items:
-                  type: "string"
-                  enum:
-                    - "job.create"
-                    - "job.update"
-                    - "delivery.update"
-                    - "delivery.create"
-                    - "driver.update"
   responses:
     createJobResponse:
       description: "The created job"
@@ -562,8 +494,7 @@ components:
                   orderReference: "SECONDS-ORDER#USF1P26J78DFAO78"
                   description: "Xbox One S Console"
                   dropoffLocation:
-                    fullAddress: "35 Forresters Apartments 42 Linton Road, Barking,\
-                    \ England, IG11 8FS"
+                    fullAddress: "35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS"
                     streetAddress: "42 Linton Road"
                     city: "Barking"
                     postcode: "IG11 8FS"
@@ -644,8 +575,7 @@ components:
                   orderReference: "SECONDS-ORDER#USF1P26J78DFAO78"
                   description: "Xbox One S Console"
                   dropoffLocation:
-                    fullAddress: "35 Forresters Apartments 42 Linton Road, Barking,\
-                    \ England, IG11 8FS"
+                    fullAddress: "35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS"
                     streetAddress: "42 Linton Road"
                     city: "Barking"
                     postcode: "IG11 8FS"
@@ -766,8 +696,7 @@ components:
                   orderReference: "SECONDS-Order#USF1P26J78DFAO78"
                   description: "Xbox One S Console"
                   dropoffLocation:
-                    fullAddress: "35 Forresters Apartments 42 Linton Road, Barking,\
-                    \ England, IG11 8FS"
+                    fullAddress: "35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS"
                     streetAddress: "42 Linton Road"
                     city: "Barking"
                     postcode: "IG11 8FS"
@@ -848,8 +777,7 @@ components:
                   orderReference: "SECONDS-Order#USF1P26J78DFAO78"
                   description: "Xbox One S Console"
                   dropoffLocation:
-                    fullAddress: "35 Forresters Apartments 42 Linton Road, Barking,\
-                    \ England, IG11 8FS"
+                    fullAddress: "35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS"
                     streetAddress: "42 Linton Road"
                     city: "Barking"
                     postcode: "IG11 8FS"
@@ -904,8 +832,7 @@ components:
             jobId: "61570d979250d1aaa8daca82"
             cancelled: true
     quotesResponse:
-      description: "List of quotes and the best quote based on the user's delivery\
-        \ strategy"
+      description: "List of quotes and the best quote based on the user's delivery strategy"
       content:
         application/json:
           schema:
@@ -949,59 +876,6 @@ components:
               expireTime: "2021-10-03T15:39:33.339Z"
               priceExVAT: 11.9
               providerId: "stuart"
-    webhookResponse:
-      description: "Webhook object"
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Webhook"
-          example:
-            webhookId: "we_Lse7SSX7XsD0mfY4"
-            endpointURL: "https://example.com/test/webhook"
-            clientId: "6183ec84fdee6e0004c46d54"
-            lastUsed: "2022-01-13T16:56:01.515Z"
-            isBroken: false
-            apiVersion: "v1"
-            secret: "whsec_BGddTHTiNpIpT3KNuqeLHzfv"
-            topics:
-              - "job.create"
-              - "job.update"
-              - "driver.update"
-    webhookListResponse:
-      description: "List of webhook objects"
-      content:
-        application/json:
-          schema:
-            type: "object"
-            properties:
-              quotes:
-                type: "array"
-                items:
-                  $ref: "#/components/schemas/Webhook"
-          example:
-            webhooks:
-              - webhookId: "we_Lse7SSX7XsD0mfY4"
-                endpointURL: "https://example.com/test/webhook"
-                clientId: "6183ec84fdee6e0004c46d54"
-                lastUsed: "2022-01-13T16:56:01.515Z"
-                isBroken: "false"
-                apiVersion: "v1"
-                secret: "whsec_BGddTHTiNpIpT3KNuqeLHzfv"
-                topics:
-                  - "job.create"
-                  - "job.update"
-                  - "driver.update"
-              - webhookId: "we_IdAKeKAh0KEGGANE"
-                endpointURL: "https://example.com/test/webhook"
-                clientId: "6183ec84fdee6e0004c46d54"
-                lastUsed: "2022-01-13T16:56:01.515Z"
-                isBroken: "false"
-                apiVersion: "v1"
-                secret: "whsec_BGddTHTiNpIpT3KNuqeLHzfv"
-                topics:
-                  - "job.create"
-                  - "job.update"
-                  - "driver.update"
     "401Unauthorized":
       description: "The API key is missing in the request"
       content:
@@ -1029,24 +903,6 @@ components:
           example:
             code: 404
             message: "No job found with ID: job_SKDo1qRpUveLU8@NWZ3:ofsC"
-    "404EmailNotFound":
-      description: "No user found with a matching email address"
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Error"
-          example:
-            code: 404
-            message: "No user exists with email: test@example.com"
-    "404WebhookNotFound":
-      description: "The requested webhook could not be found"
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Error"
-          example:
-            code: 404
-            message: "No webhook found with ID: we_IdAKeKAh0KEGGANE"
 security:
   - ApiKeyAuth: []
 tags:
@@ -1055,7 +911,6 @@ tags:
     description: "API endpoints for delivery jobs"
   - name: "Quotes"
     description: "API endpoints for delivery quotes"
-  - name: "Webhooks"
 paths:
   /api/v1/token:
     post:
@@ -1168,8 +1023,7 @@ paths:
                     deliveries:
                       - description: "Xbox One S Console"
                         dropoffLocation:
-                          fullAddress: "35 Forresters Apartments 42 Linton Road, Barking,\
-                        \ England, IG11 8FS"
+                          fullAddress: "35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS"
                           streetAddress: "42 Linton Road"
                           city: "Barking"
                           postcode: "IG11 8FS"
@@ -1233,8 +1087,7 @@ paths:
                     deliveries:
                       - description: "Xbox One S Console"
                         dropoffLocation:
-                          fullAddress: "35 Forresters Apartments 42 Linton Road, Barking,\
-                        \ England, IG11 8FS"
+                          fullAddress: "35 Forresters Apartments 42 Linton Road, Barking, England, IG11 8FS"
                           streetAddress: "42 Linton Road"
                           city: "Barking"
                           postcode: "IG11 8FS"
@@ -1271,15 +1124,14 @@ paths:
                         providerId: "gophr"
                   status: "DISPATCHING"
         "400":
-          description: "email paramenter missing from the endpoint URL"
+          description: "email parameter missing from the endpoint URL"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
               example:
                 code: 400
-                message: "'email' parameter missing. Please append your email address\
-                  \ as a query parameter"
+                message: "'email' parameter missing. Please append your email address as a query parameter"
         "401":
           $ref: "#/components/responses/401Unauthorized"
         "403":
@@ -1297,8 +1149,7 @@ paths:
     post:
       tags:
         - "Jobs"
-      description: "Creates a new delivery job. Delivery jobs are assigned with a\
-        \ status to indicate the stage of the delivery process"
+      description: "Creates a new delivery job. Delivery jobs are assigned with a status to indicate the stage of the delivery process"
       summary: "API endpoint for creating new delivery jobs."
       requestBody:
         $ref: "#/components/requestBodies/createJobRequest"
@@ -1314,8 +1165,7 @@ paths:
       tags:
         - "Jobs"
       summary: "API endpoint for creating a multi drop job."
-      description: "Create a delivery job with multiple dropoffs. A maximum of 8 dropoffs\
-        \ are allowed"
+      description: "Create a delivery job with multiple dropoffs. A maximum of 8 dropoffs are allowed"
       requestBody:
         $ref: "#/components/requestBodies/multiDropJobRequest"
       responses:
@@ -1380,10 +1230,7 @@ paths:
     post:
       tags:
         - "Quotes"
-      description: "Returns a list of delivery quotes for a specified delivery. Each\
-        \ quote includes the delivery price, the dropoff ETA, and the fleet provider.\
-        \ Response also includes the best quote according to the client's delivery\
-        \ strategy"
+      description: "Returns a list of delivery quotes for a specified delivery. Each quote includes the delivery price, the dropoff ETA, and the fleet provider. Response also includes the best quote according to the client's delivery strategy"
       summary: "API endpoint for getting delivery quotes"
       requestBody:
         $ref: "#/components/requestBodies/createJobRequest"
@@ -1394,90 +1241,3 @@ paths:
           $ref: "#/components/responses/401Unauthorized"
         "403":
           $ref: "#/components/responses/403Forbidden"
-  /api/v1/webhooks:
-    post:
-      tags:
-        - "Webhooks"
-      description: "Creates webhook subscription to receiving delivery update for\
-        \ your orders. Updates are sent directly to the endpoint URL you provide as\
-        \ a JSON payload"
-      summary: "API endpoint for creating a webhook"
-      requestBody:
-        $ref: "#/components/requestBodies/createWebhookRequest"
-      responses:
-        "200":
-          $ref: "#/components/responses/webhookResponse"
-        "401":
-          $ref: "#/components/responses/401Unauthorized"
-        "403":
-          $ref: "#/components/responses/403Forbidden"
-    get:
-      tags:
-        - "Webhooks"
-      description: "Lists all webhooks for a specific user account."
-      summary: "API endpoint for fetching all webhooks"
-      parameters:
-        - in: "query"
-          name: "email"
-          schema:
-            type: "string"
-          description: "client's email address"
-          example: "secondsdelivery@gmail.com"
-      responses:
-        "200":
-          $ref: "#/components/responses/webhookListResponse"
-        "401":
-          $ref: "#/components/responses/401Unauthorized"
-        "403":
-          $ref: "#/components/responses/403Forbidden"
-        "404":
-          $ref: "#/components/responses/404EmailNotFound"
-  /api/v1/webhooks/{webhook_id}:
-    get:
-      tags:
-        - "Webhooks"
-      description: "Fetch a particular webhook with the specified webhook id."
-      summary: "API endpoint for retrieving a webhook"
-      parameters:
-        - $ref: "#/components/parameters/WebhookId"
-      responses:
-        "200":
-          $ref: "#/components/responses/webhookResponse"
-        "401":
-          $ref: "#/components/responses/401Unauthorized"
-        "403":
-          $ref: "#/components/responses/403Forbidden"
-        "404":
-          $ref: "#/components/responses/404WebhookNotFound"
-    patch:
-      tags:
-        - "Webhooks"
-      description: "Use for updating a webhook's endpoint URL or subscribed topics."
-      summary: "API endpoint for updating a webhook"
-      parameters:
-        - $ref: "#/components/parameters/WebhookId"
-      responses:
-        "200":
-          $ref: "#/components/responses/webhookResponse"
-        "401":
-          $ref: "#/components/responses/401Unauthorized"
-        "403":
-          $ref: "#/components/responses/403Forbidden"
-        "404":
-          $ref: "#/components/responses/404WebhookNotFound"
-    delete:
-      tags:
-        - "Webhooks"
-      description: "Removes a specific webhook from a user's account."
-      summary: "API endpoint for deleting a webhook"
-      parameters:
-        - $ref: "#/components/parameters/WebhookId"
-      responses:
-        "200":
-          $ref: "#/components/responses/webhookResponse"
-        "401":
-          $ref: "#/components/responses/401Unauthorized"
-        "403":
-          $ref: "#/components/responses/403Forbidden"
-        "404":
-          $ref: "#/components/responses/404WebhookNotFound"
