@@ -705,6 +705,24 @@ components:
           example:
             code: 404
             message: 'No job found with ID: job_SKDo1qRpUveLU8@NWZ3:ofsC'
+    "404EmailNotFound":
+      description: "No user found with a matching email address"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: 404
+            message: "No user exists with email: test@example.com"
+    "404WebhookNotFound":
+      description: "The requested webhook could not be found"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: 404
+            message: "No webhook found with ID: we_IdAKeKAh0KEGGANE"
 security:
   - ApiKeyAuth: [ ]
 tags:
@@ -1079,7 +1097,7 @@ paths:
         "403":
           $ref: '#/components/responses/403Forbidden'
         '404':
-          $ref: '#/components/responses/404NotFound'
+          $ref: '#/components/responses/404EmailNotFound'
   '/api/v1/webhooks/{webhook_id}':
     get:
       tags:
@@ -1096,7 +1114,7 @@ paths:
         "403":
           $ref: '#/components/responses/403Forbidden'
         '404':
-          $ref: '#/components/responses/404NotFound'
+          $ref: '#/components/responses/404WebhookNotFound'
     patch:
       tags:
         - "Webhooks"
@@ -1112,7 +1130,7 @@ paths:
         "403":
           $ref: '#/components/responses/403Forbidden'
         '404':
-          $ref: '#/components/responses/404NotFound'
+          $ref: '#/components/responses/404WebhookNotFound'
     delete:
       tags:
         - "Webhooks"
@@ -1128,4 +1146,4 @@ paths:
         "403":
           $ref: '#/components/responses/403Forbidden'
         '404':
-          $ref: '#/components/responses/404NotFound'
+          $ref: '#/components/responses/404WebhookNotFound'
