@@ -1,5 +1,5 @@
 # Cancel Job
 
-{% swagger src="../../.gitbook/assets/doc.yaml" path="/api/v1/jobs/{job_id}" method="delete" %}
-[doc.yaml](../../.gitbook/assets/doc.yaml)
+{% swagger src="../../.gitbook/assets/doc (1).yaml" path="/api/v1/jobs/{job_id}" method="delete" %}
+[doc (1).yaml](<../../.gitbook/assets/doc (1).yaml>)
 {% endswagger %}
