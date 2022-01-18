@@ -974,7 +974,7 @@ components:
           schema:
             type: "object"
             properties:
-              quotes:
+              webhooks:
                 type: "array"
                 items:
                   $ref: "#/components/schemas/Webhook"
