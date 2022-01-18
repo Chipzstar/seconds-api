@@ -6,7 +6,7 @@ const moment = require('moment');
 const sendEmail = require('../services/email');
 const confirmCharge = require('../services/payments');
 const { v4: uuidv4 } = require('uuid');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const { sendWebhookUpdate } = require('../helpers');
 const router = express.Router();
 
 function translateGophrStatus(value) {
@@ -69,29 +69,6 @@ async function updateStatus(data) {
 			}
 		);
 		const user = await db.User.findOne({ _id: job.clientId });
-		/*if (finished && jobStatus === JOB_STATUS.COMPLETED) {
-			let idempotencyKey = uuidv4();
-			const paymentIntent = await stripe.paymentIntents.create(
-				{
-					amount: Math.round(price_gross * 100),
-					customer: user.stripeCustomerId,
-					currency: 'GBP',
-					setup_future_usage: 'off_session',
-					payment_method: user.paymentMethodId,
-					payment_method_types: ['card']
-				},
-				{
-					idempotencyKey
-				}
-			);
-			paymentIntentId = paymentIntent.id;
-			await db.Job.updateOne(
-				{ 'jobSpecification.id': JOB_ID },
-				{ paymentIntentId: paymentIntent.id },
-				{ new: true }
-			);
-			console.log('NEW PAYMENT INTENT:', paymentIntent);
-		}*/
 		if (jobStatus === JOB_STATUS.CANCELLED) {
 			console.log('User:', !!user);
 			// check if order status is cancelled and send out email to clients
@@ -112,7 +89,7 @@ async function updateStatus(data) {
 			await sendEmail(options);
 			console.log('CANCELLATION EMAIL SENT!');
 		}
-		return { jobStatus, isFinished: Number(finished) };
+		return job;
 	} catch (err) {
 		console.error(err);
 		throw err;
@@ -138,9 +115,7 @@ async function updateETA(data) {
 		);
 	}
 	// update the status for the current job
-	let {
-		_doc: { _id, ...job }
-	} = await db.Job.findOneAndUpdate(
+	let job = await db.Job.findOneAndUpdate(
 		{ 'jobSpecification.id': JOB_ID },
 		{
 			$set: {
@@ -149,25 +124,28 @@ async function updateETA(data) {
 			}
 		},
 		{
-			new: true,
-			sanitizeProjection: true
+			new: true
 		}
 	);
-	console.log(job);
-	return { pickup_eta, delivery_eta };
+	return job
 }
 
 router.post('/', async (req, res) => {
 	try {
 		// GOPHR
 		const { api_key, webhook_type, job_id } = req.body;
+		let job = null;
 		if (api_key === String(process.env.GOPHR_API_KEY)) {
 			if (webhook_type === WEBHOOK_TYPES.STATUS) {
-				let { jobStatus, isFinished } = await updateStatus(req.body);
-				console.log('--------------------------------');
-				console.log('NEW STATUS:', jobStatus);
-				console.log('--------------------------------');
-				if (isFinished && jobStatus === JOB_STATUS.COMPLETED) {
+				// update the status of the job in db and return it
+				job = await updateStatus(req.body);
+				console.log(job)
+				// define the topic name for the webhook
+				let topic = [JOB_STATUS.PENDING, JOB_STATUS.ACCEPTED].includes(req.body.status)
+					? 'job.create'
+					: 'job.update';
+				sendWebhookUpdate(job, topic).then().catch();
+				if (Number(req.body.finished) && req.body.status === JOB_STATUS.COMPLETED) {
 					let {
 						clientId,
 						commissionCharge,
@@ -190,11 +168,9 @@ router.post('/', async (req, res) => {
 						.catch(err => console.error(err));
 				}
 			} else if (webhook_type === WEBHOOK_TYPES.ETA) {
-				let jobETA = await updateETA(req.body);
-				console.log('--------------------------------');
-				console.log('NEW ETA:');
-				console.table(jobETA);
-				console.log('--------------------------------');
+				job = await updateETA(req.body);
+				console.log(job)
+				sendWebhookUpdate(job, "delivery.update").then().catch();
 			} else {
 				throw new Error(`Unknown webhook type, ${webhook_type}`);
 			}
