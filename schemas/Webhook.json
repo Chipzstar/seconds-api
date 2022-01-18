@@ -1,6 +1,9 @@
 {
   "type": "object",
   "properties": {
+	"webhookId": {
+	  "type": "string"
+	},
 	"endpointURL": {
 	  "type": "string",
 	  "pattern": "we_^\\[a-z0-9]{16}$"

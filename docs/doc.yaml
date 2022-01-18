@@ -28,8 +28,6 @@ components:
   schemas:
     DeliveryRequirements:
       $ref: "#/components/schemas/JobRequirements"
-    Job:
-      $ref: "#/components/schemas/Job_1"
     UpdateRequirements:
       $ref: "#/components/schemas/JobUpdateRequirements"
     DeletedJob:
@@ -41,10 +39,6 @@ components:
           type: "string"
         cancelled:
           type: "boolean"
-    Quote:
-      $ref: "#/components/schemas/Quote_1"
-    Webhook:
-      $ref: "#/components/schemas/Webhook_1"
     Error:
       type: "object"
       properties:
@@ -146,7 +140,7 @@ components:
         itemsCount:
           type: "integer"
           format: "int32"
-    Job_1:
+    Job:
       type: "object"
       properties:
         createdAt:
@@ -312,7 +306,7 @@ components:
         itemsCount:
           type: "integer"
           format: "int32"
-    Quote_1:
+    Quote:
       type: "object"
       properties:
         id:
@@ -339,38 +333,40 @@ components:
           minimum: 0
         providerId:
           type: "string"
-    Webhook_1:
-      type: "object"
+    Webhook:
+      type: object
       properties:
+        webhookId:
+          type: string
         endpointURL:
-          type: "string"
-          pattern: "we_^\\[a-z0-9]{16}$"
+          type: string
+          pattern: 'we_^\[a-z0-9]{16}$'
         clientId:
-          type: "string"
+          type: string
         lastUsed:
-          type: "string"
-          format: "date-time"
+          type: string
+          format: date-time
         isBroken:
-          type: "boolean"
+          type: boolean
         apiVersion:
-          type: "string"
+          type: string
           enum:
-            - "v1"
-            - "v2"
-            - "v3"
+            - v1
+            - v2
+            - v3
         secret:
-          type: "string"
-          pattern: "whsec_^\\[a-z0-9]{24}$"
+          type: string
+          pattern: 'whsec_^\[a-z0-9]{24}$'
         topics:
-          type: "array"
+          type: array
           items:
-            type: "string"
+            type: string
             enum:
-              - "job.create"
-              - "job.update"
-              - "delivery.update"
-              - "delivery.create"
-              - "driver.update"
+              - job.create
+              - job.update
+              - delivery.update
+              - delivery.create
+              - driver.update
   parameters:
     WebhookId:
       in: "path"
@@ -978,7 +974,7 @@ components:
           schema:
             type: "object"
             properties:
-              quotes:
+              webhooks:
                 type: "array"
                 items:
                   $ref: "#/components/schemas/Webhook"
@@ -1033,6 +1029,24 @@ components:
           example:
             code: 404
             message: "No job found with ID: job_SKDo1qRpUveLU8@NWZ3:ofsC"
+    "404EmailNotFound":
+      description: "No user found with a matching email address"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: 404
+            message: "No user exists with email: test@example.com"
+    "404WebhookNotFound":
+      description: "The requested webhook could not be found"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: 404
+            message: "No webhook found with ID: we_IdAKeKAh0KEGGANE"
 security:
   - ApiKeyAuth: []
 tags:
@@ -1417,7 +1431,7 @@ paths:
         "403":
           $ref: "#/components/responses/403Forbidden"
         "404":
-          $ref: "#/components/responses/404NotFound"
+          $ref: "#/components/responses/404EmailNotFound"
   /api/v1/webhooks/{webhook_id}:
     get:
       tags:
@@ -1434,7 +1448,7 @@ paths:
         "403":
           $ref: "#/components/responses/403Forbidden"
         "404":
-          $ref: "#/components/responses/404NotFound"
+          $ref: "#/components/responses/404WebhookNotFound"
     patch:
       tags:
         - "Webhooks"
@@ -1450,7 +1464,7 @@ paths:
         "403":
           $ref: "#/components/responses/403Forbidden"
         "404":
-          $ref: "#/components/responses/404NotFound"
+          $ref: "#/components/responses/404WebhookNotFound"
     delete:
       tags:
         - "Webhooks"
@@ -1466,4 +1480,4 @@ paths:
         "403":
           $ref: "#/components/responses/403Forbidden"
         "404":
-          $ref: "#/components/responses/404NotFound"
+          $ref: "#/components/responses/404WebhookNotFound"
