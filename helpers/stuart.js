@@ -98,10 +98,10 @@ async function updateJob(data) {
 				}
 			},
 			{
-				new: true
+				returnOriginal: false
 			}
 		);
-		console.log(job.jobSpecification);
+		console.log(job);
 		// add commission charge depending on payment plan
 		if (jobStatus === JOB_STATUS.COMPLETED) {
 			console.log('****************************************************************');
@@ -140,7 +140,7 @@ async function updateDelivery(data) {
 				}
 			},
 			{
-				new: true
+				returnOriginal: false
 			}
 		);
 		console.log(job);

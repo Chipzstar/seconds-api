@@ -1,4 +1,4 @@
-require('newrelic');
+process.env.NODE_ENV === 'production' && require('newrelic');
 require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -111,7 +111,7 @@ app.post('/test/webhook', async(req, res, next) => {
 		console.log("------------------------------------------------")
 		console.log("SIGNATURE", req.headers['x-seconds-signature'])
 		console.log("------------------------------------------------")
-	    console.log(req.body)
+	    console.log({status: req.body.status, deliveries: req.body.jobSpecification.deliveries})
 		res.status(200).json({success: true})
 	} catch (err) {
 	    console.error(err)
