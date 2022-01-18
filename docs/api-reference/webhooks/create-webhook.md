@@ -1,5 +1,5 @@
 # Create Webhook
 
-{% swagger src="../../.gitbook/assets/doc.yaml" path="undefined" method="undefined" %}
-[doc.yaml](../../.gitbook/assets/doc.yaml)
+{% swagger src="../../.gitbook/assets/doc (1).yaml" path="/api/v1/webhooks" method="post" %}
+[doc (1).yaml](<../../.gitbook/assets/doc (1).yaml>)
 {% endswagger %}
