@@ -60,7 +60,7 @@ app.use('/ping', (req, res) => {
 
 // CORE ROUTES
 app.use('/api/v1/token', authRoutes);
-app.use('/api/v1/webhooks', webhookRoutes);
+app.use('/api/v1/webhooks', validateApiKey, webhookRoutes);
 app.use('/api/v1/jobs', validateApiKey, jobRoutes);
 app.use('/api/v1/quotes', validateApiKey, quoteRoutes);
 
