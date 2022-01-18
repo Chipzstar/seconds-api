@@ -4,7 +4,7 @@
 
 The Job is the principal object you will have to deal with. You create a Job through the Seconds API so it can be accepted by a courier in order to handle your deliveries.
 
-When you [create-a-job.md](api-reference/jobs/create-a-job.md "mention"), you'll notice it must always contain at least one delivery. Deliveries will go through several status transitions until the Job ends. If your application is using you will receive a notification for each status change.
+When you [create-a-job.md](api-reference/jobs/create-a-job.md "mention"), you'll notice it must always contain at least one delivery. Deliveries will go through several status transitions until the Job ends.&#x20;
 
 ### List of available Job statuses
 
