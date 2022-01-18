@@ -216,7 +216,6 @@ async function updateDriverETA(data) {
 			}
 		)
 		console.log(!!job && job.status)
-		console.log(job.toObject())
 		return job.toObject()
 	} catch (err) {
 		console.error(err);

@@ -1934,8 +1934,9 @@ async function sendWebhookUpdate(payload, topic) {
 	try {
 		const clientId = payload.clientId;
 		const webhook = await db.Webhook.findOne({ clientId });
+		console.log(webhook)
 		// check if the current webhook topic is listed under the client's webhook topic list
-		if (Array.from(webhook.topics).includes(topic)) {
+		if (webhook && Array.from(webhook.topics).includes(topic)) {
 			const signature = generateSignature(payload, webhook.secret);
 			console.log('------------------------------------------');
 			console.log('SIGNATURE:', signature);
