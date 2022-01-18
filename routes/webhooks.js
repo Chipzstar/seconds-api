@@ -152,6 +152,10 @@ router.post('/', async (req, res) => {
 	}
 });
 
+/**
+ * List all webhooks for a given user
+ * @query {email} - email of the account to search from
+ */
 router.get('/', async (req, res) => {
 	try {
 		const { email } = req.query;
@@ -179,6 +183,7 @@ router.get('/', async (req, res) => {
 			  });
 	}
 });
+
 /**
  * Retrieve a specific webhook
  * @param {id} - the is of the webhook
