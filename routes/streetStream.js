@@ -5,6 +5,7 @@ const { JOB_STATUS, CANCELLATION_REASONS } = require('../constants/streetStream'
 const db = require('../models');
 const sendEmail = require('../services/email');
 const confirmCharge = require('../services/payments');
+const { sendWebhookUpdate } = require('../helpers');
 const router = express.Router();
 
 function translateStreetStreamStatus(value) {
@@ -53,7 +54,7 @@ async function update(data) {
 			{ new: true }
 		);
 		if (job) {
-			console.log(job);
+			console.log(job.toObject());
 			if (
 				jobStatus === JOB_STATUS.ADMIN_CANCELLED ||
 				jobStatus === JOB_STATUS.NO_RESPONSE ||
@@ -79,7 +80,7 @@ async function update(data) {
 				await sendEmail(options);
 				console.log('CANCELLATION EMAIL SENT!');
 			}
-			return jobStatus;
+			return job;
 		}
 		throw { status: 'NO_JOB_FOUND', message: `The jobId ${ID} does not exist` };
 	} catch (err) {
@@ -89,8 +90,9 @@ async function update(data) {
 
 router.post('/', async (req, res) => {
 	try {
-		let jobStatus = await update(req.body);
-		if (jobStatus === JOB_STATUS.COMPLETED_SUCCESSFULLY) {
+		let job = await update(req.body);
+		sendWebhookUpdate(job, "delivery.update").then(() => "STREET_STREAM JOB UPDATE SENT TO CLIENT").catch();
+		if (req.body.status === JOB_STATUS.COMPLETED_SUCCESSFULLY) {
 			let {
 				clientId,
 				commissionCharge,
@@ -115,7 +117,7 @@ router.post('/', async (req, res) => {
 		res.status(200).send({
 			success: true,
 			status: 'NEW_JOB_STATUS',
-			message: `Job status is now ${jobStatus}`
+			message: `Job status is now ${req.body.status}`
 		});
 	} catch (err) {
 		console.error(err);

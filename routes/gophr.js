@@ -144,7 +144,7 @@ router.post('/', async (req, res) => {
 				let topic = [JOB_STATUS.PENDING, JOB_STATUS.ACCEPTED].includes(req.body.status)
 					? 'job.create'
 					: 'job.update';
-				sendWebhookUpdate(job, topic).then(() => console.log("STATUS UPDATE DELIVERED TO CLIENT")).catch();
+				sendWebhookUpdate(job, topic).then(() => console.log("STATUS UPDATE DELIVERED TO CLIENT"))
 				if (Number(req.body.finished) && req.body.status === JOB_STATUS.COMPLETED) {
 					let {
 						clientId,
@@ -170,7 +170,7 @@ router.post('/', async (req, res) => {
 			} else if (webhook_type === WEBHOOK_TYPES.ETA) {
 				job = await updateETA(req.body);
 				console.log(job)
-				sendWebhookUpdate(job, "delivery.update").then(() => console.log("ETA UPDATE DELIVERED TO CLIENT")).catch();
+				sendWebhookUpdate(job, "delivery.update").then(() => console.log("ETA UPDATE DELIVERED TO CLIENT"))
 			} else {
 				throw new Error(`Unknown webhook type, ${webhook_type}`);
 			}
