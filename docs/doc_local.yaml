@@ -21,8 +21,7 @@ components:
       type: apiKey
       in: header
       name: X-Seconds-Api-Key
-      description: |-
-        After setting up a seconds account, you will be able to generate an api key through our dashboard. When making request to our endpoints. Please attach the field name `X-Seconds-Api-Key` to the request header passing your api key as its value.
+      description: "After setting up a seconds account, you will be able to generate an api key through our dashboard. When making request to our endpoints. Please attach the field name `X-Seconds-Api-Key` to the request header passing your api key as its value."
   schemas:
     DeliveryRequirements:
       $ref: ../schemas/JobRequirements.json
@@ -41,6 +40,8 @@ components:
           type: boolean
     Quote:
       $ref: ../schemas/Quote.json
+    Webhook:
+      $ref: ../schemas/Webhook.json
     Error:
       type: object
       properties:
@@ -49,6 +50,14 @@ components:
         message:
           type: string
   parameters:
+    WebhookId:
+      in: path
+      name: webhook_id
+      description: id of the webhook
+      required: true
+      schema:
+        type: string
+        example: 'we_Lse7SSX7XsD0mfY4'
     JobId:
       in: path
       name: job_id
@@ -175,6 +184,27 @@ components:
             packageWeight: 20
             vehicleType: "BIC"
             itemsCount: 1
+    createWebhookRequest:
+      description: Request body for creating a webhook
+      content:
+        application/json:
+          schema:
+            type: "object"
+            required:
+              - endpointURL
+            properties:
+              endpointURL:
+                type: "string"
+              topics:
+                type: "array"
+                items:
+                  type: "string"
+                  enum:
+                    - job.create
+                    - job.update
+                    - delivery.update
+                    - delivery.create
+                    - driver.update
   responses:
     createJobResponse:
       description: The created job
@@ -595,6 +625,59 @@ components:
               expireTime: '2021-10-03T15:39:33.339Z'
               priceExVAT: 11.9
               providerId: stuart
+    webhookResponse:
+      description: Webhook object
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Webhook'
+          example:
+            webhookId: 'we_Lse7SSX7XsD0mfY4'
+            endpointURL: 'https://example.com/test/webhook'
+            clientId: 6183ec84fdee6e0004c46d54
+            lastUsed: '2022-01-13T16:56:01.515Z'
+            isBroken: false
+            apiVersion: 'v1'
+            secret: 'whsec_BGddTHTiNpIpT3KNuqeLHzfv'
+            topics:
+              - job.create
+              - job.update
+              - driver.update
+    webhookListResponse:
+      description: List of webhook objects
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              quotes:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Webhook'
+          example:
+            webhooks:
+              - webhookId: 'we_Lse7SSX7XsD0mfY4'
+                endpointURL: 'https://example.com/test/webhook'
+                clientId: 6183ec84fdee6e0004c46d54
+                lastUsed: '2022-01-13T16:56:01.515Z'
+                isBroken: 'false'
+                apiVersion: v1
+                secret: whsec_BGddTHTiNpIpT3KNuqeLHzfv
+                topics:
+                  - job.create
+                  - job.update
+                  - driver.update
+              - webhookId: 'we_IdAKeKAh0KEGGANE'
+                endpointURL: 'https://example.com/test/webhook'
+                clientId: 6183ec84fdee6e0004c46d54
+                lastUsed: '2022-01-13T16:56:01.515Z'
+                isBroken: 'false'
+                apiVersion: v1
+                secret: whsec_BGddTHTiNpIpT3KNuqeLHzfv
+                topics:
+                  - job.create
+                  - job.update
+                  - driver.update
     401Unauthorized:
       description: The API key is missing in the request
       content:
@@ -630,6 +713,7 @@ tags:
     description: API endpoints for delivery jobs
   - name: Quotes
     description: API endpoints for delivery quotes
+  - name: Webhooks
 paths:
   /api/v1/token:
     post:
@@ -960,3 +1044,88 @@ paths:
           $ref: '#/components/responses/401Unauthorized'
         "403":
           $ref: '#/components/responses/403Forbidden'
+  /api/v1/webhooks:
+    post:
+      tags:
+        - "Webhooks"
+      description: "Creates webhook subscription to receiving delivery update for your orders. Updates are sent directly to the endpoint URL you provide as a JSON payload"
+      summary: "API endpoint for creating a webhook"
+      requestBody:
+        $ref: '#/components/requestBodies/createWebhookRequest'
+      responses:
+        200:
+          $ref: '#/components/responses/webhookResponse'
+        401:
+          $ref: '#/components/responses/401Unauthorized'
+        "403":
+          $ref: '#/components/responses/403Forbidden'
+    get:
+      tags:
+        - "Webhooks"
+      description: "Lists all webhooks for a specific user account."
+      summary: "API endpoint for fetching all webhooks"
+      parameters:
+        - in: query
+          name: email
+          schema:
+            type: string
+          description: client's email address
+          example: "secondsdelivery@gmail.com"
+      responses:
+        200:
+          $ref: '#/components/responses/webhookListResponse'
+        401:
+          $ref: '#/components/responses/401Unauthorized'
+        "403":
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+  '/api/v1/webhooks/{webhook_id}':
+    get:
+      tags:
+        - "Webhooks"
+      description: "Fetch a particular webhook with the specified webhook id."
+      summary: "API endpoint for retrieving a webhook"
+      parameters:
+        - $ref: '#/components/parameters/WebhookId'
+      responses:
+        200:
+          $ref: '#/components/responses/webhookResponse'
+        401:
+          $ref: '#/components/responses/401Unauthorized'
+        "403":
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+    patch:
+      tags:
+        - "Webhooks"
+      description: "Use for updating a webhook's endpoint URL or subscribed topics."
+      summary: "API endpoint for updating a webhook"
+      parameters:
+        - $ref: '#/components/parameters/WebhookId'
+      responses:
+        200:
+          $ref: '#/components/responses/webhookResponse'
+        401:
+          $ref: '#/components/responses/401Unauthorized'
+        "403":
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+    delete:
+      tags:
+        - "Webhooks"
+      description: "Removes a specific webhook from a user's account."
+      summary: "API endpoint for deleting a webhook"
+      parameters:
+        - $ref: '#/components/parameters/WebhookId'
+      responses:
+        200:
+          $ref: '#/components/responses/webhookResponse'
+        401:
+          $ref: '#/components/responses/401Unauthorized'
+        "403":
+          $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'

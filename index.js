@@ -70,7 +70,7 @@ app.use('/api/v1/gophr', gophrRoutes);
 app.use('/api/v1/ecofleet', ecoFleetRoutes);
 app.use('/api/v1/street-stream', streetStreamRoutes);
 
-//WEBHOOKS
+// E-COMMERCE WEBHOOKS
 app.use('/api/v1/shopify', shopifyRoutes);
 app.use('/api/v1/square', squareRoutes);
 app.use('/api/v1/woocommerce', woocommerceRoutes);

@@ -76,7 +76,7 @@ async function generatePayload(order, user) {
 			pickupBusinessName: user.company,
 			pickupFirstName: user.firstname,
 			pickupLastName: user.lastname,
-			pickupInstructions: order['note'] ? order['note'] : '',
+			pickupInstructions: '',
 			packagePickupStartTime: moment().add(45, 'minutes').format(),
 			packagePickupEndTime: undefined,
 			packageDeliveryType: 'ON_DEMAND',
@@ -96,12 +96,12 @@ async function generatePayload(order, user) {
 						: formattedAddress.postcode,
 					dropoffLongitude: formattedAddress.longitude,
 					dropoffLatitude: formattedAddress.latitude,
-					dropoffPhoneNumber: order['shipping_lines'][0].phone,
+					dropoffPhoneNumber: order['shipping_lines'][0].phone ? order['shipping_lines'][0].phone : order.shipping_address.phone,
 					dropoffEmailAddress: order.email ? order.email : order.customer.email,
 					dropoffBusinessName: order.shipping_address.company ? order.shipping_address.company : '',
 					dropoffFirstName: order.shipping_address.first_name,
 					dropoffLastName: order.shipping_address.last_name,
-					dropoffInstructions: order.customer['note'] ? order.customer['note'] : '',
+					dropoffInstructions: order['note'] ? order['note'] : order.customer['note'] ? order.customer['note'] : '',
 					packageDropoffEndTime: moment().add(200, 'minutes').format(),
 					packageDescription,
 					reference: genOrderReference()
@@ -161,7 +161,7 @@ router.post('/', async (req, res) => {
 			console.log('User Found:', !!user);
 			if (user) {
 				// CHECK if the incoming delivery is a local delivery
-				const isLocalDelivery = req.body['shipping_lines'][0].code === DELIVERY_METHODS.LOCAL;
+				const isLocalDelivery = req.body['shipping_lines'][0].code === DELIVERY_METHODS.LOCAL || req.body['tags'].includes(DELIVERY_METHODS.LOCAL);
 				const isSubscribed = !!user.subscriptionId & !!user.subscriptionPlan;
 				console.log('isLocalDelivery:', isLocalDelivery);
 				if (isLocalDelivery) {

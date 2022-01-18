@@ -1,0 +1,40 @@
+{
+  "type": "object",
+  "properties": {
+	"endpointURL": {
+	  "type": "string",
+	  "pattern": "we_^\\[a-z0-9]{16}$"
+	},
+	"clientId": {
+	  "type": "string"
+	},
+	"lastUsed": {
+	  "type": "string",
+	  "format": "date-time"
+	},
+	"isBroken": {
+	  "type": "boolean"
+	},
+	"apiVersion": {
+	  "type": "string",
+	  "enum": ["v1", "v2", "v3"]
+	},
+	"secret": {
+	  "type": "string",
+	  "pattern": "whsec_^\\[a-z0-9]{24}$"
+	},
+	"topics": {
+	  "type": "array",
+	  "items": {
+		"type": "string",
+		"enum": [
+		  "job.create",
+		  "job.update",
+		  "delivery.update",
+		  "delivery.create",
+		  "driver.update"
+		]
+	  }
+	}
+  }
+}
