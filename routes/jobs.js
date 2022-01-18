@@ -15,7 +15,7 @@ const {
 	genOrderReference,
 	providerCreateMultiJob,
 	sendNewJobEmails,
-	cancelOrder, geocodeAddress
+	cancelOrder, geocodeAddress, sendNewJobSMS
 } = require('../helpers');
 const { AUTHORIZATION_KEY, PROVIDER_ID, STATUS, COMMISSION, DELIVERY_TYPES, PROVIDERS } = require('../constants');
 const moment = require('moment');
@@ -250,8 +250,8 @@ router.post('/create', async (req, res) => {
 			console.log('======================================================================================');
 			// Append the selected provider job to the jobs database
 			const createdJob = await db.Job.create({ ...job, clientId, commissionCharge, paymentIntentId });
-			process.env.NEW_RELIC_APP_NAME === 'seconds-api' &&
-				sendNewJobEmails(team, job).then(res => console.log(res));
+			process.env.NEW_RELIC_APP_NAME === 'seconds-api' && sendNewJobEmails(team, job).then(res => console.log(res));
+			sendNewJobSMS(delivery.dropoffLocation.phoneNumber, job).then(() => console.log("SMS sent successfully!"))
 			return res.status(200).json({
 				jobId: createdJob._id,
 				...job

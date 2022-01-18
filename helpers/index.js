@@ -20,19 +20,27 @@ const {
 	STATUS,
 	COMMISSION
 } = require('../constants');
+// CONSTANTS
 const { STRATEGIES } = require('../constants/streetStream');
 const { ERROR_CODES: STUART_ERROR_CODES } = require('../constants/stuart');
 const { ERROR_CODES: GOPHR_ERROR_CODES } = require('../constants/gophr');
+// HELPERS
 const { updateHerokuConfigVar } = require('./heroku');
 const { getStuartAuthToken } = require('./stuart');
 const { authStreetStream } = require('./streetStream');
+// SERVICES
 const sendEmail = require('../services/email');
 const { v4: uuidv4 } = require('uuid');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const orderId = require('order-id')(process.env.UID_SECRET_KEY);
-
+// twilio client
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const TwilioClient = require('twilio')(accountSid, authToken, {
+	logLevel: 'debug'
+})
 // google maps api client
-const client = new Client();
+const GMapsClient = new Client();
 // setup axios instances
 const stuartAxios = axios.create();
 const streetStreamAxios = axios.create();
@@ -55,7 +63,7 @@ stuartAxios.interceptors.response.use(
 		) {
 			return getStuartAuthToken()
 				.then(token => {
-					setTimeout(() => updateHerokuConfigVar('STUART_API_KEY', token), 10000);
+					process.env.NODE_ENV !== 'production' && setTimeout(() => updateHerokuConfigVar('STUART_API_KEY', token), 10000);
 					error.config.headers['Authorization'] = `Bearer ${token}`;
 					return stuartAxios.request(error.config);
 				})
@@ -80,7 +88,7 @@ streetStreamAxios.interceptors.response.use(
 		if (error.response && error.response.status === 403) {
 			return authStreetStream()
 				.then(token => {
-					setTimeout(() => updateHerokuConfigVar('STREET_STREAM_API_KEY', token), 10000);
+					process.env.NODE_ENV !== 'production' && setTimeout(() => updateHerokuConfigVar('STREET_STREAM_API_KEY', token), 10000);
 					error.config.headers['Authorization'] = `Bearer ${token}`;
 					return streetStreamAxios.request(error.config);
 				})
@@ -161,7 +169,7 @@ async function calculateJobDistance(origin, destination, mode) {
 	console.log('DROPOFF:', destination);
 	try {
 		const distanceMatrix = (
-			await client.distancematrix({
+			await GMapsClient.distancematrix({
 				params: {
 					origins: [origin],
 					destinations: [destination],
@@ -1726,10 +1734,26 @@ async function sendNewJobEmails(team, job) {
 	}
 }
 
+async function sendNewJobSMS(phone, job){
+	try {
+	    const res = await TwilioClient.messages.create({
+		    body: 'Hello from NodeJs :)',
+		    from: '+15005550006',
+		    to: '+447523958055'
+	    })
+		console.log("******************************************")
+		console.log(res)
+		console.log("******************************************")
+	} catch (err) {
+	    console.error(err)
+		throw err
+	}
+}
+
 async function geocodeAddress(address) {
 	try {
 		const response = (
-			await client.geocode({
+			await GMapsClient.geocode({
 				params: {
 					address,
 					key: process.env.GOOGLE_MAPS_API_KEY
@@ -1979,6 +2003,7 @@ module.exports = {
 	providerCreatesJob,
 	providerCreateMultiJob,
 	sendNewJobEmails,
+	sendNewJobSMS,
 	setNextDayDeliveryTime,
 	checkMultiDropPrice,
 	cancelOrder,

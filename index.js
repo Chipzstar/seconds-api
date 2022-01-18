@@ -28,6 +28,7 @@ const { validateApiKey } = require('./middleware/auth');
 const app = express();
 const db = require('./models/index');
 const sendEmail = require('./services/email');
+const { sendNewJobSMS } = require('./helpers');
 
 app.set('port', process.env.PORT || port);
 
