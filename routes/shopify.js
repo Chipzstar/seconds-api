@@ -160,7 +160,7 @@ router.post('/', async (req, res) => {
 			console.log('User Found:', !!user);
 			if (user) {
 				// CHECK if the incoming delivery is a local delivery
-				const isLocalDelivery = req.body['shipping_lines'][0].code === DELIVERY_METHODS.LOCAL || req.body['tags'].includes(DELIVERY_METHODS.LOCAL);
+				const isLocalDelivery = req.body['shipping_lines'][0].code === DELIVERY_METHODS.LOCAL || req.body['tags'].includes(DELIVERY_METHODS.LOCAL.toUpperCase());
 				const isSubscribed = !!user.subscriptionId & !!user.subscriptionPlan;
 				console.log('isLocalDelivery:', isLocalDelivery);
 				if (isLocalDelivery) {
