@@ -1797,7 +1797,7 @@ function convertWeightToVehicleCode(total_weight) {
 	return { vehicleName, vehicleCode };
 }
 
-async function createEcommerceJob(type, id, payload, ecommerceIds, user) {
+async function createEcommerceJob(type, id, payload, ecommerceIds, user, domain) {
 	try {
 		let commissionCharge = false;
 		let paymentIntent;
@@ -1933,8 +1933,7 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user) {
 			email: 'chipzstar.dev@gmail.com',
 			name: 'Chisom Oguibe',
 			subject: `Failed ${type} order #${id}`,
-			text: `Job could not be created. Reason: ${err.message}`,
-			html: `<p>Job could not be created. Reason: ${err.message}</p>`
+			html: `<div><p>OrderId: ${id}</p><br/><p>${type} E-commerce Store: ${domain}</p><p>Job could not be created. <br/>Reason: ${err.message}</p></div>`
 		});
 		return err;
 	}

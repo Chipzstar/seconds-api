@@ -136,8 +136,7 @@ async function generatePayload(order, user) {
 			email: 'chipzstar.dev@gmail.com',
 			name: 'Chisom Oguibe',
 			subject: `Failed Squarespace order #${order.id}`,
-			text: `Job could not be created. Reason: ${err.message}`,
-			html: `<p>Job could not be created. Reason: ${err.message}</p>`
+			html: `<div><p>Order Id: ${order.id}</p><br/><p>Squarespace Account: ${user.squarespace.siteId}</p><p>Job could not be created. <br/>Reason: ${err.message}</p></div>`
 		});
 		console.error(err);
 		return err;
@@ -176,7 +175,7 @@ router.post('/', async (req, res) => {
 						generatePayload(order, user)
 							.then(payload => {
 								const ids = { squarespaceId: data['orderId'] };
-								createEcommerceJob('Squarespace', data['orderId'], payload, ids, user);
+								createEcommerceJob('Squarespace', data['orderId'], payload, ids, user, websiteId);
 							})
 							.catch(err => console.error(err));
 						res.status(200).json({

@@ -97,8 +97,7 @@ async function generatePayload(order, user) {
 			email: 'chipzstar.dev@gmail.com',
 			name: 'Chisom Oguibe',
 			subject: `Failed Woocommerce order #${order['order_key']}`,
-			text: `Job could not be created. Reason: ${err.message}`,
-			html: `<p>Job could not be created. Reason: ${err.message}</p>`
+			html: `<div><p>OrderId: ${order['order_key']}</p><br/><p>Woocommerce Domain: ${user.woocommerce.domain}</p><p>Job could not be created. <br/>Reason: ${err.message}</p></div>`
 		});
 		console.error(err);
 		return err;
@@ -130,7 +129,7 @@ router.post('/', async (req, res) => {
 					if (isSubscribed) {
 						generatePayload(req.body, user).then(payload => {
 							const ids = { shopifyId: null, woocommerceId: req.body['order_key']}
-							createEcommerceJob("WooCommerce", req.body['order_key'], payload, ids, user)
+							createEcommerceJob("WooCommerce", req.body['order_key'], payload, ids, user, domain)
 						}).catch(err => console.error(err));
 						res.status(200).json({
 							success: true,
