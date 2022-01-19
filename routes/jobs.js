@@ -93,6 +93,7 @@ router.post('/create', async (req, res) => {
 		const {
 			_id: clientId,
 			email,
+			company,
 			selectionStrategy,
 			stripeCustomerId,
 			paymentMethodId,
@@ -251,7 +252,7 @@ router.post('/create', async (req, res) => {
 			// Append the selected provider job to the jobs database
 			const createdJob = await db.Job.create({ ...job, clientId, commissionCharge, paymentIntentId });
 			process.env.NEW_RELIC_APP_NAME === 'seconds-api' && sendNewJobEmails(team, job).then(res => console.log(res));
-			sendNewJobSMS(delivery.dropoffLocation.phoneNumber, job).then(() => console.log("SMS sent successfully!"))
+			sendNewJobSMS(delivery.dropoffLocation.phoneNumber, job, { company, email }).then(() => console.log("SMS sent successfully!"))
 			return res.status(200).json({
 				jobId: createdJob._id,
 				...job
