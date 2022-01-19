@@ -121,7 +121,7 @@ async function updateJob(data) {
 				.then(res => console.log('Charge confirmed:', res))
 				.catch(err => console.error(err));
 			const template = `Your ${user.company} order has been delivered. Thanks for ordering with ${user.company}`
-			sendNewJobSMS(job.jobSpecification.deliveries.dropoffLocation.phoneNumber, template)
+			sendNewJobSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template)
 				.then(() => console.log("SMS sent successfully!"))
 		}
 		return job;
@@ -154,7 +154,7 @@ async function updateDelivery(data) {
 		if (deliveryStatus === DELIVERY_STATUS.DELIVERING){
 			const trackingMessage = job.jobSpecification.deliveries.trackingURL ? `\nTrack the delivery here: ${job.jobSpecification.deliveries.trackingURL}` : ""
 			const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`
-			sendNewJobSMS(job.jobSpecification.deliveries.dropoffLocation.phoneNumber, template)
+			sendNewJobSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template)
 				.then(() => console.log("SMS sent successfully!"))
 		}
 		// check if driver is waiting at dropoff
