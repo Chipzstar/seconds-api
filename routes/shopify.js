@@ -136,7 +136,7 @@ async function generatePayload(order, user) {
 			email: 'chipzstar.dev@gmail.com',
 			name: 'Chisom Oguibe',
 			subject: `Failed Shopify order #${order.id}`,
-			html: `<div><p>OrderId: ${order.id}</p><br/><p>Shopify Domain: ${user.shopify.domain}</p><p>Job could not be created. <br/>Reason: ${err.message}</p></div>`
+			html: `<div><p>Order Id: #${order.id}</p><p>Shopify Domain: ${user.shopify.domain}</p><p>Job could not be created. <br/>Reason: ${err.message}</p></div>`
 		});
 		console.error(err);
 		return err;

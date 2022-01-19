@@ -97,7 +97,7 @@ async function generatePayload(order, user) {
 			email: 'chipzstar.dev@gmail.com',
 			name: 'Chisom Oguibe',
 			subject: `Failed Woocommerce order #${order['order_key']}`,
-			html: `<div><p>OrderId: ${order['order_key']}</p><br/><p>Woocommerce Domain: ${user.woocommerce.domain}</p><p>Job could not be created. <br/>Reason: ${err.message}</p></div>`
+			html: `<div><p>OrderId: #${order['order_key']}</p><p>Woocommerce Domain: ${user.woocommerce.domain}</p><p>Job could not be created. <br/>Reason: ${err.message}</p></div>`
 		});
 		console.error(err);
 		return err;

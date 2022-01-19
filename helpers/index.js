@@ -1933,7 +1933,7 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, domain)
 			email: 'chipzstar.dev@gmail.com',
 			name: 'Chisom Oguibe',
 			subject: `Failed ${type} order #${id}`,
-			html: `<div><p>OrderId: ${id}</p><br/><p>${type} E-commerce Store: ${domain}</p><p>Job could not be created. <br/>Reason: ${err.message}</p></div>`
+			html: `<div><p>OrderId: ${id}</p><p>${type} E-commerce Store: ${domain}</p><p>Job could not be created. <br/>Reason: ${err.message}</p></div>`
 		});
 		return err;
 	}

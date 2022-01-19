@@ -136,7 +136,7 @@ async function generatePayload(order, user) {
 			email: 'chipzstar.dev@gmail.com',
 			name: 'Chisom Oguibe',
 			subject: `Failed Squarespace order #${order.id}`,
-			html: `<div><p>Order Id: ${order.id}</p><br/><p>Squarespace Account: ${user.squarespace.siteId}</p><p>Job could not be created. <br/>Reason: ${err.message}</p></div>`
+			html: `<div><p>Order Id: #${order.id}</p><p>Squarespace Account: ${user.squarespace.siteId}</p><p>Job could not be created. <br/>Reason: ${err.message}</p></div>`
 		});
 		console.error(err);
 		return err;
