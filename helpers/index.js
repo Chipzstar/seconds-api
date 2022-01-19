@@ -38,7 +38,7 @@ const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const TwilioClient = require('twilio')(accountSid, authToken, {
 	logLevel: 'debug'
-})
+});
 // google maps api client
 const GMapsClient = new Client();
 // setup axios instances
@@ -63,7 +63,8 @@ stuartAxios.interceptors.response.use(
 		) {
 			return getStuartAuthToken()
 				.then(token => {
-					process.env.NODE_ENV !== 'production' && setTimeout(() => updateHerokuConfigVar('STUART_API_KEY', token), 10000);
+					process.env.NODE_ENV !== 'production' &&
+						setTimeout(() => updateHerokuConfigVar('STUART_API_KEY', token), 10000);
 					error.config.headers['Authorization'] = `Bearer ${token}`;
 					return stuartAxios.request(error.config);
 				})
@@ -88,7 +89,8 @@ streetStreamAxios.interceptors.response.use(
 		if (error.response && error.response.status === 403) {
 			return authStreetStream()
 				.then(token => {
-					process.env.NODE_ENV !== 'production' && setTimeout(() => updateHerokuConfigVar('STREET_STREAM_API_KEY', token), 10000);
+					process.env.NODE_ENV !== 'production' &&
+						setTimeout(() => updateHerokuConfigVar('STREET_STREAM_API_KEY', token), 10000);
 					error.config.headers['Authorization'] = `Bearer ${token}`;
 					return streetStreamAxios.request(error.config);
 				})
@@ -1734,19 +1736,19 @@ async function sendNewJobEmails(team, job) {
 	}
 }
 
-async function sendNewJobSMS(phone, trackingURL, client){
+async function sendNewJobSMS(phone, trackingURL, client) {
 	try {
-	    const res = await TwilioClient.messages.create({
-		    body: `Your ${client.company}} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today. \nTrack your delivery here: ${trackingURL}`,
-		    from: '+19362462775',
-		    to: phone
-	    })
-		console.log("******************************************")
-		console.log(res)
-		console.log("******************************************")
+		const res = await TwilioClient.messages.create({
+			body: `Your ${client.company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today. \nTrack your delivery here: ${trackingURL}`,
+			from: '+19362462775',
+			to: phone
+		});
+		console.log('******************************************');
+		console.log(res);
+		console.log('******************************************');
 	} catch (err) {
-	    console.error(err)
-		throw err
+		console.error(err);
+		throw err;
 	}
 }
 
@@ -1958,9 +1960,9 @@ async function sendWebhookUpdate(payload, topic) {
 	try {
 		const clientId = payload.clientId;
 		const webhook = await db.Webhook.findOne({ clientId });
-		console.log("---------------------------------")
-		console.log("WEBHOOK:", webhook ? webhook.webhookId : webhook)
-		console.log("----------------------------------")
+		console.log('---------------------------------');
+		console.log('WEBHOOK:', webhook ? webhook.webhookId : webhook);
+		console.log('----------------------------------');
 		// check if the current webhook topic is listed under the client's webhook topic list
 		if (webhook && Array.from(webhook.topics).includes(topic)) {
 			const signature = generateSignature(payload, webhook.secret);
