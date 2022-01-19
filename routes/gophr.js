@@ -72,7 +72,7 @@ async function updateStatus(data) {
 		// check if job is en-route, send en-route SMS
 		if (jobStatus === JOB_STATUS.EN_ROUTE) {
 			const trackingMessage = job.jobSpecification.deliveries[0].trackingURL
-				? `\nTrack the delivery here: ${job.jobSpecification.deliveries.trackingURL}`
+				? `\nTrack the delivery here: ${job.jobSpecification.deliveries[0].trackingURL}`
 				: '';
 			const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`;
 			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template).then(() =>
