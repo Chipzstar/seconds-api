@@ -1738,8 +1738,9 @@ async function sendNewJobEmails(team, job) {
 
 async function sendNewJobSMS(phone, trackingURL, client) {
 	try {
-		const res = await TwilioClient.messages.create({
-			body: `Your ${client.company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today. \nTrack your delivery here: ${trackingURL}`,
+		const trackingMessage = trackingURL ? `\nTrack your delivery here: ${trackingURL}` : ""
+ 		const res = await TwilioClient.messages.create({
+			body: `Your ${client.company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today. ${trackingMessage}`,
 			from: '+19362462775',
 			to: phone
 		});
