@@ -5,8 +5,9 @@ const db = require('../models');
 const moment = require('moment');
 const sendEmail = require('../services/email');
 const confirmCharge = require('../services/payments');
+const sendSMS = require('../services/sms');
 const { v4: uuidv4 } = require('uuid');
-const { sendWebhookUpdate, sendNewJobSMS } = require('../helpers');
+const { sendWebhookUpdate } = require('../helpers');
 const router = express.Router();
 
 function translateGophrStatus(value) {
@@ -74,7 +75,7 @@ async function updateStatus(data) {
 				? `\nTrack the delivery here: ${job.jobSpecification.deliveries.trackingURL}`
 				: '';
 			const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`;
-			sendNewJobSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template).then(() =>
+			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template).then(() =>
 				console.log('SMS sent successfully!')
 			);
 		}
@@ -176,7 +177,7 @@ router.post('/', async (req, res) => {
 						.then(res => console.log('Charge confirmed:', res))
 						.catch(err => console.error(err));
 					const template = `Your ${company} order has been delivered. Thanks for ordering with ${company}!`;
-					sendNewJobSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template).then(() =>
+					sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template).then(() =>
 						console.log('SMS sent successfully!')
 					);
 				}

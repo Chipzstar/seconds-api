@@ -15,7 +15,8 @@ const {
 	genOrderReference,
 	providerCreateMultiJob,
 	sendNewJobEmails,
-	cancelOrder, geocodeAddress, sendNewJobSMS
+	cancelOrder,
+	geocodeAddress
 } = require('../helpers');
 const { AUTHORIZATION_KEY, PROVIDER_ID, STATUS, COMMISSION, DELIVERY_TYPES, PROVIDERS } = require('../constants');
 const moment = require('moment');
@@ -25,6 +26,7 @@ const router = express.Router();
 const orderId = require('order-id')(process.env.UID_SECRET_KEY);
 const { v4: uuidv4 } = require('uuid');
 const sendEmail = require('../services/email');
+const sendSMS = require('../services/sms');
 
 /**
  * List Jobs - The API endpoint for listing all jobs currently belonging to a user
@@ -112,13 +114,17 @@ router.post('/create', async (req, res) => {
 			vehicleSpecs.travelMode
 		);
 		// get geo-coordinates of pickup + dropoff locations (if not passed in the request)
-		if(!(req.body.pickupLatitude && req.body.pickupLongitude)){
-			let { formattedAddress: { longitude, latitude } } = await geocodeAddress(req.body.pickupAddress)
+		if (!(req.body.pickupLatitude && req.body.pickupLongitude)) {
+			let {
+				formattedAddress: { longitude, latitude }
+			} = await geocodeAddress(req.body.pickupAddress);
 			req.body.pickupLatitude = latitude;
 			req.body.pickupLongitude = longitude;
 		}
-		if(!(req.body.drops[0].dropoffLatitude && !req.body.drops[0].dropoffLongitude)){
-			const { formattedAddress: { longitude, latitude } } = await geocodeAddress(req.body.drops[0].dropoffAddress)
+		if (!(req.body.drops[0].dropoffLatitude && !req.body.drops[0].dropoffLongitude)) {
+			const {
+				formattedAddress: { longitude, latitude }
+			} = await geocodeAddress(req.body.drops[0].dropoffAddress);
 			req.body.drops[0].dropoffLatitude = latitude;
 			req.body.drops[0].dropoffLongitude = longitude;
 		}
@@ -135,7 +141,7 @@ router.post('/create', async (req, res) => {
 				req.body.packagePickupStartTime,
 				deliveryHours
 			);
-			console.table({nextDayPickup, nextDayDropoff})
+			console.table({ nextDayPickup, nextDayDropoff });
 			req.body.packageDeliveryType = 'NEXT_DAY';
 			req.body.packagePickupStartTime = nextDayPickup;
 			req.body.drops[0].packageDropoffEndTime = nextDayDropoff;
@@ -146,9 +152,9 @@ router.post('/create', async (req, res) => {
 		// checks if the fleet provider for the delivery was manually selected or not
 		let providerId, winnerQuote;
 		if (!bestQuote) {
-			const error = new Error('No couriers available at this time. Please try again later!')
-			error.status = 500
-			throw error
+			const error = new Error('No couriers available at this time. Please try again later!');
+			error.status = 500;
+			throw error;
 		} else if (selectedProvider === undefined) {
 			providerId = bestQuote.providerId;
 			winnerQuote = bestQuote.id;
@@ -251,10 +257,14 @@ router.post('/create', async (req, res) => {
 			console.log('======================================================================================');
 			// Append the selected provider job to the jobs database
 			const createdJob = await db.Job.create({ ...job, clientId, commissionCharge, paymentIntentId });
-			process.env.NEW_RELIC_APP_NAME === 'seconds-api' && sendNewJobEmails(team, job).then(res => console.log(res));
-			const trackingMessage = delivery.trackingURL ? `\n\nTrack your delivery here: ${delivery.trackingURL}` : ""
-			const template = `Your ${company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today. ${trackingMessage}`
-			process.env.NODE_ENV === 'production' && sendNewJobSMS(delivery.dropoffLocation.phoneNumber, template).then(() => console.log("SMS sent successfully!"))
+			process.env.NEW_RELIC_APP_NAME === 'seconds-api' &&
+				sendNewJobEmails(team, job).then(res => console.log(res));
+			const trackingMessage = delivery.trackingURL ? `\n\nTrack your delivery here: ${delivery.trackingURL}` : '';
+			const template = `Your ${company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today. ${trackingMessage}`;
+			process.env.NODE_ENV === 'production' &&
+				sendSMS(delivery.dropoffLocation.phoneNumber, template).then(() =>
+					console.log('SMS sent successfully!')
+				);
 			return res.status(200).json({
 				jobId: createdJob._id,
 				...job

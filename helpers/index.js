@@ -33,12 +33,6 @@ const sendEmail = require('../services/email');
 const { v4: uuidv4 } = require('uuid');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const orderId = require('order-id')(process.env.UID_SECRET_KEY);
-// twilio client
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-const TwilioClient = require('twilio')(accountSid, authToken, {
-	logLevel: 'debug'
-});
 // google maps api client
 const GMapsClient = new Client();
 // setup axios instances
@@ -1736,22 +1730,6 @@ async function sendNewJobEmails(team, job) {
 	}
 }
 
-async function sendNewJobSMS(phone, template, sender='+19362462775') {
-	try {
- 		const res = await TwilioClient.messages.create({
-			body: template,
-			from: sender,
-			to: phone
-		});
-		console.log('******************************************');
-		console.log(res);
-		console.log('******************************************');
-	} catch (err) {
-		console.error(err);
-		throw err;
-	}
-}
-
 async function geocodeAddress(address) {
 	try {
 		const response = (
@@ -2005,7 +1983,6 @@ module.exports = {
 	providerCreatesJob,
 	providerCreateMultiJob,
 	sendNewJobEmails,
-	sendNewJobSMS,
 	setNextDayDeliveryTime,
 	checkMultiDropPrice,
 	cancelOrder,
