@@ -261,10 +261,7 @@ router.post('/create', async (req, res) => {
 				sendNewJobEmails(team, job).then(res => console.log(res));
 			const trackingMessage = delivery.trackingURL ? `\n\nTrack your delivery here: ${delivery.trackingURL}` : '';
 			const template = `Your ${company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today. ${trackingMessage}`;
-			process.env.NODE_ENV === 'production' &&
-				sendSMS(delivery.dropoffLocation.phoneNumber, template).then(() =>
-					console.log('SMS sent successfully!')
-				);
+			sendSMS(delivery.dropoffLocation.phoneNumber, template).then(() => console.log('SMS sent successfully!'));
 			return res.status(200).json({
 				jobId: createdJob._id,
 				...job

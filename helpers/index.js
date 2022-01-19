@@ -31,6 +31,7 @@ const { authStreetStream } = require('./streetStream');
 // SERVICES
 const sendEmail = require('../services/email');
 const { v4: uuidv4 } = require('uuid');
+const sendSMS = require('../services/sms');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const orderId = require('order-id')(process.env.UID_SECRET_KEY);
 // google maps api client
@@ -1922,6 +1923,9 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user) {
 		const createdJob = await db.Job.create({ ...job, clientId, commissionCharge, paymentIntentId });
 		console.log(createdJob);
 		await sendNewJobEmails(user.team, job);
+		const trackingMessage = delivery.trackingURL ? `\n\nTrack your delivery here: ${delivery.trackingURL}` : '';
+		const template = `Your ${user.company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today. ${trackingMessage}`;
+		await sendSMS(delivery.dropoffLocation.phoneNumber, template)
 		return true;
 	} catch (err) {
 		console.error(err);

@@ -5,16 +5,15 @@ const TwilioClient = require('twilio')(accountSid, authToken, {
 	logLevel: 'debug'
 });
 
-const sendSMS = async (phone, template, sender='+19362462775') => {
+const sendSMS = async (phone, template) => {
 	try {
-		const res = await TwilioClient.messages.create({
+		let sender = process.env.TWILIO_SERVICE_NUMBER
+		process.env.NODE_ENV === 'production' && await TwilioClient.messages.create({
 			body: template,
 			from: sender,
 			to: phone
 		});
-		console.log('******************************************');
-		console.log(res);
-		console.log('******************************************');
+		return true
 	} catch (err) {
 		console.error(err);
 		throw err;

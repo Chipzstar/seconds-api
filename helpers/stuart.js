@@ -102,7 +102,7 @@ async function updateJob(data) {
 				returnOriginal: false
 			}
 		);
-		console.log(job);
+		console.table({JOB_ID: job._id});
 		// add commission charge depending on payment plan
 		if (jobStatus === JOB_STATUS.COMPLETED) {
 			console.log('****************************************************************');
@@ -147,7 +147,7 @@ async function updateDelivery(data) {
 				returnOriginal: false
 			}
 		);
-		console.log(job);
+		console.table({JOB_ID: job._id});
 		const user = await db.User.findOne({ _id: job.clientId });
 		// check if the delivery status is "en-route"
 		if (deliveryStatus === DELIVERY_STATUS.DELIVERING){
@@ -179,8 +179,7 @@ async function updateDelivery(data) {
 					provider: `stuart`
 				}
 			};
-			await sendEmail(options);
-			console.log('CANCELLATION EMAIL SENT!');
+			sendEmail(options).then(() => console.log('CANCELLATION EMAIL SENT!'));
 		}
 		return job;
 	} catch (err) {
