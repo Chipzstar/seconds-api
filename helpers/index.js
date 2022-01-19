@@ -529,20 +529,21 @@ async function getStuartQuote(reference, params, vehicleSpecs) {
 		return quote;
 	} catch (err) {
 		err.response.data.data && console.log("STUART ERROR:", err.response.data.data)
+		console.log(Object.keys(err.response.data.data), !!Object.keys(err.response.data.data).includes('job.pickup_at'))
 		if (err.response.status === STUART_ERROR_CODES.UNPROCESSABLE_ENTITY) {
 			if (err.response.data.error === STUART_ERROR_CODES.RECORD_INVALID) {
 				if (Object.keys(err.response.data.data).includes('deliveries')) {
-					throw { code: err.response.status, message: err.response.data.data['deliveries'][1] };
+					throw { status: err.response.status, message: err.response.data.data['deliveries'][1] };
 				} else if (Object.keys(err.response.data.data).includes('job.pickup_at')) {
-					throw { code: err.response.status, message: err.response.data.data['job.pickup_at'][0] };
+					throw { status: err.response.status, message: err.response.data.data['job.pickup_at'][0] };
 				} else if (Object.keys(err.response.data.data).includes('pickup_at')) {
-					throw { code: err.response.status, message: err.response.data.data['pickup_at'][0] };
+					throw { status: err.response.status, message: err.response.data.data['pickup_at'][0] };
 				}
 			} else {
-				throw { code: err.response.status, ...err.response.data };
+				throw { status: err.response.status, ...err.response.data };
 			}
 		} else if (err.response.status === STUART_ERROR_CODES.INVALID_GRANT) {
-			throw { code: err.response.status, ...err.response.data };
+			throw { status: err.response.status, ...err.response.data };
 		} else {
 			throw err;
 		}
@@ -622,23 +623,23 @@ async function getGophrQuote(params, vehicleSpecs) {
 			return quote;
 		} else {
 			if (response.error.code === GOPHR_ERROR_CODES.ERROR_MAX_DISTANCE_EXCEEDED) {
-				throw { ...response.error, code: 400 };
+				throw { ...response.error, status: 400 };
 			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_SAME_LAT_LNG) {
-				throw { ...response.error, code: 400 };
+				throw { ...response.error, status: 400 };
 			} else if (response.error.code === GOPHR_ERROR_CODES.INVALID_GRANT) {
-				throw { ...response.error, code: 400 };
+				throw { ...response.error, status: 400 };
 			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_DISTANCE) {
-				throw { ...response.error, code: 400 };
+				throw { ...response.error, status: 400 };
 			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_PHONE_NUMBER) {
-				throw { ...response.error, code: 400 };
+				throw { ...response.error, status: 400 };
 			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_DATETIME_INCORRECT) {
-				throw { ...response.error, code: 400 };
+				throw { ...response.error, status: 400 };
 			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_PICKUP_ADDRESS_MISSING) {
-				throw { ...response.error, code: 400 };
+				throw { ...response.error, status: 400 };
 			} else if (response.error.code === GOPHR_ERROR_CODES.ERROR_DELIVERY_ADDRESS_MISSING) {
-				throw { ...response.error, code: 400 };
+				throw { ...response.error, status: 400 };
 			} else {
-				throw { ...response.error, code: 400 };
+				throw { ...response.error, status: 400 };
 			}
 		}
 	} catch (err) {

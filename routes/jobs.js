@@ -288,7 +288,7 @@ router.post('/create', async (req, res) => {
 		});
 		err.response ? console.error('ERROR:', err.response.data) : console.log('ERROR:', err);
 		if (err.message) {
-			return res.status(err.code).json({
+			return res.status(err.status).json({
 				error: err
 			});
 		}
@@ -451,7 +451,7 @@ router.post('/multi-drop', async (req, res) => {
 	} catch (err) {
 		err.response ? console.error('ERROR:', err.response.data) : console.log('ERROR:', err);
 		if (err.message) {
-			return res.status(err.code).json({
+			return res.status(err.status).json({
 				error: err
 			});
 		}
