@@ -105,11 +105,10 @@ async function updateJob(data) {
 		console.log(job);
 		// add commission charge depending on payment plan
 		if (jobStatus === JOB_STATUS.COMPLETED) {
-			const user = await db.User.findOne({ _id: job.clientId });
 			console.log('****************************************************************');
 			console.log('STUART JOB COMPLETEEEEEEE!');
 			console.log('****************************************************************');
-			let { stripeCustomerId, subscriptionItems } = await db.User.findOne({ _id: job.clientId }, {});
+			let { company, stripeCustomerId, subscriptionItems } = await db.User.findOne({ _id: job.clientId }, {});
 			confirmCharge(
 				stripeCustomerId,
 				subscriptionItems,
@@ -120,7 +119,7 @@ async function updateJob(data) {
 			)
 				.then(res => console.log('Charge confirmed:', res))
 				.catch(err => console.error(err));
-			const template = `Your ${user.company} order has been delivered. Thanks for ordering with ${user.company}`
+			const template = `Your ${company} order has been delivered. Thanks for ordering with ${company}`
 			sendNewJobSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template)
 				.then(() => console.log("SMS sent successfully!"))
 		}
