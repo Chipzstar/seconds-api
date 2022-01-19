@@ -77,6 +77,17 @@ app.use('/api/v1/square', squareRoutes);
 app.use('/api/v1/woocommerce', woocommerceRoutes);
 app.use('/api/v1/squarespace', squarespaceRoutes);
 
+// SERVICE WEBHOOKS
+app.post('/api/v1/twilio', async (req, res ) => {
+	try {
+	    console.log(req.body)
+		res.status(200).json(req.body)
+	} catch (err) {
+	    console.error(err)
+		throw err
+	}
+})
+
 // EMAIL
 app.post('/test/mail', async (req, res) => {
 	try {
