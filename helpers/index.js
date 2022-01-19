@@ -1959,7 +1959,7 @@ async function sendWebhookUpdate(payload, topic) {
 		const clientId = payload.clientId;
 		const webhook = await db.Webhook.findOne({ clientId });
 		console.log("---------------------------------")
-		console.log("WEBHOOK:", webhook)
+		console.log("WEBHOOK:", webhook ? webhook.webhookId : webhook)
 		console.log("----------------------------------")
 		// check if the current webhook topic is listed under the client's webhook topic list
 		if (webhook && Array.from(webhook.topics).includes(topic)) {
