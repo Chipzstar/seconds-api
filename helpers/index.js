@@ -387,6 +387,7 @@ async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance) {
 		}
 		return QUOTES;
 	} catch (err) {
+		console.error("getResultantQuotes function:", err)
 		throw err;
 	}
 }
@@ -527,8 +528,7 @@ async function getStuartQuote(reference, params, vehicleSpecs) {
 		console.log('----------------------------');
 		return quote;
 	} catch (err) {
-		console.error("STUART ERROR:", err.response);
-		err.response.data.data && console.log("DATA", err.response.data.data)
+		err.response.data.data && console.log("STUART ERROR:", err.response.data.data)
 		if (err.response.status === STUART_ERROR_CODES.UNPROCESSABLE_ENTITY) {
 			if (err.response.data.error === STUART_ERROR_CODES.RECORD_INVALID) {
 				if (Object.keys(err.response.data.data).includes('deliveries')) {
