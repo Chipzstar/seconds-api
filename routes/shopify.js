@@ -25,7 +25,6 @@ function validateDeliveryDate(date, time, deliveryHours) {
 		if (deliverTo.isValid() && deliverFrom.isValid()) {
 			// if deliverFrom time is in the past set it to be 20 minutes ahead of the current time
 			deliverFrom = deliverFrom.diff(moment()) < 0 ? moment().add(20, 'minutes') : deliverFrom;
-			deliverTo = deliverTo.diff(moment()) < 0 ? moment(deliverFrom).add(2, 'hours') : deliverTo;
 			return { deliverFrom, deliverTo, isValid: deliverTo.isValid() && deliverFrom.isValid() };
 		} else {
 			// else use the shop's delivery hours to set the pickup / dropoff time window
