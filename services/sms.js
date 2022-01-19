@@ -4,14 +4,19 @@ const authToken = process.env.TWILIO_AUTH_TOKEN;
 const TwilioClient = require('twilio')(accountSid, authToken, {
 	logLevel: 'debug'
 });
+const PNF = require('google-libphonenumber').PhoneNumberFormat
+const phoneUtil = require('google-libphonenumber').PhoneNumberUtil.getInstance()
 
 const sendSMS = async (phone, template) => {
 	try {
 		let sender = process.env.TWILIO_SERVICE_NUMBER
+		const number = phoneUtil.parseAndKeepRawInput(phone, 'GB');
+		const E164Number = phoneUtil.format(number, PNF.E164)
+		console.log("E164 Phone Number:", E164Number)
 		process.env.NODE_ENV === 'production' && await TwilioClient.messages.create({
 			body: template,
 			from: sender,
-			to: phone
+			to: E164Number
 		});
 		return true
 	} catch (err) {
