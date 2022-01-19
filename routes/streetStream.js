@@ -5,7 +5,7 @@ const { JOB_STATUS, CANCELLATION_REASONS } = require('../constants/streetStream'
 const db = require('../models');
 const sendEmail = require('../services/email');
 const confirmCharge = require('../services/payments');
-const { sendWebhookUpdate } = require('../helpers');
+const { sendWebhookUpdate, sendNewJobSMS } = require('../helpers');
 const router = express.Router();
 
 function translateStreetStreamStatus(value) {
@@ -53,13 +53,13 @@ async function update(data) {
 			{ new: true }
 		);
 		if (job) {
+			const user = await db.User.findOne({ _id: job.clientId });
+			console.log('User:', !!user);
 			if (
 				jobStatus === JOB_STATUS.ADMIN_CANCELLED ||
 				jobStatus === JOB_STATUS.NO_RESPONSE ||
 				jobStatus === JOB_STATUS.NOT_AS_DESCRIBED
 			) {
-				const user = await db.User.findOne({ _id: job.clientId });
-				console.log('User:', !!user);
 				// check if order status is cancelled and send out email to clients
 				let options = {
 					name: `${user.firstname} ${user.lastname}`,
@@ -77,6 +77,11 @@ async function update(data) {
 				};
 				await sendEmail(options);
 				console.log('CANCELLATION EMAIL SENT!');
+			} else if (jobStatus === JOB_STATUS.COLLECTED) {
+				const trackingMessage = job.jobSpecification.deliveries.trackingURL ? `\nTrack the delivery here: ${job.jobSpecification.deliveries.trackingURL}` : ""
+				const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`
+				sendNewJobSMS(job.jobSpecification.deliveries.dropoffLocation.phoneNumber, template)
+					.then(() => console.log("SMS sent successfully!"))
 			}
 			return job;
 		}
@@ -101,7 +106,7 @@ router.post('/', async (req, res) => {
 			console.log('****************************************************************');
 			console.log('STREET-STREAM DELIVERY COMPLETEEEEEEE!');
 			console.log('****************************************************************');
-			let { stripeCustomerId, subscriptionItems } = await db.User.findOne({ _id: clientId }, {});
+			let { company, stripeCustomerId, subscriptionItems } = await db.User.findOne({ _id: clientId }, {});
 			confirmCharge(
 				stripeCustomerId,
 				subscriptionItems,
@@ -112,6 +117,9 @@ router.post('/', async (req, res) => {
 			)
 				.then(res => console.log('Charge confirmed:', res))
 				.catch(err => console.error(err));
+			const template = `Your ${company} order has been delivered. Thanks for ordering with ${company}`
+			sendNewJobSMS(job.jobSpecification.deliveries.dropoffLocation.phoneNumber, template)
+				.then(() => console.log("SMS sent successfully!"))
 		}
 		res.status(200).send({
 			success: true,

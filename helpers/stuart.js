@@ -5,6 +5,7 @@ const { JOB_STATUS, DELIVERY_STATUS } = require('../constants/stuart');
 const axios = require('axios');
 const sendEmail = require('../services/email');
 const confirmCharge = require('../services/payments');
+const { sendNewJobSMS } = require('./index');
 
 async function getStuartAuthToken() {
 	const URL = `${process.env.STUART_ENV}/oauth/token`;
@@ -104,6 +105,7 @@ async function updateJob(data) {
 		console.log(job);
 		// add commission charge depending on payment plan
 		if (jobStatus === JOB_STATUS.COMPLETED) {
+			const user = await db.User.findOne({ _id: job.clientId });
 			console.log('****************************************************************');
 			console.log('STUART JOB COMPLETEEEEEEE!');
 			console.log('****************************************************************');
@@ -118,6 +120,9 @@ async function updateJob(data) {
 			)
 				.then(res => console.log('Charge confirmed:', res))
 				.catch(err => console.error(err));
+			const template = `Your ${user.company} order has been delivered. Thanks for ordering with ${user.company}`
+			sendNewJobSMS(job.jobSpecification.deliveries.dropoffLocation.phoneNumber, template)
+				.then(() => console.log("SMS sent successfully!"))
 		}
 		return job;
 	} catch (err) {
@@ -144,9 +149,18 @@ async function updateDelivery(data) {
 			}
 		);
 		console.log(job);
+		const user = await db.User.findOne({ _id: job.clientId });
+		// check if the delivery status is "en-route"
+		if (deliveryStatus === DELIVERY_STATUS.DELIVERING){
+			const trackingMessage = job.jobSpecification.deliveries.trackingURL ? `\nTrack the delivery here: ${job.jobSpecification.deliveries.trackingURL}` : ""
+			const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`
+			sendNewJobSMS(job.jobSpecification.deliveries.dropoffLocation.phoneNumber, template)
+				.then(() => console.log("SMS sent successfully!"))
+		}
+		// check if driver is waiting at dropoff
+
 		// check if order status is cancelled and send out email to clients
 		if (deliveryStatus === DELIVERY_STATUS.CANCELLED) {
-			const user = await db.User.findOne({ _id: job.clientId });
 			console.log('User:', !!user);
 			let { canceledBy, comment, reasonKey } = data.cancellation;
 			console.table(data.cancellation);

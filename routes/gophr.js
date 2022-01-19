@@ -6,7 +6,7 @@ const moment = require('moment');
 const sendEmail = require('../services/email');
 const confirmCharge = require('../services/payments');
 const { v4: uuidv4 } = require('uuid');
-const { sendWebhookUpdate } = require('../helpers');
+const { sendWebhookUpdate, sendNewJobSMS } = require('../helpers');
 const router = express.Router();
 
 function translateGophrStatus(value) {
@@ -39,7 +39,6 @@ async function updateStatus(data) {
 			status: jobStatus,
 			external_id: clientReference,
 			job_id: JOB_ID,
-			finished,
 			pickup_eta,
 			delivery_eta,
 			courier_name,
@@ -69,6 +68,16 @@ async function updateStatus(data) {
 			}
 		);
 		const user = await db.User.findOne({ _id: job.clientId });
+		// check if job is en-route, send en-route SMS
+		if (jobStatus === JOB_STATUS.EN_ROUTE) {
+			const trackingMessage = job.jobSpecification.deliveries.trackingURL
+				? `\nTrack the delivery here: ${job.jobSpecification.deliveries.trackingURL}`
+				: '';
+			const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`;
+			sendNewJobSMS(job.jobSpecification.deliveries.dropoffLocation.phoneNumber, template).then(() =>
+				console.log('SMS sent successfully!')
+			);
+		}
 		if (jobStatus === JOB_STATUS.CANCELLED) {
 			console.log('User:', !!user);
 			// check if order status is cancelled and send out email to clients
@@ -127,7 +136,7 @@ async function updateETA(data) {
 			new: true
 		}
 	);
-	return job
+	return job;
 }
 
 router.post('/', async (req, res) => {
@@ -139,12 +148,12 @@ router.post('/', async (req, res) => {
 			if (webhook_type === WEBHOOK_TYPES.STATUS) {
 				// update the status of the job in db and return it
 				job = await updateStatus(req.body);
-				console.log(job)
+				console.log(job);
 				// define the topic name for the webhook
 				let topic = [JOB_STATUS.PENDING, JOB_STATUS.ACCEPTED].includes(req.body.status)
 					? 'job.create'
 					: 'job.update';
-				sendWebhookUpdate(job, topic).then(() => console.log("STATUS UPDATE DELIVERED TO CLIENT"))
+				sendWebhookUpdate(job, topic).then(() => console.log('STATUS UPDATE DELIVERED TO CLIENT'));
 				if (Number(req.body.finished) && req.body.status === JOB_STATUS.COMPLETED) {
 					let {
 						clientId,
@@ -155,7 +164,7 @@ router.post('/', async (req, res) => {
 					console.log('****************************************************************');
 					console.log('GOPHR DELIVERY COMPLETEEEEEEE!');
 					console.log('****************************************************************');
-					let { stripeCustomerId, subscriptionItems } = await db.User.findOne({ _id: clientId }, {});
+					let { company, stripeCustomerId, subscriptionItems } = await db.User.findOne({ _id: clientId }, {});
 					confirmCharge(
 						stripeCustomerId,
 						subscriptionItems,
@@ -166,11 +175,15 @@ router.post('/', async (req, res) => {
 					)
 						.then(res => console.log('Charge confirmed:', res))
 						.catch(err => console.error(err));
+					const template = `Your ${company} order has been delivered. Thanks for ordering with ${company}!`;
+					sendNewJobSMS(job.jobSpecification.deliveries.dropoffLocation.phoneNumber, template).then(() =>
+						console.log('SMS sent successfully!')
+					);
 				}
 			} else if (webhook_type === WEBHOOK_TYPES.ETA) {
 				job = await updateETA(req.body);
-				console.log(job)
-				sendWebhookUpdate(job, "delivery.update").then(() => console.log("ETA UPDATE DELIVERED TO CLIENT"))
+				console.log(job);
+				sendWebhookUpdate(job, 'delivery.update').then(() => console.log('ETA UPDATE DELIVERED TO CLIENT'));
 			} else {
 				throw new Error(`Unknown webhook type, ${webhook_type}`);
 			}
