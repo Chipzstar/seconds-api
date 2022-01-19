@@ -1738,8 +1738,8 @@ async function sendNewJobSMS(phone, job, client){
 	try {
 	    const res = await TwilioClient.messages.create({
 		    body: `Your order from ${client.company} has been created! The driver will pick it up shortly`,
-		    to: '+19362462775',
-		    from: '+447523958055'
+		    from: '+19362462775',
+		    to: phone
 	    })
 		console.log("******************************************")
 		console.log(res)
