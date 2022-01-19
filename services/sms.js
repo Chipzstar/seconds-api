@@ -13,7 +13,7 @@ const sendSMS = async (phone, template) => {
 		const number = phoneUtil.parseAndKeepRawInput(phone, 'GB');
 		const E164Number = phoneUtil.format(number, PNF.E164)
 		console.log("E164 Phone Number:", E164Number)
-		process.env.NODE_ENV === 'production' && await TwilioClient.messages.create({
+		process.env.TWILIO_STATUS === 'active' && await TwilioClient.messages.create({
 			body: template,
 			from: sender,
 			to: E164Number
