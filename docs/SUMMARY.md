@@ -3,6 +3,7 @@
 * [About Seconds](README.md)
 * [Getting Started](getting-started.md)
 * [Job Statuses](job-statuses.md)
+* [Events & Webhooks](events-and-webhooks.md)
 
 ## API Reference
 
