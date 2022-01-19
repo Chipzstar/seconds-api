@@ -151,7 +151,7 @@ async function updateDelivery(data) {
 		const user = await db.User.findOne({ _id: job.clientId });
 		// check if the delivery status is "en-route"
 		if (deliveryStatus === DELIVERY_STATUS.DELIVERING){
-			const trackingMessage = job.jobSpecification.deliveries.trackingURL ? `\nTrack the delivery here: ${job.jobSpecification.deliveries.trackingURL}` : ""
+			const trackingMessage = job.jobSpecification.deliveries[0].trackingURL ? `\nTrack the delivery here: ${job.jobSpecification.deliveries.trackingURL}` : ""
 			const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`
 			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template)
 				.then(() => console.log("SMS sent successfully!"))
