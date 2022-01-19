@@ -531,11 +531,11 @@ async function getStuartQuote(reference, params, vehicleSpecs) {
 		err.response.data.data && console.log("DATA", err.response.data.data)
 		if (err.response.status === STUART_ERROR_CODES.UNPROCESSABLE_ENTITY) {
 			if (err.response.data.error === STUART_ERROR_CODES.RECORD_INVALID) {
-				if (err.response.data.data === 'deliveries') {
+				if (Object.keys(err.response.data.data).includes('deliveries')) {
 					throw { code: err.response.status, message: err.response.data.data['deliveries'][1] };
-				} else if (err.response.data.data === 'job.pickup_at') {
+				} else if (Object.keys(err.response.data.data).includes('job.pickup_at')) {
 					throw { code: err.response.status, message: err.response.data.data['job.pickup_at'][0] };
-				} else if (err.response.data.data === 'pickup_at') {
+				} else if (Object.keys(err.response.data.data).includes('pickup_at')) {
 					throw { code: err.response.status, message: err.response.data.data['pickup_at'][0] };
 				}
 			} else {
