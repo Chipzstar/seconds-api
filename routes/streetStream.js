@@ -5,7 +5,7 @@ const { JOB_STATUS, CANCELLATION_REASONS } = require('../constants/streetStream'
 const db = require('../models');
 const sendEmail = require('../services/email');
 const confirmCharge = require('../services/payments');
-const sendSMS = require('../services/sms')
+const sendSMS = require('../services/sms');
 const { sendWebhookUpdate } = require('../helpers');
 const router = express.Router();
 
@@ -79,10 +79,13 @@ async function update(data) {
 				await sendEmail(options);
 				console.log('CANCELLATION EMAIL SENT!');
 			} else if (jobStatus === JOB_STATUS.COLLECTED) {
-				const trackingMessage = job.jobSpecification.deliveries[0].trackingURL ? `\nTrack the delivery here: ${job.jobSpecification.deliveries[0].trackingURL}` : ""
-				const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`
-				sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template)
-					.then(() => console.log("SMS sent successfully!"))
+				const trackingMessage = job.jobSpecification.deliveries[0].trackingURL
+					? `\nTrack the delivery here: ${job.jobSpecification.deliveries[0].trackingURL}`
+					: '';
+				const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`;
+				sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template).then(() =>
+					console.log('SMS sent successfully!')
+				);
 			}
 			return job;
 		}
@@ -96,31 +99,32 @@ router.post('/', async (req, res) => {
 	try {
 		let job = await update(req.body);
 		console.log(job);
-		sendWebhookUpdate(job, "delivery.update").then(() => "STREET_STREAM JOB UPDATE SENT TO CLIENT").catch();
+		sendWebhookUpdate(job, 'delivery.update')
+			.then(() => 'STREET_STREAM JOB UPDATE SENT TO CLIENT')
+			.catch();
 		if (req.body.status === JOB_STATUS.COMPLETED_SUCCESSFULLY) {
 			let {
 				clientId,
 				commissionCharge,
-				paymentIntentId,
-				jobSpecification: { deliveryType, deliveries }
+				jobSpecification: { jobReference, deliveryType, deliveries },
+				selectedConfiguration: { deliveryFee }
 			} = await db.Job.findOne({ 'jobSpecification.id': req.body.jobId }, {});
 			console.log('****************************************************************');
-			console.log('STREET-STREAM DELIVERY COMPLETEEEEEEE!');
+			console.log('STREET STREAM DELIVERY COMPLETEEEEEEE!');
 			console.log('****************************************************************');
-			let { company, stripeCustomerId, subscriptionItems } = await db.User.findOne({ _id: clientId }, {});
+			let { company, stripeCustomerId, subscriptionId, subscriptionItems } = await db.User.findOne({ _id: clientId }, {});
 			confirmCharge(
-				stripeCustomerId,
+				{ stripeCustomerId, subscriptionId },
 				subscriptionItems,
-				commissionCharge,
-				paymentIntentId,
-				deliveryType,
+				{ canCharge: commissionCharge, deliveryFee, deliveryType, description: `Order Ref: ${jobReference}` },
 				deliveries.length
 			)
 				.then(res => console.log('Charge confirmed:', res))
 				.catch(err => console.error(err));
-			const template = `Your ${company} order has been delivered. Thanks for ordering with ${company}`
-			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template)
-				.then(() => console.log("SMS sent successfully!"))
+			const template = `Your ${company} order has been delivered. Thanks for ordering with ${company}`;
+			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template).then(() =>
+				console.log('SMS sent successfully!')
+			);
 		}
 		res.status(200).send({
 			success: true,

@@ -65,13 +65,7 @@ async function updateJob(data) {
 	try {
 		const jobStatus = data.status;
 		const jobId = data.id.toString();
-		const {
-			id: deliveryId,
-			status: deliveryStatus,
-			etaToOrigin,
-			etaToDestination,
-			driver
-		} = data.currentDelivery;
+		const { id: deliveryId, status: deliveryStatus, etaToOrigin, etaToDestination, driver } = data.currentDelivery;
 		const {
 			firstname,
 			lastname,
@@ -102,26 +96,30 @@ async function updateJob(data) {
 				returnOriginal: false
 			}
 		);
-		console.table({JOB_ID: job._id});
+		console.table({ JOB_ID: job._id });
 		// add commission charge depending on payment plan
 		if (jobStatus === JOB_STATUS.COMPLETED) {
 			console.log('****************************************************************');
 			console.log('STUART JOB COMPLETEEEEEEE!');
 			console.log('****************************************************************');
-			let { company, stripeCustomerId, subscriptionItems } = await db.User.findOne({ _id: job.clientId }, {});
+			let { company, stripeCustomerId, subscriptionId, subscriptionItems } = await db.User.findOne({ _id: job.clientId }, {});
 			confirmCharge(
-				stripeCustomerId,
+				{ stripeCustomerId, subscriptionId },
 				subscriptionItems,
-				job.commissionCharge,
-				job.paymentIntentId,
-				job.jobSpecification.deliveryType,
+				{
+					canCharge: job.commissionCharge,
+					deliveryFee: job.selectedConfiguration.deliveryFee,
+					deliveryType: job.jobSpecification.deliveryType,
+					description: `Order Ref: ${job.jobSpecification.jobReference}`
+				},
 				job.jobSpecification.deliveries.length
 			)
 				.then(res => console.log('Charge confirmed:', res))
 				.catch(err => console.error(err));
-			const template = `Your ${company} order has been delivered. Thanks for ordering with ${company}`
-			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template)
-				.then(() => console.log("SMS sent successfully!"))
+			const template = `Your ${company} order has been delivered. Thanks for ordering with ${company}`;
+			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template).then(() =>
+				console.log('SMS sent successfully!')
+			);
 		}
 		return job;
 	} catch (err) {
@@ -147,14 +145,17 @@ async function updateDelivery(data) {
 				returnOriginal: false
 			}
 		);
-		console.table({JOB_ID: job._id});
+		console.table({ JOB_ID: job._id });
 		const user = await db.User.findOne({ _id: job.clientId });
 		// check if the delivery status is "en-route"
-		if (deliveryStatus === DELIVERY_STATUS.DELIVERING){
-			const trackingMessage = job.jobSpecification.deliveries[0].trackingURL ? `\nTrack the delivery here: ${job.jobSpecification.deliveries[0].trackingURL}` : ""
-			const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`
-			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template)
-				.then(() => console.log("SMS sent successfully!"))
+		if (deliveryStatus === DELIVERY_STATUS.DELIVERING) {
+			const trackingMessage = job.jobSpecification.deliveries[0].trackingURL
+				? `\nTrack the delivery here: ${job.jobSpecification.deliveries[0].trackingURL}`
+				: '';
+			const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`;
+			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template).then(() =>
+				console.log('SMS sent successfully!')
+			);
 		}
 		// check if driver is waiting at dropoff
 
@@ -226,9 +227,9 @@ async function updateDriverETA(data) {
 			{
 				returnOriginal: false
 			}
-		)
-		console.log(!!job && job.status)
-		return job
+		);
+		console.log(!!job && job.status);
+		return job;
 	} catch (err) {
 		console.error(err);
 		throw err;

@@ -159,19 +159,22 @@ router.post('/', async (req, res) => {
 					let {
 						clientId,
 						commissionCharge,
-						paymentIntentId,
-						jobSpecification: { deliveryType, deliveries }
+						jobSpecification: { jobReference, deliveryType, deliveries },
+						selectedConfiguration: { deliveryFee }
 					} = await db.Job.findOne({ 'jobSpecification.id': job_id }, {});
 					console.log('****************************************************************');
 					console.log('GOPHR DELIVERY COMPLETEEEEEEE!');
 					console.log('****************************************************************');
-					let { company, stripeCustomerId, subscriptionItems } = await db.User.findOne({ _id: clientId }, {});
+					let { company, stripeCustomerId, subscriptionId, subscriptionItems } = await db.User.findOne({ _id: clientId }, {});
 					confirmCharge(
-						stripeCustomerId,
+						{ stripeCustomerId, subscriptionId },
 						subscriptionItems,
-						commissionCharge,
-						paymentIntentId,
-						deliveryType,
+						{
+							canCharge: commissionCharge,
+							deliveryFee,
+							deliveryType,
+							description: `Order Ref: ${jobReference}`
+						},
 						deliveries.length
 					)
 						.then(res => console.log('Charge confirmed:', res))

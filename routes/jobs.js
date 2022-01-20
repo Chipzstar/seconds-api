@@ -94,11 +94,8 @@ router.post('/create', async (req, res) => {
 		// fetch user information from the api key
 		const {
 			_id: clientId,
-			email,
 			company,
 			selectionStrategy,
-			stripeCustomerId,
-			paymentMethodId,
 			subscriptionId,
 			subscriptionPlan,
 			deliveryHours,
@@ -193,23 +190,6 @@ router.post('/create', async (req, res) => {
 				req.body,
 				vehicleSpecs
 			);
-			let idempotencyKey = uuidv4();
-			paymentIntent = await stripe.paymentIntents.create(
-				{
-					amount: Math.round(deliveryFee * 100),
-					customer: stripeCustomerId,
-					currency: 'GBP',
-					setup_future_usage: 'off_session',
-					payment_method: paymentMethodId,
-					payment_method_types: ['card']
-				},
-				{
-					idempotencyKey
-				}
-			);
-			console.log('-------------------------------------------');
-			console.log('Payment Intent Created!', paymentIntent.id);
-			console.log('-------------------------------------------');
 			const paymentIntentId = paymentIntent ? paymentIntent.id : undefined;
 			let job = {
 				createdAt: moment().format(),

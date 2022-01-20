@@ -2,38 +2,36 @@ const { DELIVERY_TYPES } = require('../constants');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 const confirmCharge = async (
-	customerId,
+	{ customerId, subscriptionId },
 	{ standardMonthly, standardCommission, multiDropCommission },
-	canCharge,
-	paymentIntentId,
-	deliveryType,
+	jobInfo,
 	quantity = 1
 ) => {
 	try {
-		console.log('*********************************');
 		console.table({
 			customerId,
-			standardMonthly,
+			canCharge: jobInfo.canCharge,
+			deliveryFee: jobInfo.deliveryFee,
+			deliveryType: jobInfo.deliveryType,
 			standardCommission,
-			multiDropCommission,
-			canCharge,
-			paymentIntentId,
-			deliveryType
+			multiDropCommission
 		});
+		// Create invoice item to be added to the customer's next upcoming invoice
+		const invoiceItem = await stripe.invoiceItems.create({
+			customer: customerId,
+			amount: Math.round(jobInfo.deliveryFee * 100),
+			description: jobInfo.description,
+			subscription: subscriptionId
+		});
+		console.log('----------------------------------------------');
+		console.log('Delivery Fee added to next invoice!');
+		console.log(invoiceItem);
+		console.log('----------------------------------------------');
+
 		console.log('*********************************');
-		if (paymentIntentId) {
-			const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId, {
-				setup_future_usage: 'off_session'
-			});
-			console.log('----------------------------------------------');
-			console.log('Delivery Fee Paid Successfully!');
-			console.log(paymentIntent);
-			console.log('----------------------------------------------');
-		}
-		console.log('*********************************');
-		if (standardCommission && canCharge) {
+		if (standardCommission && jobInfo.canCharge) {
 			let usageRecord;
-			if (deliveryType === DELIVERY_TYPES.MULTI_DROP.name) {
+			if (jobInfo.deliveryType === DELIVERY_TYPES.MULTI_DROP.name) {
 				usageRecord = await stripe.subscriptionItems.createUsageRecord(multiDropCommission, {
 					quantity,
 					action: 'increment',
