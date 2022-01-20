@@ -20,6 +20,7 @@ const confirmCharge = async (
 		const invoiceItem = await stripe.invoiceItems.create({
 			customer: stripeCustomerId,
 			amount: Math.round(jobInfo.deliveryFee * 100),
+			currency: "GBP",
 			description: jobInfo.description,
 			subscription: subscriptionId
 		});
