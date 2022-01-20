@@ -1860,23 +1860,6 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, domain)
 			payload,
 			vehicleSpecs
 		);
-		let idempotencyKey = uuidv4();
-		paymentIntent = await stripe.paymentIntents.create(
-			{
-				amount: Math.round(deliveryFee * 100),
-				customer: user.stripeCustomerId,
-				currency: 'GBP',
-				setup_future_usage: 'off_session',
-				payment_method: user.paymentMethodId,
-				payment_method_types: ['card']
-			},
-			{
-				idempotencyKey
-			}
-		);
-		console.log('-------------------------------------------');
-		console.log('Payment Intent Created!', paymentIntent.id);
-		console.log('-------------------------------------------');
 		const paymentIntentId = paymentIntent ? paymentIntent.id : undefined;
 		let job = {
 			createdAt: moment().format(),
