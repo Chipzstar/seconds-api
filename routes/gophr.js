@@ -170,7 +170,7 @@ router.post('/', async (req, res) => {
 						{ stripeCustomerId, subscriptionId },
 						subscriptionItems,
 						{
-							canCharge: commissionCharge,
+							commissionCharge,
 							deliveryFee,
 							deliveryType,
 							description: `Order Ref: ${jobReference}`

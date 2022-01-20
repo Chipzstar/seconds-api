@@ -96,7 +96,7 @@ async function updateJob(data) {
 				returnOriginal: false
 			}
 		);
-		console.table({ JOB_ID: job._id });
+		console.log("JOB ID:", job['_id']);
 		// add commission charge depending on payment plan
 		if (jobStatus === JOB_STATUS.COMPLETED) {
 			console.log('****************************************************************');
@@ -107,7 +107,7 @@ async function updateJob(data) {
 				{ stripeCustomerId, subscriptionId },
 				subscriptionItems,
 				{
-					canCharge: job.commissionCharge,
+					commissionCharge: job.commissionCharge,
 					deliveryFee: job.selectedConfiguration.deliveryFee,
 					deliveryType: job.jobSpecification.deliveryType,
 					description: `Order Ref: ${job.jobSpecification.jobReference}`

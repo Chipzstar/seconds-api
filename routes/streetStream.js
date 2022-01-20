@@ -112,11 +112,14 @@ router.post('/', async (req, res) => {
 			console.log('****************************************************************');
 			console.log('STREET STREAM DELIVERY COMPLETEEEEEEE!');
 			console.log('****************************************************************');
-			let { company, stripeCustomerId, subscriptionId, subscriptionItems } = await db.User.findOne({ _id: clientId }, {});
+			let { company, stripeCustomerId, subscriptionId, subscriptionItems } = await db.User.findOne(
+				{ _id: clientId },
+				{}
+			);
 			confirmCharge(
 				{ stripeCustomerId, subscriptionId },
 				subscriptionItems,
-				{ canCharge: commissionCharge, deliveryFee, deliveryType, description: `Order Ref: ${jobReference}` },
+				{ commissionCharge, deliveryFee, deliveryType, description: `Order Ref: ${jobReference}` },
 				deliveries.length
 			)
 				.then(res => console.log('Charge confirmed:', res))

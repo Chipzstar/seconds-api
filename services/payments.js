@@ -2,15 +2,15 @@ const { DELIVERY_TYPES } = require('../constants');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 const confirmCharge = async (
-	{ customerId, subscriptionId },
+	{ stripeCustomerId, subscriptionId },
 	{ standardMonthly, standardCommission, multiDropCommission },
 	jobInfo,
 	quantity = 1
 ) => {
 	try {
 		console.table({
-			customerId,
-			canCharge: jobInfo.canCharge,
+			customerId: stripeCustomerId,
+			commissionCharge: jobInfo.commissionCharge,
 			deliveryFee: jobInfo.deliveryFee,
 			deliveryType: jobInfo.deliveryType,
 			standardCommission,
@@ -18,7 +18,7 @@ const confirmCharge = async (
 		});
 		// Create invoice item to be added to the customer's next upcoming invoice
 		const invoiceItem = await stripe.invoiceItems.create({
-			customer: customerId,
+			customer: stripeCustomerId,
 			amount: Math.round(jobInfo.deliveryFee * 100),
 			description: jobInfo.description,
 			subscription: subscriptionId
@@ -29,7 +29,7 @@ const confirmCharge = async (
 		console.log('----------------------------------------------');
 
 		console.log('*********************************');
-		if (standardCommission && jobInfo.canCharge) {
+		if (standardCommission && jobInfo.commissionCharge) {
 			let usageRecord;
 			if (jobInfo.deliveryType === DELIVERY_TYPES.MULTI_DROP.name) {
 				usageRecord = await stripe.subscriptionItems.createUsageRecord(multiDropCommission, {
