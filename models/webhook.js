@@ -25,7 +25,7 @@ const webhookSchema = new Schema({
 		default: moment().toISOString(true)
 	},
 	isBroken: {
-		type: String,
+		type: Boolean,
 		required: true,
 		default: false
 	},

@@ -1929,7 +1929,7 @@ async function sendWebhookUpdate(payload, topic) {
 		console.log('---------------------------------');
 		console.log('WEBHOOK:', webhook ? webhook.webhookId : webhook);
 		// check if the current webhook topic is listed under the client's webhook topic list
-		if (webhook && Array.from(webhook.topics).includes(topic)) {
+		if (webhook && Array.from(webhook.topics).includes(topic) && webhook.isBroken) {
 			const signature = generateSignature(payload, webhook.secret);
 			console.log('SIGNATURE:', signature);
 			console.log('------------------------------------------');
