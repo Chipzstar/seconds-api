@@ -22,11 +22,11 @@ You will see a display from ngrok similar to the following:
 
 ![ngrok](https://twilio-cms-prod.s3.amazonaws.com/images/Screen\_Shot\_2019-04-16\_at\_10.42.18\_AM.width-500.png)
 
-Next to the forwarding label, you will see your new publicly accessible URL. Use that URL when you configure your webhooks with Seconds, and requests will be served from your local computer. Keep the ngrok command open to maintain the same domain name, however, ngrok will expire publicly accessible domain names after a length of time if you are not on a paid subscription plan.
+Next to the forwarding label, you will see your new publicly accessible URL. Use that URL when you configure your webhooks with Twilio, and requests will be served from your local computer. Keep the ngrok command open to maintain the same domain name, however, ngrok will expire publicly accessible domain names after a length of time if you are not on a paid subscription plan.
 
 ### Handling Security
 
-Ensuring secure communication between your application and Seconds is essential. There are several layers of security and validation that you can build into your web application for handling Seconds webhooks - let's review each of these.
+Ensuring secure communication between your application and Seconds is essential. There are several layers of security and validation that you can build into your web application for handling Twilio webhooks - let's review each of these.
 
 #### HTTPS/TLS <a href="#httpstls" id="httpstls"></a>
 
