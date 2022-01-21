@@ -26,7 +26,7 @@ const confirmCharge = async (
 			subscription: subscriptionId,
 			period: {
 				start: moment().unix(),
-				end: moment().unix() + 1
+				end: moment().add(1, 'day').unix()
 			}
 		});
 		console.log('----------------------------------------------');

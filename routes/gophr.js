@@ -59,8 +59,7 @@ async function updateStatus(data) {
 					'jobSpecification.pickupStartTime': moment(pickup_eta).toISOString(true),
 					'jobSpecification.deliveries.$[].dropoffEndTime': moment(delivery_eta).toISOString(true),
 					'driverInformation.name': courier_name,
-					'driverInformation.phone': 'N/A',
-					'driverInformation.transport': 'N/A',
+					'driverInformation.phone': 'Open tracking URL to see contact number',
 					'jobSpecification.deliveries.$[].status': translateGophrStatus(jobStatus)
 				}
 			},
