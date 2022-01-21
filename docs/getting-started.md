@@ -14,7 +14,7 @@ Through this quick guide you will get:
 
 #### Set up a Seconds account
 
-Setting up your client account at [Seconds ](https://app.usesecnds.com/signup)is a fundamental step for using the services. By creating your account you have access to the `api-key`required for use of services.
+Setting up your client account at [Seconds](https://app.useseconds.com/signup) is a fundamental step for using the services. By creating your account you have access to the `api-key`required for use of services.
 
 During setup, the best strategy and configuration of delivery fleet providers will be chosen.
 
