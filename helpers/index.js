@@ -1928,11 +1928,9 @@ async function sendWebhookUpdate(payload, topic) {
 		const webhook = await db.Webhook.findOne({ clientId });
 		console.log('---------------------------------');
 		console.log('WEBHOOK:', webhook ? webhook.webhookId : webhook);
-		console.log('----------------------------------');
 		// check if the current webhook topic is listed under the client's webhook topic list
 		if (webhook && Array.from(webhook.topics).includes(topic)) {
 			const signature = generateSignature(payload, webhook.secret);
-			console.log('------------------------------------------');
 			console.log('SIGNATURE:', signature);
 			console.log('------------------------------------------');
 			const config = {
@@ -1946,6 +1944,7 @@ async function sendWebhookUpdate(payload, topic) {
 			webhook.update({ lastUsed: moment().toISOString(true) });
 			await webhook.save();
 		}
+		console.log('---------------------------------');
 		return true;
 	} catch (err) {
 		console.error(err);

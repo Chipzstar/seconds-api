@@ -1,5 +1,6 @@
 const { DELIVERY_TYPES } = require('../constants');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const moment = require('moment');
 
 const confirmCharge = async (
 	{ stripeCustomerId, subscriptionId },
@@ -22,7 +23,11 @@ const confirmCharge = async (
 			amount: Math.round(jobInfo.deliveryFee * 100),
 			currency: "gbp",
 			description: jobInfo.description,
-			subscription: subscriptionId
+			subscription: subscriptionId,
+			period: {
+				start: moment().unix(),
+				end: moment().unix() + 1
+			}
 		});
 		console.log('----------------------------------------------');
 		console.log('Delivery Fee added to next invoice!');
