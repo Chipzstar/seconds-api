@@ -29,6 +29,7 @@ const app = express();
 const db = require('./models/index');
 const sendEmail = require('./services/email');
 const { sendNewJobSMS } = require('./helpers');
+const sendSMS = require('./services/sms');
 
 app.set('port', process.env.PORT || port);
 
@@ -88,7 +89,19 @@ app.post('/api/v1/twilio', async (req, res ) => {
 	}
 })
 
-// EMAIL
+// TEST ENDPOINTS
+app.post('/test/webhook', async(req, res, next) => {
+	try {
+		console.log("------------------------------------------------")
+		console.log("SIGNATURE", req.headers['x-seconds-signature'])
+		console.log("------------------------------------------------")
+	    console.log({status: req.body.status, deliveries: req.body.jobSpecification.deliveries})
+		res.status(200).json({success: true})
+	} catch (err) {
+	    console.error(err)
+		res.status(400).json({success: false, message: err.message})
+	}
+})
 app.post('/test/mail', async (req, res) => {
 	try {
 		const { name, email, subject, text, html, templateId, templateData } = req.body;
@@ -116,20 +129,23 @@ app.post('/test/mail', async (req, res) => {
 		});
 	}
 });
-
-// TEST ENDPOINTS
-app.post('/test/webhook', async(req, res, next) => {
+app.post('/test/sms', async (req, res) => {
 	try {
-		console.log("------------------------------------------------")
-		console.log("SIGNATURE", req.headers['x-seconds-signature'])
-		console.log("------------------------------------------------")
-	    console.log({status: req.body.status, deliveries: req.body.jobSpecification.deliveries})
-		res.status(200).json({success: true})
-	} catch (err) {
-	    console.error(err)
-		res.status(400).json({success: false, message: err.message})
+		const { phone, template } = req.body;
+		console.table({ phone, template })
+		await sendSMS(phone, template);
+		res.status(200).json({
+			status: 'success',
+			message: 'SMS sent successfully!'
+		});
+	} catch (e) {
+		console.error(e);
+		res.status(400).json({
+			status: e.status,
+			message: e.message
+		});
 	}
-})
+});
 /*app.get('/test/stripe/report-usage', async (req, res) => {
 	try {
 		const { deliveryType, quantity } = req.query;
@@ -142,8 +158,7 @@ app.post('/test/webhook', async(req, res, next) => {
 		res.status(400).json({ message: err.message });
 	}
 });*/
-
-app.post('/test/stripe/confirm-payment', async (req, res) => {
+/*app.post('/test/stripe/confirm-payment', async (req, res) => {
 	try {
 		const { paymentIntentId, paymentMethodId } = req.body;
 		const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId, {
@@ -155,7 +170,8 @@ app.post('/test/stripe/confirm-payment', async (req, res) => {
 		console.error(err);
 		res.status(500).json({ message: err.message });
 	}
-});
+});*/
+
 // starting the server
 app.listen(port, () => {
 	console.log(`listening on port ${port}`);
