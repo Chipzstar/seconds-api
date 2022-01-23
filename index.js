@@ -20,7 +20,6 @@ const streetStreamRoutes = require('./routes/streetStream');
 const ecoFleetRoutes = require('./routes/ecofleet');
 const port = process.env.PORT || 3001;
 moment.tz.setDefault('Europe/London');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 const { validateApiKey } = require('./middleware/auth');
 
@@ -28,7 +27,6 @@ const { validateApiKey } = require('./middleware/auth');
 const app = express();
 const db = require('./models/index');
 const sendEmail = require('./services/email');
-const { sendNewJobSMS } = require('./helpers');
 const sendSMS = require('./services/sms');
 
 app.set('port', process.env.PORT || port);

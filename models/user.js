@@ -65,7 +65,6 @@ const userSchema = new mongoose.Schema({
 		shopOwner: String,
 		country: String,
 		domain: String,
-		baseURL: String,
 		accessToken: String
 	},
 	square: {

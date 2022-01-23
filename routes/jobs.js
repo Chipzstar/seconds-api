@@ -130,7 +130,6 @@ router.post('/create', async (req, res) => {
 			req.body.packagePickupStartTime = moment().add(15, 'minutes').format();
 			req.body.drops[0].packageDropoffEndTime = moment().add(2, 'hours').format();
 		}
-		console.log(req.body);
 		// CHECK DELIVERY HOURS
 		let canDeliver = checkPickupHours(req.body.packagePickupStartTime, deliveryHours);
 		if (!canDeliver) {
@@ -171,7 +170,7 @@ router.post('/create', async (req, res) => {
 			console.log('--------------------------------');
 			console.log('COMMISSION FEE:', fee);
 			// check whether the client number of orders has exceeded the limit
-			const numOrders = await db.Job.where({ clientId: clientId, status: 'COMPLETED' }).countDocuments();
+			const numOrders = await db.Job.where({ clientId: clientId, status: STATUS.COMPLETED }).countDocuments();
 			console.log('NUM COMPLETED ORDERS:', numOrders);
 			console.log('--------------------------------');
 			// if the order limit is exceeded, mark the job with a commission fee charge
