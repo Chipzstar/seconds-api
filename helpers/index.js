@@ -58,8 +58,7 @@ stuartAxios.interceptors.response.use(
 		) {
 			return getStuartAuthToken()
 				.then(token => {
-					process.env.NODE_ENV !== 'production' &&
-						setTimeout(() => updateHerokuConfigVar('STUART_API_KEY', token), 10000);
+					process.env.NODE_ENV === 'production' && setTimeout(() => updateHerokuConfigVar('STUART_API_KEY', token), 10000);
 					error.config.headers['Authorization'] = `Bearer ${token}`;
 					return stuartAxios.request(error.config);
 				})
@@ -84,7 +83,7 @@ streetStreamAxios.interceptors.response.use(
 		if (error.response && error.response.status === 403) {
 			return authStreetStream()
 				.then(token => {
-					process.env.NODE_ENV !== 'production' &&
+					process.env.NODE_ENV === 'production' &&
 						setTimeout(() => updateHerokuConfigVar('STREET_STREAM_API_KEY', token), 10000);
 					error.config.headers['Authorization'] = `Bearer ${token}`;
 					return streetStreamAxios.request(error.config);
