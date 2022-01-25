@@ -158,7 +158,7 @@ router.post('/', async (req, res) => {
 					let {
 						clientId,
 						commissionCharge,
-						jobSpecification: { jobReference, deliveryType, deliveries },
+						jobSpecification: { orderNumber, deliveryType, deliveries },
 						selectedConfiguration: { deliveryFee }
 					} = await db.Job.findOne({ 'jobSpecification.id': job_id }, {});
 					console.log('****************************************************************');
@@ -172,7 +172,7 @@ router.post('/', async (req, res) => {
 							commissionCharge,
 							deliveryFee,
 							deliveryType,
-							description: `Order Ref: ${jobReference}`
+							description: `Order: ${orderNumber}`
 						},
 						deliveries.length
 					)
