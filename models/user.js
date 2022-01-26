@@ -93,6 +93,11 @@ const userSchema = new mongoose.Schema({
 		domain: String,
 		storeName: String
 	},
+	hubrise: {
+		clientId: String,
+		clientSecret: String,
+		accessToken: String,
+	},
 	createdAt: {
 		type: Date,
 		default: Date.now()
