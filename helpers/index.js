@@ -25,14 +25,12 @@ const { STRATEGIES } = require('../constants/streetStream');
 const { ERROR_CODES: STUART_ERROR_CODES } = require('../constants/stuart');
 const { ERROR_CODES: GOPHR_ERROR_CODES } = require('../constants/gophr');
 // HELPERS
-const { updateHerokuConfigVar } = require('./heroku');
+const { updateHerokuConfigVars } = require('./heroku');
 const { getStuartAuthToken } = require('./stuart');
 const { authStreetStream } = require('./streetStream');
 // SERVICES
 const sendEmail = require('../services/email');
-const { v4: uuidv4 } = require('uuid');
 const sendSMS = require('../services/sms');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const orderId = require('order-id')(process.env.UID_SECRET_KEY);
 // google maps api client
 const GMapsClient = new Client();
@@ -44,6 +42,10 @@ stuartAxios.defaults.headers.common['Authorization'] = `Bearer ${process.env.STU
 streetStreamAxios.defaults.headers.common['Authorization'] = `Bearer ${process.env.STREET_STREAM_API_KEY}`;
 // if fails, retry request with exponential backoff
 axiosRetry(webhookAxios, { retries: 3, retryDelay: axiosRetry.exponentialDelay, retryCondition: _error => true });
+// set GLOBAL config-vars object for updating multiple heroku env variables
+let CONFIG_VARS = {}
+let stuartTimeout;
+let streetStreamTimeout;
 
 stuartAxios.interceptors.response.use(
 	response => {
@@ -58,7 +60,20 @@ stuartAxios.interceptors.response.use(
 		) {
 			return getStuartAuthToken()
 				.then(token => {
-					process.env.NODE_ENV === 'production' && setTimeout(() => updateHerokuConfigVar('STUART_API_KEY', token), 10000);
+					// clear any ongoing timeouts
+					stuartTimeout && clearTimeout(stuartTimeout)
+					streetStreamTimeout && clearTimeout(streetStreamTimeout)
+					// update config vars
+					CONFIG_VARS = { ...CONFIG_VARS, 'STUART_API_KEY': token}
+					// set the timeout to update config vars after 20s
+					stuartTimeout = process.env.NODE_ENV === 'production' ? setTimeout(() => {
+						updateHerokuConfigVars(CONFIG_VARS).then(() => {
+							// set the timeout variable to be null
+							stuartTimeout = null
+							// remove old config vars from the global cache object
+							CONFIG_VARS = {}
+						})
+					}, 20000) : null;
 					error.config.headers['Authorization'] = `Bearer ${token}`;
 					return stuartAxios.request(error.config);
 				})
@@ -83,8 +98,21 @@ streetStreamAxios.interceptors.response.use(
 		if (error.response && error.response.status === 403) {
 			return authStreetStream()
 				.then(token => {
-					process.env.NODE_ENV === 'production' &&
-						setTimeout(() => updateHerokuConfigVar('STREET_STREAM_API_KEY', token), 10000);
+					// clear any ongoing timeouts
+					stuartTimeout && clearTimeout(stuartTimeout)
+					streetStreamTimeout && clearTimeout(streetStreamTimeout)
+					// update config-vars
+					CONFIG_VARS = { ...CONFIG_VARS, 'STREET_STREAM_API_KEY': token}
+					// set the timeout to update config vars after 20s
+					streetStreamTimeout = process.env.NODE_ENV === 'production' ?
+						setTimeout(() => {
+							updateHerokuConfigVars(CONFIG_VARS).then(() => {
+								// set the timeout variable to be null
+								stuartTimeout = null
+								// remove old config vars from the global cache object
+								CONFIG_VARS = {}
+							})
+						}, 20000) : null
 					error.config.headers['Authorization'] = `Bearer ${token}`;
 					return streetStreamAxios.request(error.config);
 				})
