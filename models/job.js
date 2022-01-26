@@ -1,5 +1,5 @@
-const mongoose = require("mongoose");
-const deliverySchema = require("./deliveries");
+const mongoose = require('mongoose');
+const deliverySchema = require('./deliveries');
 const { jobPointSchema } = require('./pointSchema');
 
 const jobSchema = new mongoose.Schema({
@@ -12,15 +12,15 @@ const jobSchema = new mongoose.Schema({
 		default: false
 	},
 	paymentIntentId: {
-		type: String,
+		type: String
 	},
 	jobSpecification: {
 		id: {
 			type: String,
-			required: true,
+			required: true
 		},
 		jobReference: {
-			type: String,
+			type: String
 		},
 		shopifyId: {
 			type: String,
@@ -34,10 +34,14 @@ const jobSchema = new mongoose.Schema({
 			type: String,
 			default: null
 		},
+		hubriseId: {
+			type: String,
+			default: null
+		},
 		orderNumber: {
 			type: String,
 			unique: true,
-			required: true,
+			required: true
 		},
 		deliveryType: String,
 		pickupStartTime: {
@@ -49,40 +53,40 @@ const jobSchema = new mongoose.Schema({
 			required: false
 		},
 		pickupLocation: {
-			fullAddress: "",
-			streetAddress: "",
-			city: "",
-			postcode: "",
+			fullAddress: '',
+			streetAddress: '',
+			city: '',
+			postcode: '',
 			latitude: 0,
 			longitude: 0,
-			firstName: "",
-			lastName: "",
-			email: "",
-			phoneNumber: "",
-			businessName: "",
-			instructions: ""
+			firstName: '',
+			lastName: '',
+			email: '',
+			phoneNumber: '',
+			businessName: '',
+			instructions: ''
 		},
 		deliveries: [deliverySchema]
 	},
 	selectedConfiguration: {
 		createdAt: Date,
 		deliveryFee: mongoose.Schema.Types.Number,
-		winnerQuote: "",
-		providerId: "",
+		winnerQuote: '',
+		providerId: '',
 		quotes: []
 	},
 	driverInformation: {
 		name: {
 			type: String,
-			default: "Searching"
+			default: 'Searching'
 		},
 		phone: {
 			type: String,
-			default: "Searching"
+			default: 'Searching'
 		},
 		transport: {
 			type: String,
-			default: "Searching"
+			default: 'Searching'
 		},
 		location: {
 			type: jobPointSchema
@@ -94,10 +98,10 @@ const jobSchema = new mongoose.Schema({
 	},
 	status: {
 		type: String,
-		required: true,
+		required: true
 	}
 });
 
-const Job = mongoose.model("Job", jobSchema);
+const Job = mongoose.model('Job', jobSchema);
 
 module.exports = Job;

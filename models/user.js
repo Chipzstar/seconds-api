@@ -97,6 +97,9 @@ const userSchema = new mongoose.Schema({
 		clientId: String,
 		clientSecret: String,
 		accessToken: String,
+		locationId: String,
+		locationName: String,
+		accountName: String
 	},
 	createdAt: {
 		type: Date,
@@ -107,10 +110,6 @@ const userSchema = new mongoose.Schema({
 		default: ''
 	},
 	stripeCustomerId: {
-		type: String,
-		default: ''
-	},
-	paymentMethodId: {
 		type: String,
 		default: ''
 	},

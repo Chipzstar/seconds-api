@@ -6,14 +6,18 @@ const moment = require('moment-timezone');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+//CORE ROUTES
 const authRoutes = require('./routes/auth');
 const webhookRoutes = require('./routes/webhooks')
 const jobRoutes = require('./routes/jobs');
 const quoteRoutes = require('./routes/quotes');
+// E-COMMERCE ROUTES
 const shopifyRoutes = require('./routes/shopify');
 const squareRoutes = require('./routes/square');
 const woocommerceRoutes = require('./routes/woocommerce');
 const squarespaceRoutes = require('./routes/squarespace');
+const hubriseRoutes = require('./routes/hubrise');
+// COURIER ROUTES
 const stuartRoutes = require('./routes/stuart');
 const gophrRoutes = require('./routes/gophr');
 const streetStreamRoutes = require('./routes/streetStream');
@@ -75,6 +79,7 @@ app.use('/api/v1/shopify', shopifyRoutes);
 app.use('/api/v1/square', squareRoutes);
 app.use('/api/v1/woocommerce', woocommerceRoutes);
 app.use('/api/v1/squarespace', squarespaceRoutes);
+app.use('/api/v1/hubrise', hubriseRoutes);
 
 // SERVICE WEBHOOKS
 app.post('/api/v1/twilio', async (req, res ) => {
