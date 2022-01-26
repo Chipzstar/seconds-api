@@ -19,8 +19,6 @@ const router = express.Router();
  */
 router.post('/', async (req, res) => {
 	try {
-		console.table(req.body);
-		console.table(req.body.drops[0]);
 		const user = await getClientDetails(req.headers[AUTHORIZATION_KEY]);
 		console.log('Strategy: ', user['selectionStrategy']);
 		// check that the vehicleType is valid and return the vehicle's specifications

@@ -228,7 +228,6 @@ async function updateDriverETA(data) {
 				returnOriginal: false
 			}
 		);
-		console.log(!!job && job.status);
 		return job;
 	} catch (err) {
 		console.error(err);

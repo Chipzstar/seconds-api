@@ -32,7 +32,6 @@ router.post('/delivery-update', async (req, res) => {
 			}
 		} else if (event && event === 'driver'){
 			if (type && type === 'update'){
-				console.log('DRIVER UPDATE')
 				job = await updateDriverETA(data)
 				sendWebhookUpdate(job, `${event}.${type}`).then().catch()
 			}

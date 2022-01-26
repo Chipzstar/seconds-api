@@ -286,7 +286,6 @@ router.post('/create', async (req, res) => {
  */
 router.post('/multi-drop', async (req, res) => {
 	try {
-		console.table(req.body);
 		let { pickupAddress, packageDeliveryType, packagePickupStartTime, vehicleType, drops } = req.body;
 		//generate client reference number
 		const jobReference = genJobReference();
