@@ -875,8 +875,7 @@ async function stuartJobRequest(ref, params, vehicleSpecs) {
 		};
 		return {
 			id: String(data.id),
-			deliveryFee:
-				process.env.NEW_RELIC_APP_NAME === 'seconds-api' ? data['pricing']['price_tax_included'] : amount * 1.2,
+			deliveryFee: process.env.NEW_RELIC_APP_NAME === 'seconds-api' ? data['pricing']['price_tax_included'] : amount * 1.2,
 			pickupAt: data['pickup_at'] ? data['pickup_at'] : moment(packagePickupStartTime).format(),
 			dropoffAt: data['dropoff_at'] ? data['dropoff_at'] : moment(drops[0].packageDropoffEndTime).format(),
 			delivery

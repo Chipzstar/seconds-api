@@ -110,7 +110,7 @@ async function updateJob(data) {
 					commissionCharge: job.commissionCharge,
 					deliveryFee: job.selectedConfiguration.deliveryFee,
 					deliveryType: job.jobSpecification.deliveryType,
-					description: `Order: ${job.jobSpecification.orderNumber}`
+					description: `Order: ${job.jobSpecification.orderNumber}\tRef: ${job.jobSpecification.jobReference}`
 				},
 				job.jobSpecification.deliveries.length
 			)

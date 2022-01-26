@@ -106,7 +106,7 @@ router.post('/', async (req, res) => {
 			let {
 				clientId,
 				commissionCharge,
-				jobSpecification: { orderNumber, deliveryType, deliveries },
+				jobSpecification: { jobReference, orderNumber, deliveryType, deliveries },
 				selectedConfiguration: { deliveryFee }
 			} = await db.Job.findOne({ 'jobSpecification.id': req.body.jobId }, {});
 			console.log('****************************************************************');
@@ -119,7 +119,7 @@ router.post('/', async (req, res) => {
 			confirmCharge(
 				{ stripeCustomerId, subscriptionId },
 				subscriptionItems,
-				{ commissionCharge, deliveryFee, deliveryType, description: `Order: ${orderNumber}` },
+				{ commissionCharge, deliveryFee, deliveryType, description: `Order: ${orderNumber}\tRef: ${jobReference}` },
 				deliveries.length
 			)
 				.then(res => console.log('Charge confirmed:', res))
