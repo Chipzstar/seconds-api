@@ -6,7 +6,7 @@ const moment = require('moment');
 const { deliveryHoursSchema } = require('./deliveryHours');
 const addressSchema = require('./addressSchema');
 
-const userSchema = new mongoose.Schema({
+const userSchema = new Schema({
 	email: {
 		type: String,
 		required: true,

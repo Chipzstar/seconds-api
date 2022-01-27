@@ -131,9 +131,7 @@ router.post('/', async (req, res) => {
 					res.status(200).json({
 						success: false,
 						status: 'NON_LOCAL_DELIVERY',
-						message:
-							'Seconds can only fulfill orders using the local delivery method\n' +
-							'See https://help.shopify.com/en/manual/shipping/setting-up-and-managing-your-shipping/local-methods/local-delivery for reference '
+						message: 'Seconds can only fulfill orders that require local delivery'
 					});
 				}
 			} else {
