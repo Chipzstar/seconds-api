@@ -12,8 +12,7 @@ async function generatePayload(order, user) {
 		console.log('************************************');
 		const itemsCount = order.line_items.reduce((prev, curr) => prev + curr.quantity, 0);
 		const packageDescription = order.line_items.map(item => item['title']).join('\n');
-		console.log(order['total_weight']);
-		const vehicleType = convertWeightToVehicleCode(order['total_weight'] / 1000).vehicleCode;
+		const vehicleType = null
 		console.log('DETAILS');
 		console.table({ itemsCount, vehicleType });
 		console.log(packageDescription);
@@ -79,7 +78,7 @@ async function generatePayload(order, user) {
 			email: 'chipzstar.dev@gmail.com',
 			name: 'Chisom Oguibe',
 			subject: `Failed Hubrise order #${order['order_id']}`,
-			html: `<div><p>Order Id: #${order['order_id']}</p><p>Hubrise Account: ${user.hubrise.accountName - user.hubrise.locationId}</p><p>Job could not be created. <br/>Reason: ${err.message}</p></div>`
+			html: `<div><p>Order Id: #${order['order_id']}</p><p>Hubrise Account: ${user.hubrise.accountName} - ${user.hubrise.locationId}<br/></p><p>Job could not be created. <br/>Reason: ${err.message}</p></div>`
 		});
 		console.error(err);
 		return err;
