@@ -15,7 +15,7 @@ const sendSMS = async (phone, template) => {
 		console.log("E164 Phone Number:", E164Number)
 		process.env.TWILIO_STATUS === 'active' && await TwilioClient.messages.create({
 			body: template,
-			from: 'Seconds Technologies',
+			from: sender,
 			to: E164Number
 		});
 		return true
