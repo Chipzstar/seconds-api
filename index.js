@@ -134,9 +134,9 @@ app.post('/test/mail', async (req, res) => {
 });
 app.post('/test/sms', async (req, res) => {
 	try {
-		const { phone, template } = req.body;
-		console.table({ phone, template })
-		await sendSMS(phone, template);
+		const { phone, template, alphaSender } = req.body;
+		console.table({ phone, template, alphaSender })
+		await sendSMS(phone, template, alphaSender);
 		res.status(200).json({
 			status: 'success',
 			message: 'SMS sent successfully!'

@@ -7,9 +7,9 @@ const TwilioClient = require('twilio')(accountSid, authToken, {
 const PNF = require('google-libphonenumber').PhoneNumberFormat
 const phoneUtil = require('google-libphonenumber').PhoneNumberUtil.getInstance()
 
-const sendSMS = async (phone, template) => {
+const sendSMS = async (phone, template, alphaSender="Seconds") => {
 	try {
-		let sender = process.env.TWILIO_SERVICE_NUMBER
+		const sender = alphaSender ? alphaSender : process.env.TWILIO_SERVICE_NUMBER
 		const number = phoneUtil.parseAndKeepRawInput(phone, 'GB');
 		const E164Number = phoneUtil.format(number, PNF.E164)
 		console.log("E164 Phone Number:", E164Number)
