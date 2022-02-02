@@ -18,7 +18,7 @@ async function sumProductWeights(items, user){
 		console.log("*********************************************")
 		catalog['products'].forEach(({ variants }) => {
 			variants.forEach(({ ref, weight }, index) => {
-				console.table({ref, weight})
+				console.table({index, ref, weight})
 				console.log(ref === item.sku_ref)
 				if (ref === item.sku_ref) {
 					totalWeight += weight * Number(item.quantity)
@@ -26,7 +26,6 @@ async function sumProductWeights(items, user){
 			})
 		});
 	}
-
 	return totalWeight
 }
 
@@ -72,7 +71,7 @@ async function generatePayload(order, user) {
 				{
 					dropoffAddress: `${order.customer['address_1']} ${order.customer['address_2']} ${order.customer['city']} ${order.customer['postal_code']}`,
 					dropoffAddressLine1: order.customer['address_1'],
-					dropoffAddressLine2: order.customer['address_2'],
+					dropoffAddressLine2: order.customer['address_2'] ? order.customer['address_2'] : "",
 					dropoffCity: order.customer['city']
 						? order.customer['city']
 						: formattedAddress.city,
