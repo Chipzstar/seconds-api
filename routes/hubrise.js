@@ -17,7 +17,7 @@ async function sumProductWeights(items, user){
 		catalog['products'].forEach(({ variants }) => {
 			variants.forEach(({ ref, weight }) => {
 				if (ref === item.sku_ref) {
-					totalWeight += weight
+					totalWeight += weight * Number(item.quantity)
 				}
 			})
 		});
