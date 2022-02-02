@@ -6,8 +6,6 @@ const sendEmail = require('../services/email');
 const router = express.Router()
 
 async function sumProductWeights(items, user){
-	console.log("USER:", user)
-	console.log("------------------------------------------------------------------")
 	const all_catalogs = await db.Catalog.find({})
 	console.log("CATALOGS:", all_catalogs)
 	console.log("------------------------------------------------------------------")
@@ -17,9 +15,9 @@ async function sumProductWeights(items, user){
 	let totalWeight;
 	for (let item of items){
 		catalog['products'].forEach(({ variants }) => {
-			variants.forEach(({ variant }) => {
-				if (variant.ref === item.sku_ref) {
-					totalWeight += variant.weight
+			variants.forEach(({ ref, weight }) => {
+				if (ref === item.sku_ref) {
+					totalWeight += weight
 				}
 			})
 		});
