@@ -5,20 +5,26 @@ const moment = require('moment');
 const sendEmail = require('../services/email');
 const router = express.Router()
 
+function sumProductWeights(items){
+	for (let item of items){
+
+	}
+}
+
 async function generatePayload(order, user) {
 	try {
 		console.log('************************************');
 		console.log(order);
 		console.log('************************************');
-		const itemsCount = order.line_items.reduce((prev, curr) => prev + curr.quantity, 0);
-		const packageDescription = order.line_items.map(item => item['title']).join('\n');
-		const vehicleType = null
+		const packageDescription = order.items.map(item => item['product_name']).join('\n');
+		const totalWeight = sumProductWeights(order.items)
+		const vehicleType = convertWeightToVehicleCode(totalWeight).vehicleCode;
 		console.log('DETAILS');
-		console.table({ itemsCount, vehicleType });
+		console.table({ vehicleType });
 		console.log(packageDescription);
 		// geocode dropoff address
 		const { formattedAddress, fullAddress } = await geocodeAddress(
-			`${order.shipping_address['address1']} ${order.shipping_address['address2']} ${order.shipping_address['city']} ${order.shipping_address['zip']}`
+			`${order.customer['address1']} ${order.shipping_address['address2']} ${order.shipping_address['city']} ${order.shipping_address['zip']}`
 		);
 		console.log('Geocoded results');
 		console.log(fullAddress);
@@ -106,7 +112,7 @@ router.post('/', async (req, res) => {
 				console.log('isLocalDelivery:', isLocalDelivery);
 				if (isLocalDelivery) {
 					if (isSubscribed) {
-						generatePayload(req.body, user)
+						generatePayload(req.body['new_state'], user)
 							.then(payload => {
 								const ids = { hubriseId: req.body['order_id'] };
 								createEcommerceJob("Hubrise", req.body['order_id'], payload, ids, user, req.body['location_id']).then(() => console.log("SUCCESS"));
