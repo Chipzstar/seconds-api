@@ -27,7 +27,7 @@ async function generatePayload(order, user) {
 		console.log(order);
 		console.log('************************************');
 		const packageDescription = order.items.map(item => item['product_name']).join('\n');
-		const totalWeight = sumProductWeights(order.items, user)
+		const totalWeight = await sumProductWeights(order.items, user)
 		const vehicleType = convertWeightToVehicleCode(totalWeight).vehicleCode;
 		console.log('DETAILS');
 		console.table({ vehicleType });
