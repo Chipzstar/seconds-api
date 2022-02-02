@@ -5,10 +5,20 @@ const moment = require('moment');
 const sendEmail = require('../services/email');
 const router = express.Router()
 
-function sumProductWeights(items){
+async function sumProductWeights(items, user){
+	const catalog = await db.Catalog.findOne({ clientId: user['_id'] })
+	console.log(catalog)
+	let totalWeight;
 	for (let item of items){
-
+		catalog['products'].forEach(({ variants }) => {
+			variants.forEach(({ variant }) => {
+				if (variant.ref === item.sku_ref) {
+					totalWeight += variant.weight
+				}
+			})
+		});
 	}
+	return totalWeight
 }
 
 async function generatePayload(order, user) {
@@ -17,14 +27,14 @@ async function generatePayload(order, user) {
 		console.log(order);
 		console.log('************************************');
 		const packageDescription = order.items.map(item => item['product_name']).join('\n');
-		const totalWeight = sumProductWeights(order.items)
+		const totalWeight = sumProductWeights(order.items, user)
 		const vehicleType = convertWeightToVehicleCode(totalWeight).vehicleCode;
 		console.log('DETAILS');
 		console.table({ vehicleType });
 		console.log(packageDescription);
 		// geocode dropoff address
 		const { formattedAddress, fullAddress } = await geocodeAddress(
-			`${order.customer['address1']} ${order.shipping_address['address2']} ${order.shipping_address['city']} ${order.shipping_address['zip']}`
+			`${order.customer['address_1']} ${order.customer['address_2']} ${order.customer['city']} ${order.customer['postal_code']}`
 		);
 		console.log('Geocoded results');
 		console.log(fullAddress);
@@ -46,28 +56,28 @@ async function generatePayload(order, user) {
 			packagePickupStartTime: moment().add(45, 'minutes').format(),
 			packagePickupEndTime: undefined,
 			packageDeliveryType: 'ON_DEMAND',
-			itemsCount,
+			itemsCount: order.items.length,
 			vehicleType,
 			parcelWeight: order['total_weight'] / 1000,
 			drops: [
 				{
-					dropoffAddress: `${order.shipping_address['address1']} ${order.shipping_address['address2']} ${order.shipping_address['city']} ${order.shipping_address['zip']}`,
-					dropoffAddressLine1: order.shipping_address['address1'],
-					dropoffAddressLine2: order.shipping_address['address2'],
-					dropoffCity: order.shipping_address['city']
-						? order.shipping_address['city']
+					dropoffAddress: `${order.customer['address_1']} ${order.customer['address_2']} ${order.customer['city']} ${order.customer['postal_code']}`,
+					dropoffAddressLine1: order.customer['address_1'],
+					dropoffAddressLine2: order.customer['address_2'],
+					dropoffCity: order.customer['city']
+						? order.customer['city']
 						: formattedAddress.city,
-					dropoffPostcode: order.shipping_address['zip']
-						? order.shipping_address['zip']
+					dropoffPostcode: order.customer['postal_code']
+						? order.customer['postal_code']
 						: formattedAddress.postcode,
 					dropoffLongitude: formattedAddress.longitude,
 					dropoffLatitude: formattedAddress.latitude,
-					dropoffPhoneNumber: order['shipping_lines'][0].phone ? order['shipping_lines'][0].phone : order.shipping_address.phone,
+					dropoffPhoneNumber: order.customer.phone ? order.customer.phone : '+447523958055',
 					dropoffEmailAddress: order.email ? order.email : order.customer.email,
-					dropoffBusinessName: order.shipping_address.company ? order.shipping_address.company : '',
-					dropoffFirstName: order.shipping_address.first_name,
-					dropoffLastName: order.shipping_address.last_name,
-					dropoffInstructions: order['note'] ? order['note'] : order.customer['note'] ? order.customer['note'] : '',
+					dropoffBusinessName: order.customer.company_name ? order.customer.company_name : '',
+					dropoffFirstName: order.customer.first_name,
+					dropoffLastName: order.customer.last_name,
+					dropoffInstructions: order['customer_notes'] ? order['customer_notes'] : '',
 					packageDropoffEndTime: moment().add(200, 'minutes').format(),
 					packageDescription,
 					reference: genOrderReference()
