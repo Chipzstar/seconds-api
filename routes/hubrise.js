@@ -85,7 +85,7 @@ async function generatePayload(order, user) {
 					dropoffBusinessName: order.customer.company_name ? order.customer.company_name : '',
 					dropoffFirstName: order.customer.first_name,
 					dropoffLastName: order.customer.last_name,
-					dropoffInstructions: order['customer_notes'] ? order['customer_notes'] : '',
+					dropoffInstructions: order['customer_notes'] ? order['customer_notes'] : order.customer['delivery_notes'] ? order.customer['delivery_notes'] : '',
 					packageDropoffEndTime: moment().add(200, 'minutes').format(),
 					packageDescription,
 					reference: genOrderReference()
