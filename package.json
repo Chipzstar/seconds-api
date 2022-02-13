@@ -13,7 +13,7 @@
   "dependencies": {
     "@googlemaps/google-maps-services-js": "^3.3.0",
     "@newrelic/native-metrics": "^7.0.2",
-    "@seconds-technologies/database_schemas": "^1.0.4",
+    "@seconds-technologies/database_schemas": "^1.0.2",
     "@sendgrid/mail": "^7.6.0",
     "axios": "^0.21.1",
     "axios-retry": "^3.2.4",
