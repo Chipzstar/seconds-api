@@ -125,6 +125,9 @@ async function generatePayload(order, user) {
 				payload.drops[0].packageDropoffStartTime = undefined;
 				payload.drops[0].packageDropoffEndTime = deliverTo.format();
 			}
+			console.log("************************************************************")
+			console.table({DROPOFF: payload.drops[0].packageDropoffEndTime})
+			console.log("************************************************************")
 		}
 		console.log('-----------------------------------------------------------------');
 		console.log('Payload');
