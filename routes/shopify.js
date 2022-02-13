@@ -101,12 +101,15 @@ async function generatePayload(order, user) {
 					dropoffFirstName: order.shipping_address.first_name,
 					dropoffLastName: order.shipping_address.last_name,
 					dropoffInstructions: order['note'] ? order['note'] : order.customer['note'] ? order.customer['note'] : '',
-					packageDropoffEndTime: moment().add(200, 'minutes').format(),
+					packageDropoffEndTime: moment().add(3, 'hours').format(),
 					packageDescription,
 					reference: genOrderReference()
 				}
 			]
 		};
+		console.log("************************************************************")
+		console.table({DROPOFF: payload.drops[0].packageDropoffEndTime})
+		console.log("************************************************************")
 		// check if delivery date specified by the customer
 		if (order['note_attributes']) {
 			const [date, time] = order['note_attributes']
@@ -126,7 +129,7 @@ async function generatePayload(order, user) {
 				payload.drops[0].packageDropoffEndTime = deliverTo.format();
 			}
 			console.log("************************************************************")
-			console.table({DROPOFF: payload.drops[0].packageDropoffEndTime})
+			console.table({isValid, DROPOFF: payload.drops[0].packageDropoffEndTime})
 			console.log("************************************************************")
 		}
 		console.log('-----------------------------------------------------------------');
