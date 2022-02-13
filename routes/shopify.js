@@ -25,7 +25,9 @@ function validateDeliveryDate(date, time, deliveryHours) {
 		if (deliverTo.isValid() && deliverFrom.isValid()) {
 			// if deliverFrom time is in the past set it to be 20 minutes ahead of the current time
 			deliverFrom = deliverFrom.diff(moment()) < 0 ? moment().add(20, 'minutes') : deliverFrom;
-			return { deliverFrom, deliverTo, isValid: deliverTo.isValid() && deliverFrom.isValid() };
+			// set deliveryTo time to be 9pm on the same day
+			deliverTo = moment({ M: deliverFrom.month(), d: deliverFrom.date(), h: 21, m: 0 });
+			return { deliverFrom, deliverTo, isValid: true };
 		} else {
 			// else use the shop's delivery hours to set the pickup / dropoff time window
 			const dayOfMonth = moment(`${date}`).get('date');
@@ -35,9 +37,9 @@ function validateDeliveryDate(date, time, deliveryHours) {
 			const closeHour = deliveryHours[dayOfWeek].close.h;
 			const closeMinute = deliveryHours[dayOfWeek].close.m;
 			console.table({ dayOfMonth, dayOfWeek, openHour, openMinute, closeHour, closeMinute });
-			deliverFrom = moment({ d: dayOfMonth, h: openHour, m: openMinute });
+			deliverFrom = moment({ d: dayOfMonth, h: openHour, m: openMinute }).diff(moment()) < 0 ? moment().add(20, 'minutes') : moment({ d: dayOfMonth, h: openHour, m: openMinute });
 			deliverTo = moment({ d: dayOfMonth, h: closeHour, m: closeMinute });
-			return { deliverFrom, deliverTo, isValid: deliverTo.isValid() && deliverFrom.isValid() };
+			return { deliverFrom, deliverTo, isValid: true };
 		}
 	}
 	return { deliverFrom: null, deliverTo: null, isValid: false };
