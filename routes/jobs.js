@@ -439,7 +439,7 @@ router.post('/assign', async (req, res) => {
 					createdAt: moment().format(),
 					deliveryFee: 5.0,
 					winnerQuote: 'N/A',
-					providerId: 'Private',
+					providerId: 'private',
 					quotes: []
 				},
 				status: STATUS.NEW
