@@ -11,9 +11,6 @@ const jobSchema = new mongoose.Schema({
 		type: Boolean,
 		default: false
 	},
-	paymentIntentId: {
-		type: String
-	},
 	jobSpecification: {
 		id: {
 			type: String,
@@ -76,6 +73,10 @@ const jobSchema = new mongoose.Schema({
 		quotes: []
 	},
 	driverInformation: {
+		id: {
+			type: mongoose.Schema.Types.ObjectId,
+			default: null
+		},
 		name: {
 			type: String,
 			default: 'Searching'

@@ -150,6 +150,20 @@ function genJobReference() {
 	return str;
 }
 
+function genDeliveryId() {
+	const rand = crypto.randomBytes(16);
+	let chars = 'abcdefghijklmnopqrstuvwxyz0123456789'.repeat(2);
+
+	let str = '';
+
+	for (let i = 0; i < rand.length; i++) {
+		let index = rand[i] % chars.length;
+		str += chars[index];
+	}
+	console.log('Generated Job Specification Id:', str);
+	return str;
+}
+
 function chooseBestProvider(strategy, quotes) {
 	let bestPriceIndex;
 	let bestEtaIndex;
@@ -306,7 +320,7 @@ function setNextDayDeliveryTime(pickupTime, deliveryHours) {
 	console.log('Current Day:', nextDay);
 	// check that the store has at least one day in the week that allows delivery
 	const isValid = Object.entries(JSON.parse(JSON.stringify(deliveryHours))).some(
-		([key, value]) => value.canDeliver === true
+		([_, value]) => value.canDeliver === true
 	);
 	// check if the datetime is not in the past & if store allows delivery on that day, if not check another day
 	if (isValid) {
@@ -1985,6 +1999,7 @@ function generateSignature(payload, secret) {
 module.exports = {
 	genJobReference,
 	genOrderReference,
+	genDeliveryId,
 	getClientDetails,
 	getVehicleSpecs,
 	calculateJobDistance,
