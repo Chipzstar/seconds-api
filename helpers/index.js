@@ -22,7 +22,7 @@ const {
 } = require('../constants');
 // CONSTANTS
 const { STRATEGIES } = require('../constants/streetStream');
-const { ERROR_CODES: STUART_ERROR_CODES } = require('../constants/stuart');
+const { ERROR_CODES: STUART_ERROR_CODES, ERROR_MESSAGES } = require('../constants/stuart');
 const { ERROR_CODES: GOPHR_ERROR_CODES } = require('../constants/gophr');
 // HELPERS
 const { updateHerokuConfigVars } = require('./heroku');
@@ -43,7 +43,7 @@ streetStreamAxios.defaults.headers.common['Authorization'] = `Bearer ${process.e
 // if fails, retry request with exponential backoff
 axiosRetry(webhookAxios, { retries: 3, retryDelay: axiosRetry.exponentialDelay, retryCondition: _error => true });
 // set GLOBAL config-vars object for updating multiple heroku env variables
-let CONFIG_VARS = {}
+let CONFIG_VARS = {};
 let stuartTimeout;
 let streetStreamTimeout;
 
@@ -52,28 +52,30 @@ stuartAxios.interceptors.response.use(
 		return response;
 	},
 	error => {
-		console.log(error.response.data);
 		if (
 			error.response &&
 			error.response.status === 401 &&
-			error.response.data.message === 'The access token was revoked'
+			error.response.data.message === ERROR_MESSAGES.ACCESS_TOKEN_REVOKED
 		) {
 			return getStuartAuthToken()
 				.then(token => {
 					// clear any ongoing timeouts
-					stuartTimeout && clearTimeout(stuartTimeout)
-					streetStreamTimeout && clearTimeout(streetStreamTimeout)
+					stuartTimeout && clearTimeout(stuartTimeout);
+					streetStreamTimeout && clearTimeout(streetStreamTimeout);
 					// update config vars
-					CONFIG_VARS = { ...CONFIG_VARS, 'STUART_API_KEY': token}
+					CONFIG_VARS = { ...CONFIG_VARS, STUART_API_KEY: token };
 					// set the timeout to update config vars after 20s
-					stuartTimeout = process.env.NODE_ENV === 'production' ? setTimeout(() => {
-						updateHerokuConfigVars(CONFIG_VARS).then(() => {
-							// set the timeout variable to be null
-							stuartTimeout = null
-							// remove old config vars from the global cache object
-							CONFIG_VARS = {}
-						})
-					}, 20000) : null;
+					stuartTimeout =
+						process.env.NODE_ENV === 'production'
+							? setTimeout(() => {
+									updateHerokuConfigVars(CONFIG_VARS).then(() => {
+										// set the timeout variable to be null
+										stuartTimeout = null;
+										// remove old config vars from the global cache object
+										CONFIG_VARS = {};
+									});
+							  }, 20000)
+							: null;
 					error.config.headers['Authorization'] = `Bearer ${token}`;
 					return stuartAxios.request(error.config);
 				})
@@ -83,14 +85,6 @@ stuartAxios.interceptors.response.use(
 	}
 );
 
-/*streetStreamAxios.interceptors.request.use(
-	config => {
-		console.log(config)
-		return config
-	},
-	error => Promise.reject(error)
-);*/
-
 streetStreamAxios.interceptors.response.use(
 	response => response,
 	error => {
@@ -99,20 +93,22 @@ streetStreamAxios.interceptors.response.use(
 			return authStreetStream()
 				.then(token => {
 					// clear any ongoing timeouts
-					stuartTimeout && clearTimeout(stuartTimeout)
-					streetStreamTimeout && clearTimeout(streetStreamTimeout)
+					stuartTimeout && clearTimeout(stuartTimeout);
+					streetStreamTimeout && clearTimeout(streetStreamTimeout);
 					// update config-vars
-					CONFIG_VARS = { ...CONFIG_VARS, 'STREET_STREAM_API_KEY': token}
+					CONFIG_VARS = { ...CONFIG_VARS, STREET_STREAM_API_KEY: token };
 					// set the timeout to update config vars after 20s
-					streetStreamTimeout = process.env.NODE_ENV === 'production' ?
-						setTimeout(() => {
-							updateHerokuConfigVars(CONFIG_VARS).then(() => {
-								// set the timeout variable to be null
-								stuartTimeout = null
-								// remove old config vars from the global cache object
-								CONFIG_VARS = {}
-							})
-						}, 20000) : null
+					streetStreamTimeout =
+						process.env.NODE_ENV === 'production'
+							? setTimeout(() => {
+									updateHerokuConfigVars(CONFIG_VARS).then(() => {
+										// set the timeout variable to be null
+										stuartTimeout = null;
+										// remove old config vars from the global cache object
+										CONFIG_VARS = {};
+									});
+							  }, 20000)
+							: null;
 					error.config.headers['Authorization'] = `Bearer ${token}`;
 					return streetStreamAxios.request(error.config);
 				})
@@ -272,12 +268,9 @@ async function checkAlternativeVehicles(pickup, dropoff, jobDistance, vehicleSpe
 		}
 		vehicleSpecs.stuart.packageType = null;
 		return vehicleSpecs;
-		/*return Promise.reject({
-			message: `Job distance between ${pickup} and ${dropoff} exceeds the maximum limit. The maximum distance for delivery jobs is 12 miles`,
-			code: 400
-		});*/
 	} catch (err) {
 		console.log(err);
+		throw err;
 	}
 }
 
@@ -403,15 +396,15 @@ async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance) {
 		// check if the current vehicle is supported by Stuart and if the job distance is within the maximum limit
 		if (vehicleSpecs.stuart.packageType && process.env.STUART_STATUS === 'active') {
 			let stuartQuote = await getStuartQuote(genJobReference(), requestBody, vehicleSpecs);
-			QUOTES.push(stuartQuote);
+			stuartQuote && QUOTES.push(stuartQuote);
 		}
 		if (process.env.GOPHR_STATUS === 'active') {
 			let gophrQuote = await getGophrQuote(requestBody, vehicleSpecs);
-			QUOTES.push(gophrQuote);
+			gophrQuote && QUOTES.push(gophrQuote);
 		}
 		if (process.env.STREET_STREAM_STATUS === 'active') {
 			let streetStreamQuote = await getStreetStreamQuote(requestBody, vehicleSpecs);
-			if (streetStreamQuote) QUOTES.push(streetStreamQuote);
+			streetStreamQuote && QUOTES.push(streetStreamQuote);
 		}
 		if (vehicleSpecs.ecofleetVehicle && process.env.ECOFLEET_STATUS === 'active') {
 			let ecoFleetQuote = {
@@ -429,7 +422,7 @@ async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance) {
 		}
 		return QUOTES;
 	} catch (err) {
-		console.error("getResultantQuotes function:", err)
+		console.error('getResultantQuotes function:', err);
 		throw err;
 	}
 }
@@ -549,7 +542,7 @@ async function getStuartQuote(reference, params, vehicleSpecs) {
 		console.log('--------------------------');
 		const priceURL = `${process.env.STUART_ENV}/v2/jobs/pricing`;
 		const etaURL = `${process.env.STUART_ENV}/v2/jobs/eta`;
-		let { amount, currency } = (await stuartAxios.post(priceURL, payload)).data;
+		const price = (await stuartAxios.post(priceURL, payload)).data;
 		let data = (await stuartAxios.post(etaURL, payload)).data;
 		const quote = {
 			...quoteSchema,
@@ -557,8 +550,8 @@ async function getStuartQuote(reference, params, vehicleSpecs) {
 			createdAt: moment().format(),
 			expireTime: moment().add(5, 'minutes').format(),
 			transport: vehicleSpecs.stuart.vehicleName,
-			priceExVAT: amount * 1.2,
-			currency,
+			priceExVAT: price.amount * 1.2,
+			currency: price.currency,
 			dropoffEta: packagePickupStartTime
 				? moment(packagePickupStartTime).add(data.eta, 'seconds').format()
 				: moment().add(data.eta, 'seconds').format(),
@@ -570,8 +563,7 @@ async function getStuartQuote(reference, params, vehicleSpecs) {
 		console.log('----------------------------');
 		return quote;
 	} catch (err) {
-		err.response.data.data && console.log("STUART ERROR:", err.response.data.data)
-		console.log(Object.keys(err.response.data.data), !!Object.keys(err.response.data.data).includes('job.pickup_at'))
+		err.response.data.data && console.log('STUART ERROR:', err.response.data.data);
 		if (err.response.status === STUART_ERROR_CODES.UNPROCESSABLE_ENTITY) {
 			if (err.response.data.error === STUART_ERROR_CODES.RECORD_INVALID) {
 				if (Object.keys(err.response.data.data).includes('deliveries')) {
@@ -581,6 +573,8 @@ async function getStuartQuote(reference, params, vehicleSpecs) {
 				} else if (Object.keys(err.response.data.data).includes('pickup_at')) {
 					throw { status: err.response.status, message: err.response.data.data['pickup_at'][0] };
 				}
+			} else if (err.response.data.error === STUART_ERROR_CODES.JOB_DISTANCE_NOT_ALLOWED) {
+				return null;
 			} else {
 				throw { status: err.response.status, ...err.response.data };
 			}
@@ -889,7 +883,8 @@ async function stuartJobRequest(ref, params, vehicleSpecs) {
 		};
 		return {
 			id: String(data.id),
-			deliveryFee: process.env.NEW_RELIC_APP_NAME === 'seconds-api' ? data['pricing']['price_tax_included'] : amount * 1.2,
+			deliveryFee:
+				process.env.NEW_RELIC_APP_NAME === 'seconds-api' ? data['pricing']['price_tax_included'] : amount * 1.2,
 			pickupAt: data['pickup_at'] ? data['pickup_at'] : moment(packagePickupStartTime).format(),
 			dropoffAt: data['dropoff_at'] ? data['dropoff_at'] : moment(drops[0].packageDropoffEndTime).format(),
 			delivery
@@ -1948,7 +1943,7 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, domain)
 		await sendNewJobEmails(user.team, job);
 		const trackingMessage = delivery.trackingURL ? `\n\nTrack your delivery here: ${delivery.trackingURL}` : '';
 		const template = `Your ${user.company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today. ${trackingMessage}`;
-		await sendSMS(delivery.dropoffLocation.phoneNumber, template)
+		await sendSMS(delivery.dropoffLocation.phoneNumber, template);
 		return true;
 	} catch (err) {
 		console.error(err);
