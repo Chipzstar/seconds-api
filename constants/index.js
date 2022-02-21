@@ -40,7 +40,8 @@ exports.PROVIDERS = {
 	GOPHR: 'gophr',
 	STREET_STREAM: 'street_stream',
 	ECOFLEET: 'ecofleet',
-	ADDISON_LEE: 'addison_lee'
+	ADDISON_LEE: 'addison_lee',
+	PRIVATE: 'private'
 };
 
 exports.VEHICLE_CODES = ['BIC', 'MTB', 'CAR', 'CGB', 'VAN'];

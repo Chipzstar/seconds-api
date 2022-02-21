@@ -45,8 +45,7 @@ const sendSMS = require('../services/sms');
  */
 router.get('/', async (req, res) => {
 	try {
-		console.log(req.query);
-		const { email } = req.query;
+		const { email, driverId } = req.query;
 		if (email) {
 			const user = await db.User.findOne({ email: email });
 			if (user) {
@@ -59,10 +58,22 @@ router.get('/', async (req, res) => {
 					message: 'No user found with that email address'
 				});
 			}
+		} else if (driverId) {
+			const driver = await db.Driver.findById(driverId);
+			if (driver) {
+				const jobs = await db.Job.find({ 'selectedConfiguration.providerId': PROVIDERS.PRIVATE });
+				console.log(jobs.length)
+				return res.status(200).json(jobs);
+			} else {
+				res.status(404).json({
+					code: 404,
+					message: 'No driver found with that driver Id'
+				});
+			}
 		} else {
 			res.status(400).json({
 				code: 400,
-				message: "'email' parameter missing. Please append your email address as a query parameter"
+				message: "client email / driver id query parameter is missing from request"
 			});
 		}
 	} catch (err) {
@@ -442,7 +453,7 @@ router.post('/assign', async (req, res) => {
 					providerId: 'private',
 					quotes: []
 				},
-				status: STATUS.NEW
+				status: STATUS.PENDING
 			};
 			console.log('======================================================================================');
 			console.log('JOB', job);

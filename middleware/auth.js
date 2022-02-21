@@ -22,9 +22,14 @@ const validateApiKey = async (req, res, next) => {
 		if (apiKey === process.env.STUART_WEBHOOK_KEY) {
 			isValid = true
 		}
-		// check if incoming request is from a client
+		// check if incoming request is from a CLIENT
 		const client = await db.User.findOne({ "apiKey": apiKey }, {})
 		if (client) {
+			isValid = true
+		}
+		// check if incoming request is from a DRIVER
+		const driver = await db.Driver.findOne({ "apiKey": apiKey }, {})
+		if (driver) {
 			isValid = true
 		}
 		return isValid ? next() : res.status(403).json({
