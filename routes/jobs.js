@@ -63,7 +63,6 @@ router.get('/', async (req, res) => {
 			if (driver) {
 				const jobs = await db.Job.find({ 'selectedConfiguration.providerId': PROVIDERS.PRIVATE, 'driverInformation.driverId': driverId });
 				jobs.sort((a, b) => (b.createdAt - a.createdAt));
-				jobs.forEach((job) => console.log(job.createdAt));
 				return res.status(200).json(jobs);
 			} else {
 				res.status(404).json({
