@@ -34,6 +34,7 @@ const router = express.Router();
 const orderId = require('order-id')(process.env.UID_SECRET_KEY);
 const sendEmail = require('../services/email');
 const sendSMS = require('../services/sms');
+const sendNotification = require('../services/notification');
 
 /**
  * List Jobs - The API endpoint for listing all jobs currently belonging to a user
@@ -460,10 +461,11 @@ router.post('/assign', async (req, res) => {
 			console.log('======================================================================================');
 			// Append the selected provider job to the jobs database
 			const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
-			process.env.NEW_RELIC_APP_NAME === 'seconds-api' &&
-				sendNewJobEmails(team, job).then(res => console.log(res));
+			sendNewJobEmails(team, job).then(res => console.log(res));
 			const template = `Your ${company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today.`;
 			sendSMS(req.body.drops[0].dropoffPhoneNumber, template).then(() => console.log('SMS sent successfully!'));
+			// send driver notification
+			// sendNotification([""]).then(() => console.log("sent"))
 			return res.status(200).json({
 				jobId: createdJob._id,
 				...job
