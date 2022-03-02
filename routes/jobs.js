@@ -418,7 +418,7 @@ router.post('/assign', async (req, res) => {
 						{
 							id: genDeliveryId(),
 							orderReference: req.body.drops[0]['reference'],
-							description: req.body.drops[0]['description'],
+							description: req.body.drops[0]['packageDescription'],
 							dropoffStartTime: req.body.drops[0].packageDropoffStartTime,
 							dropoffEndTime: req.body.drops[0].packageDropoffEndTime,
 							transport: vehicleSpecs.name,
