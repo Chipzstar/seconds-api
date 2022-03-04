@@ -74,7 +74,9 @@ async function updateStatus(data) {
 				? `\nTrack the delivery here: ${job.jobSpecification.deliveries[0].trackingURL}`
 				: '';
 			const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`;
-			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template).then(() =>
+			let settings = await db.Settings.findOne({clientId})
+			let canSend = settings ? settings.sms : false
+			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template, canSend).then(() =>
 				console.log('SMS sent successfully!')
 			);
 		}
@@ -148,7 +150,6 @@ router.post('/', async (req, res) => {
 			if (webhook_type === WEBHOOK_TYPES.STATUS) {
 				// update the status of the job in db and return it
 				job = await updateStatus(req.body);
-				console.log(job);
 				// define the topic name for the webhook
 				let topic = [JOB_STATUS.PENDING, JOB_STATUS.ACCEPTED].includes(req.body.status)
 					? 'job.create'
@@ -165,6 +166,8 @@ router.post('/', async (req, res) => {
 					console.log('GOPHR DELIVERY COMPLETEEEEEEE!');
 					console.log('****************************************************************');
 					let { company, stripeCustomerId, subscriptionId, subscriptionItems } = await db.User.findOne({ _id: clientId }, {});
+					let settings = await db.Settings.findOne({clientId})
+					let canSend = settings ? settings.sms : false
 					confirmCharge(
 						{ stripeCustomerId, subscriptionId },
 						subscriptionItems,
@@ -179,13 +182,12 @@ router.post('/', async (req, res) => {
 						.then(res => console.log('Charge confirmed:', res))
 						.catch(err => console.error(err));
 					const template = `Your ${company} order has been delivered. Thanks for ordering with ${company}!`;
-					sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template).then(() =>
+					sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template, canSend).then(() =>
 						console.log('SMS sent successfully!')
 					);
 				}
 			} else if (webhook_type === WEBHOOK_TYPES.ETA) {
 				job = await updateETA(req.body);
-				console.log(job);
 				sendWebhookUpdate(job, 'delivery.update').then(() => console.log('ETA UPDATE DELIVERED TO CLIENT'));
 			} else {
 				throw new Error(`Unknown webhook type, ${webhook_type}`);

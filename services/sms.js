@@ -7,13 +7,13 @@ const TwilioClient = require('twilio')(accountSid, authToken, {
 const PNF = require('google-libphonenumber').PhoneNumberFormat
 const phoneUtil = require('google-libphonenumber').PhoneNumberUtil.getInstance()
 
-const sendSMS = async (phone, template, alphaSender="Seconds") => {
+const sendSMS = async (phone, template, smsEnabled=true, alphaSender="Seconds") => {
 	try {
 		const sender = alphaSender ? alphaSender : process.env.TWILIO_SERVICE_NUMBER
 		const number = phoneUtil.parseAndKeepRawInput(phone, 'GB');
 		const E164Number = phoneUtil.format(number, PNF.E164)
 		console.log("E164 Phone Number:", E164Number)
-		process.env.TWILIO_STATUS === 'active' && await TwilioClient.messages.create({
+		process.env.TWILIO_STATUS === 'active' && smsEnabled && await TwilioClient.messages.create({
 			body: template,
 			from: sender,
 			to: E164Number

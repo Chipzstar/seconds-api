@@ -1,5 +1,5 @@
 const mongoose = require('mongoose')
-const { userSchema, driverSchema, jobSchema, catalogSchema } = require('@seconds-technologies/database_schemas');
+const { userSchema, driverSchema, jobSchema, catalogSchema, settingsSchema } = require('@seconds-technologies/database_schemas');
 
 mongoose.set("debug", false);
 mongoose.Promise = Promise;
@@ -16,3 +16,4 @@ module.exports.Job = mongoose.model('Job', jobSchema);
 module.exports.Webhook = require("./webhook");
 module.exports.Catalog = mongoose.model('Catalog', catalogSchema);
 module.exports.Driver = mongoose.model('Driver', driverSchema);
+module.exports.Settings = mongoose.model('Settings', settingsSchema);

@@ -55,6 +55,8 @@ async function update(data) {
 		);
 		if (job) {
 			const user = await db.User.findOne({ _id: job.clientId });
+			let settings = await db.Settings.findOne({ clientId: job.clientId })
+			let canSend = settings ? settings.sms : false
 			console.log('User:', !!user);
 			if (
 				jobStatus === JOB_STATUS.ADMIN_CANCELLED ||
@@ -83,7 +85,7 @@ async function update(data) {
 					? `\nTrack the delivery here: ${job.jobSpecification.deliveries[0].trackingURL}`
 					: '';
 				const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`;
-				sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template).then(() =>
+				sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template, canSend).then(() =>
 					console.log('SMS sent successfully!')
 				);
 			}
@@ -98,7 +100,6 @@ async function update(data) {
 router.post('/', async (req, res) => {
 	try {
 		let job = await update(req.body);
-		console.log(job);
 		sendWebhookUpdate(job, 'delivery.update')
 			.then(() => 'STREET_STREAM JOB UPDATE SENT TO CLIENT')
 			.catch();
@@ -116,6 +117,8 @@ router.post('/', async (req, res) => {
 				{ _id: clientId },
 				{}
 			);
+			let settings = await db.Settings.findOne({ clientId})
+			let canSend = settings ? settings.sms : false
 			confirmCharge(
 				{ stripeCustomerId, subscriptionId },
 				subscriptionItems,
@@ -125,7 +128,7 @@ router.post('/', async (req, res) => {
 				.then(res => console.log('Charge confirmed:', res))
 				.catch(err => console.error(err));
 			const template = `Your ${company} order has been delivered. Thanks for ordering with ${company}`;
-			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template).then(() =>
+			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template, canSend).then(() =>
 				console.log('SMS sent successfully!')
 			);
 		}

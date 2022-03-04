@@ -103,6 +103,8 @@ async function updateJob(data) {
 			console.log('STUART JOB COMPLETEEEEEEE!');
 			console.log('****************************************************************');
 			let { company, stripeCustomerId, subscriptionId, subscriptionItems } = await db.User.findOne({ _id: job.clientId }, {});
+			let settings = await db.Settings.findOne({clientId: job.clientId})
+			let canSend = settings ? settings.sms : false
 			confirmCharge(
 				{ stripeCustomerId, subscriptionId },
 				subscriptionItems,
@@ -117,7 +119,7 @@ async function updateJob(data) {
 				.then(res => console.log('Charge confirmed:', res))
 				.catch(err => console.error(err));
 			const template = `Your ${company} order has been delivered. Thanks for ordering with ${company}`;
-			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template).then(() =>
+			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template, canSend).then(() =>
 				console.log('SMS sent successfully!')
 			);
 		}
@@ -145,15 +147,16 @@ async function updateDelivery(data) {
 				returnOriginal: false
 			}
 		);
-		console.table({ JOB_ID: job._id });
 		const user = await db.User.findOne({ _id: job.clientId });
+		let settings = await db.Settings.findOne({clientId: job.clientId})
+		let canSend = settings ? settings.sms : false
 		// check if the delivery status is "en-route"
 		if (deliveryStatus === DELIVERY_STATUS.DELIVERING) {
 			const trackingMessage = job.jobSpecification.deliveries[0].trackingURL
 				? `\nTrack the delivery here: ${job.jobSpecification.deliveries[0].trackingURL}`
 				: '';
 			const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`;
-			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template).then(() =>
+			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template, canSend).then(() =>
 				console.log('SMS sent successfully!')
 			);
 		}
