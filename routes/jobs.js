@@ -332,6 +332,7 @@ router.post('/assign', async (req, res) => {
 		} = await getClientDetails(apiKey);
 		let settings = await db.Settings.findOne({clientId})
 		let canSend = settings ? settings.sms : false
+		console.table({canSend})
 		// check that the vehicleType is valid and return the vehicle's specifications
 		let vehicleSpecs = getVehicleSpecs(vehicleType);
 		console.table(vehicleSpecs);
