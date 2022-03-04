@@ -119,7 +119,7 @@ router.post('/create', async (req, res) => {
 			deliveryHours,
 			team
 		} = await getClientDetails(apiKey);
-		let settings = await db.Settings.findOne({_id: clientId})
+		let settings = await db.Settings.findOne({clientId})
 		let canSend = settings ? settings.sms : false
 		// check that the vehicleType is valid and return the vehicle's specifications
 		let vehicleSpecs = getVehicleSpecs(vehicleType);
