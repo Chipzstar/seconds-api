@@ -10,6 +10,7 @@ const Base64 = require('crypto-js/enc-base64');
 const HmacSHA256 = require('crypto-js/hmac-sha256');
 const moment = require('moment-timezone');
 const { nanoid } = require('nanoid');
+const orderId = require('order-id')(process.env.UID_SECRET_KEY);
 const { quoteSchema } = require('../schemas/quote');
 const {
 	SELECTION_STRATEGIES,
@@ -31,7 +32,6 @@ const { authStreetStream } = require('./streetStream');
 // SERVICES
 const sendEmail = require('../services/email');
 const sendSMS = require('../services/sms');
-const orderId = require('order-id')(process.env.UID_SECRET_KEY);
 // google maps api client
 const GMapsClient = new Client();
 // setup axios instances

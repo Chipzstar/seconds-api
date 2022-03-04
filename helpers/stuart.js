@@ -147,6 +147,9 @@ async function updateDelivery(data) {
 				returnOriginal: false
 			}
 		);
+		console.log("------------------------------------------")
+		console.log("NEW STATUS:", job.status)
+		console.log("------------------------------------------")
 		const user = await db.User.findOne({ _id: job.clientId });
 		let settings = await db.Settings.findOne({clientId: job.clientId})
 		let canSend = settings ? settings.sms : false
@@ -160,8 +163,6 @@ async function updateDelivery(data) {
 				console.log('SMS sent successfully!')
 			);
 		}
-		// check if driver is waiting at dropoff
-
 		// check if order status is cancelled and send out email to clients
 		if (deliveryStatus === DELIVERY_STATUS.CANCELLED) {
 			console.log('User:', !!user);
