@@ -330,6 +330,8 @@ router.post('/assign', async (req, res) => {
 			deliveryHours,
 			team
 		} = await getClientDetails(apiKey);
+		let settings = await db.Settings.findOne({clientId})
+		let canSend = settings ? settings.sms : false
 		// check that the vehicleType is valid and return the vehicle's specifications
 		let vehicleSpecs = getVehicleSpecs(vehicleType);
 		console.table(vehicleSpecs);
@@ -465,7 +467,7 @@ router.post('/assign', async (req, res) => {
 			const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
 			sendNewJobEmails(team, job).then(res => console.log(res));
 			const template = `Your ${company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today.`;
-			sendSMS(req.body.drops[0].dropoffPhoneNumber, template).then(() => console.log('SMS sent successfully!'));
+			sendSMS(req.body.drops[0].dropoffPhoneNumber, template, canSend).then(() => console.log('SMS sent successfully!'));
 			// send driver notification
 			// sendNotification([""]).then(() => console.log("sent"))
 			return res.status(200).json({
