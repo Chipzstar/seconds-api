@@ -114,6 +114,7 @@ router.post('/create', async (req, res) => {
 			_id: clientId,
 			company,
 			selectionStrategy,
+			subscriptionItems,
 			subscriptionId,
 			subscriptionPlan,
 			deliveryHours,
@@ -258,7 +259,7 @@ router.post('/create', async (req, res) => {
 				sendNewJobEmails(team, job).then(res => console.log(res));
 			const trackingMessage = delivery.trackingURL ? `\n\nTrack your delivery here: ${delivery.trackingURL}` : '';
 			const template = `Your ${company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today. ${trackingMessage}`;
-			sendSMS(delivery.dropoffLocation.phoneNumber, template, canSend).then(() => console.log('SMS sent successfully!'));
+			sendSMS(delivery.dropoffLocation.phoneNumber, template, subscriptionItems, canSend).then((message) => console.log(message));
 			return res.status(200).json({
 				jobId: createdJob._id,
 				...job
@@ -324,7 +325,7 @@ router.post('/assign', async (req, res) => {
 		const {
 			_id: clientId,
 			company,
-			selectionStrategy,
+			subscriptionItems,
 			subscriptionId,
 			subscriptionPlan,
 			deliveryHours,
@@ -468,7 +469,7 @@ router.post('/assign', async (req, res) => {
 			const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
 			sendNewJobEmails(team, job).then(res => console.log(res));
 			const template = `Your ${company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today.`;
-			sendSMS(req.body.drops[0].dropoffPhoneNumber, template, canSend).then(() => console.log('SMS sent successfully!'));
+			sendSMS(req.body.drops[0].dropoffPhoneNumber, template, subscriptionItems, canSend).then(() => console.log('SMS sent successfully!'));
 			// send driver notification
 			// sendNotification([""]).then(() => console.log("sent"))
 			return res.status(200).json({

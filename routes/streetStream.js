@@ -85,7 +85,7 @@ async function update(data) {
 					? `\nTrack the delivery here: ${job.jobSpecification.deliveries[0].trackingURL}`
 					: '';
 				const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`;
-				sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template, canSend).then(() =>
+				sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template, user.subscriptionItems, canSend).then(() =>
 					console.log('SMS sent successfully!')
 				);
 			}
@@ -128,7 +128,7 @@ router.post('/', async (req, res) => {
 				.then(res => console.log('Charge confirmed:', res))
 				.catch(err => console.error(err));
 			const template = `Your ${company} order has been delivered. Thanks for ordering with ${company}`;
-			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template, canSend).then(() =>
+			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template, subscriptionItems, canSend).then(() =>
 				console.log('SMS sent successfully!')
 			);
 		}

@@ -6,7 +6,6 @@ const moment = require('moment');
 const sendEmail = require('../services/email');
 const confirmCharge = require('../services/payments');
 const sendSMS = require('../services/sms');
-const { v4: uuidv4 } = require('uuid');
 const { sendWebhookUpdate } = require('../helpers');
 const router = express.Router();
 
@@ -68,6 +67,7 @@ async function updateStatus(data) {
 			}
 		);
 		const user = await db.User.findOne({ _id: job.clientId });
+		console.log('User:', !!user);
 		// check if job is en-route, send en-route SMS
 		if (jobStatus === JOB_STATUS.EN_ROUTE) {
 			const trackingMessage = job.jobSpecification.deliveries[0].trackingURL
@@ -76,12 +76,11 @@ async function updateStatus(data) {
 			const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`;
 			let settings = await db.Settings.findOne({clientId})
 			let canSend = settings ? settings.sms : false
-			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template, canSend).then(() =>
+			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template, user.subscriptionItems, canSend).then(() =>
 				console.log('SMS sent successfully!')
 			);
 		}
 		if (jobStatus === JOB_STATUS.CANCELLED) {
-			console.log('User:', !!user);
 			// check if order status is cancelled and send out email to clients
 			let options = {
 				name: `${user.firstname} ${user.lastname}`,
@@ -182,7 +181,7 @@ router.post('/', async (req, res) => {
 						.then(res => console.log('Charge confirmed:', res))
 						.catch(err => console.error(err));
 					const template = `Your ${company} order has been delivered. Thanks for ordering with ${company}!`;
-					sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template, canSend).then(() =>
+					sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template, subscriptionItems, canSend).then(() =>
 						console.log('SMS sent successfully!')
 					);
 				}

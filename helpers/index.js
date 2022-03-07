@@ -1943,7 +1943,7 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, domain)
 		await sendNewJobEmails(user.team, job);
 		const trackingMessage = delivery.trackingURL ? `\n\nTrack your delivery here: ${delivery.trackingURL}` : '';
 		const template = `Your ${user.company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today. ${trackingMessage}`;
-		await sendSMS(delivery.dropoffLocation.phoneNumber, template);
+		await sendSMS(delivery.dropoffLocation.phoneNumber, template, user.subscriptionItems, true);
 		return true;
 	} catch (err) {
 		console.error(err);

@@ -119,8 +119,8 @@ async function updateJob(data) {
 				.then(res => console.log('Charge confirmed:', res))
 				.catch(err => console.error(err));
 			const template = `Your ${company} order has been delivered. Thanks for ordering with ${company}`;
-			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template, canSend).then(() =>
-				console.log('SMS sent successfully!')
+			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template, subscriptionItems, canSend).then((message) =>
+				console.log(message)
 			);
 		}
 		return job;
@@ -159,8 +159,8 @@ async function updateDelivery(data) {
 				? `\nTrack the delivery here: ${job.jobSpecification.deliveries[0].trackingURL}`
 				: '';
 			const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`;
-			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template, canSend).then(() =>
-				console.log('SMS sent successfully!')
+			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template, user.subscriptionItems, canSend).then((message) =>
+				console.log(message)
 			);
 		}
 		// check if order status is cancelled and send out email to clients
