@@ -508,6 +508,40 @@ router.post('/assign', async (req, res) => {
 	}
 });
 
+router.patch('/dispatch', async(req, res) => {
+	try {
+	    const { driverId, orderNumber } = req.body;
+		const driver = await db.Driver.findById(driverId);
+		const job = await db.Job.findOne({'jobSpecification.orderNumber': orderNumber});
+		if (job && driver) {
+			job.driverInformation.id = driver._id;
+			job.driverInformation.name = `${driver.firstname} ${driver.lastname}`;
+			job.driverInformation.phone = driver.phone;
+			job.driverInformation.transport = driver.vehicle;
+			await job.save()
+			console.log(job)
+			res.status(200).json(job);
+		} else {
+			let err = new Error('ID for the job/driver is invalid')
+			err.status = 404
+			throw err
+		}
+	} catch (err) {
+	    console.error(err);
+		if (err.message) {
+			return res.status(err.status).json({
+				error: err
+			});
+		}
+		return res.status(500).json({
+			error: {
+				code: 500,
+				message: 'Unknown error occurred!'
+			}
+		});
+	}
+})
+
 /**
  * Create Multi-drop Job - creates a job with multiple dropoffs based on delivery requirements
  * @constructor
