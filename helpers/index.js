@@ -1994,10 +1994,10 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 						},
 						status: STATUS.PENDING
 					};
-					return await finaliseJob(user, job, clientId, commissionCharge, settings.sms)
+					return await finaliseJob(user, job, clientId, commissionCharge, settings.sms);
 				}
-			// autoDispatch is disabled, then create the job as a private job without assigning it to a driver
-			// specify dispatchMode = MANUAL
+				// autoDispatch is disabled, then create the job as a private job without assigning it to a driver
+				// specify dispatchMode = MANUAL
 			} else {
 				job = {
 					createdAt: moment().format(),
@@ -2071,7 +2071,7 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 					dispatchMode: DISPATCH_MODES.MANUAL,
 					status: STATUS.NEW
 				};
-				return await finaliseJob(user, job, clientId, commissionCharge, settings.sms)
+				return await finaliseJob(user, job, clientId, commissionCharge, settings.sms);
 			}
 		}
 		// if the default dispatcher = COURIER, attempt to send the job to a third party courier
@@ -2138,7 +2138,15 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 			},
 			status: STATUS.NEW
 		};
-		return await finaliseJob(user, job, clientId, commissionCharge, settings ? settings.sms : false)
+		if (settings && deliveryFee.toFixed(2) > settings.courierPriceThreshold) {
+			let template = `The price for one of your orders has exceeded your courier price range of £${
+				settings.courierPriceThreshold
+			}.\nPrice: £${deliveryFee.toFixed(2)}\nOrder Number: ${job.jobSpecification.orderNumber}`;
+			sendSMS(user.phone, template, { smsCommission: '' }, true, 'Seconds').then(() =>
+				console.log('Alert has been sent!')
+			);
+		}
+		return await finaliseJob(user, job, clientId, commissionCharge, settings ? settings.sms : false);
 	} catch (err) {
 		console.error(err);
 		await sendEmail({
@@ -2151,7 +2159,7 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 	}
 }
 
-async function finaliseJob(user, job, clientId, commissionCharge, smsEnabled=false){
+async function finaliseJob(user, job, clientId, commissionCharge, smsEnabled = false) {
 	// Create the final job into the jobs database
 	const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
 	console.log(createdJob);
