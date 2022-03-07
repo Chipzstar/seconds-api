@@ -12,28 +12,28 @@ router.post('/delivery-update', async (req, res) => {
 			if (type && type === 'create') {
 				console.log('JOB CREATE');
 				job = await updateJob(data);
-				sendWebhookUpdate(job, `${event}.${type}`).then().catch()
+				job && sendWebhookUpdate(job, `${event}.${type}`).then().catch()
 			}
 			if (type && type === 'update') {
 				console.log('JOB UPDATE');
 				job = await updateJob(data);
-				sendWebhookUpdate(job, `${event}.${type}`).then().catch()
+				job && sendWebhookUpdate(job, `${event}.${type}`).then().catch()
 			}
 		} else if (event && event === 'delivery') {
 			if (type && type === 'create') {
 				console.log('DELIVERY CREATE');
 				job = await updateDelivery(data);
-				sendWebhookUpdate(job, `${event}.${type}`).then().catch()
+				job && sendWebhookUpdate(job, `${event}.${type}`).then().catch()
 			}
 			if (type && type === 'update') {
 				console.log('DELIVERY UPDATE');
 				job = await updateDelivery(data);
-				sendWebhookUpdate(job, `${event}.${type}`).then().catch()
+				job && sendWebhookUpdate(job, `${event}.${type}`).then().catch()
 			}
 		} else if (event && event === 'driver'){
 			if (type && type === 'update'){
 				job = await updateDriverETA(data)
-				sendWebhookUpdate(job, `${event}.${type}`).then().catch()
+				job && sendWebhookUpdate(job, `${event}.${type}`).then().catch()
 			}
 		}
 		return res.status(200).json({
