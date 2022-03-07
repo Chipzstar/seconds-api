@@ -32,6 +32,7 @@ const { authStreetStream } = require('./streetStream');
 // SERVICES
 const sendEmail = require('../services/email');
 const sendSMS = require('../services/sms');
+const { DISPATCH_OPTIONS, DISPATCH_MODES } = require('@seconds-technologies/database_schemas/constants');
 // google maps api client
 const GMapsClient = new Client();
 // setup axios instances
@@ -374,6 +375,44 @@ function setNextDayDeliveryTime(pickupTime, deliveryHours) {
 		};
 	} else {
 		throw new Error('Store has no delivery hours available!');
+	}
+}
+
+async function findAvailableDriver(user, { autoDispatch }) {
+	try {
+		// fetch all verified drivers under the client
+		let drivers = await db.Driver.find({ clientIds: user['_id'], verified: true });
+		console.log('-----------------------------------------------');
+		console.log(drivers);
+		console.log('-----------------------------------------------');
+		// check if settings require drivers to be online, if so filter to include only online drivers
+		if (autoDispatch.onlineOnly) drivers = Array.from(drivers).filter(driver => driver.isOnline);
+		// if the client has drivers, check to see if a driver's order capacity does not exceed the threshold under the clients maxOrder settings
+		if (drivers.length) {
+			for (let driver of drivers) {
+				// get the job count for each driver
+				const jobCount = await db.Job.count({
+					clientId: user['_id'],
+					'selectedConfiguration.providerId': 'private',
+					'driverInformation.id': driver._id,
+					status: { $in: [STATUS.DISPATCHING, STATUS.EN_ROUTE] }
+				});
+				console.table({
+					driverId: driver._id,
+					jobCount,
+					maxOrders: autoDispatch.maxOrders,
+					onlineOnly: autoDispatch.onlineOnly
+				});
+				// compare jobCount with the max threshold
+				if (jobCount < autoDispatch.maxOrders) {
+					return driver;
+				}
+			}
+		}
+		return null;
+	} catch (err) {
+		console.error(err);
+		throw err;
 	}
 }
 
@@ -1832,10 +1871,10 @@ function convertWeightToVehicleCode(total_weight) {
 	return { vehicleName, vehicleCode };
 }
 
-async function createEcommerceJob(type, id, payload, ecommerceIds, user, domain) {
+async function createEcommerceJob(type, id, payload, ecommerceIds, user, settings, domain) {
 	try {
+		let job;
 		let commissionCharge = false;
-		let paymentIntent;
 		const clientRefNumber = genJobReference();
 		const { _id: clientId, selectionStrategy, deliveryHours } = user;
 		// get specifications for the vehicle
@@ -1857,22 +1896,13 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, domain)
 				payload.packagePickupStartTime,
 				deliveryHours
 			);
-			payload.packageDeliveryType = 'NEXT_DAY';
+			payload.packageDeliveryType = DELIVERY_TYPES.NEXT_DAY.name;
 			payload.packagePickupStartTime = nextDayPickup;
 			payload.drops[0].packageDropoffEndTime = nextDayDropoff;
 		}
 		console.log('-----------------------------------------------------------------');
 		console.log(payload.packagePickupStartTime);
 		console.log('-----------------------------------------------------------------');
-		const QUOTES = await getResultantQuotes(payload, vehicleSpecs, jobDistance);
-		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
-		if (!bestQuote) {
-			const error = new Error('No couriers available at this time. Please try again later!');
-			error.status = 500;
-			throw error;
-		}
-		const providerId = bestQuote.providerId;
-		const winnerQuote = bestQuote.id;
 		// check the payment plan and lookup the associated commission fee
 		let { fee, limit } = COMMISSION[user.subscriptionPlan.toUpperCase()];
 		console.log('--------------------------------');
@@ -1883,6 +1913,178 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, domain)
 		console.log('--------------------------------');
 		// if the order limit is exceeded, mark the job with a commission fee charge
 		if (numOrders >= limit) commissionCharge = true;
+		/*---------------------------------------------------------------------------------------*/
+		// check user default dispatch settings of the user
+		// if default dispatcher = DRIVER, attempt to assign the job to a driver
+		if (settings && settings.defaultDispatch === DISPATCH_OPTIONS.DRIVER) {
+			// if autoDispatch is enabled, find an available driver
+			if (settings.autoDispatch.enabled) {
+				const driver = await findAvailableDriver(user, settings);
+				console.log(driver);
+				if (driver) {
+					job = {
+						createdAt: moment().format(),
+						driverInformation: {
+							id: `${driver['_id']}`,
+							name: `${driver.firstname} ${driver.lastname}`,
+							phone: driver.phone,
+							transport: VEHICLE_CODES_MAP[driver.vehicle].name
+						},
+						jobSpecification: {
+							id: genDeliveryId(),
+							jobReference: clientRefNumber,
+							orderNumber: orderId.generate(),
+							deliveryType: payload.packageDeliveryType,
+							pickupStartTime: payload.packagePickupStartTime,
+							pickupEndTime: payload.packagePickupEndTime,
+							pickupLocation: {
+								fullAddress: payload.pickupAddress,
+								streetAddress: String(payload.pickupAddressLine1).trim(),
+								city: String(payload.pickupCity).trim(),
+								postcode: String(payload.pickupPostcode).trim(),
+								latitude: payload.pickupLatitude,
+								longitude: payload.pickupLongitude,
+								country: 'UK',
+								phoneNumber: payload.pickupPhoneNumber,
+								email: payload.pickupEmailAddress,
+								firstName: payload.pickupFirstName,
+								lastName: payload.pickupLastName,
+								businessName: payload.pickupBusinessName,
+								instructions: payload.pickupInstructions
+							},
+							deliveries: [
+								{
+									id: genDeliveryId(),
+									orderReference: payload.drops[0]['reference'],
+									description: payload.drops[0]['packageDescription'],
+									dropoffStartTime: payload.drops[0].packageDropoffStartTime,
+									dropoffEndTime: payload.drops[0].packageDropoffEndTime,
+									transport: vehicleSpecs.name,
+									dropoffLocation: {
+										fullAddress: payload.drops[0].dropoffAddress,
+										streetAddress:
+											payload.drops[0].dropoffAddressLine1 + payload.drops[0].dropoffAddressLine2,
+										city: payload.drops[0].dropoffCity,
+										postcode: payload.drops[0].dropoffPostcode,
+										country: 'UK',
+										latitude: payload.drops[0].dropoffLatitude,
+										longitude: payload.drops[0].dropoffLongitude,
+										phoneNumber: payload.drops[0].dropoffPhoneNumber,
+										email: payload.drops[0].dropoffEmailAddress,
+										firstName: payload.drops[0].dropoffFirstName,
+										lastName: payload.drops[0].dropoffLastName,
+										businessName: payload.drops[0].dropoffBusinessName
+											? payload.drops[0].dropoffBusinessName
+											: '',
+										instructions: payload.drops[0].dropoffInstructions
+											? payload.drops[0].dropoffInstructions
+											: ''
+									},
+									trackingURL: '',
+									status: STATUS.PENDING
+								}
+							]
+						},
+						selectedConfiguration: {
+							createdAt: moment().format(),
+							deliveryFee: settings ? settings.driverDeliveryFee : 5.0,
+							winnerQuote: 'N/A',
+							providerId: 'private',
+							quotes: []
+						},
+						status: STATUS.PENDING
+					};
+					return await finaliseJob(user, job, clientId, commissionCharge, settings.sms)
+				}
+			// autoDispatch is disabled, then create the job as a private job without assigning it to a driver
+			// specify dispatchMode = MANUAL
+			} else {
+				job = {
+					createdAt: moment().format(),
+					driverInformation: {
+						name: `NO DRIVER ASSIGNED`,
+						phone: '',
+						transport: ''
+					},
+					jobSpecification: {
+						id: genDeliveryId(),
+						jobReference: clientRefNumber,
+						orderNumber: orderId.generate(),
+						deliveryType: payload.packageDeliveryType,
+						pickupStartTime: payload.packagePickupStartTime,
+						pickupEndTime: payload.packagePickupEndTime,
+						pickupLocation: {
+							fullAddress: payload.pickupAddress,
+							streetAddress: String(payload.pickupAddressLine1).trim(),
+							city: String(payload.pickupCity).trim(),
+							postcode: String(payload.pickupPostcode).trim(),
+							latitude: payload.pickupLatitude,
+							longitude: payload.pickupLongitude,
+							country: 'UK',
+							phoneNumber: payload.pickupPhoneNumber,
+							email: payload.pickupEmailAddress,
+							firstName: payload.pickupFirstName,
+							lastName: payload.pickupLastName,
+							businessName: payload.pickupBusinessName,
+							instructions: payload.pickupInstructions
+						},
+						deliveries: [
+							{
+								id: genDeliveryId(),
+								orderReference: payload.drops[0]['reference'],
+								description: payload.drops[0]['packageDescription'],
+								dropoffStartTime: payload.drops[0].packageDropoffStartTime,
+								dropoffEndTime: payload.drops[0].packageDropoffEndTime,
+								transport: vehicleSpecs.name,
+								dropoffLocation: {
+									fullAddress: payload.drops[0].dropoffAddress,
+									streetAddress:
+										payload.drops[0].dropoffAddressLine1 + payload.drops[0].dropoffAddressLine2,
+									city: payload.drops[0].dropoffCity,
+									postcode: payload.drops[0].dropoffPostcode,
+									country: 'UK',
+									latitude: payload.drops[0].dropoffLatitude,
+									longitude: payload.drops[0].dropoffLongitude,
+									phoneNumber: payload.drops[0].dropoffPhoneNumber,
+									email: payload.drops[0].dropoffEmailAddress,
+									firstName: payload.drops[0].dropoffFirstName,
+									lastName: payload.drops[0].dropoffLastName,
+									businessName: payload.drops[0].dropoffBusinessName
+										? payload.drops[0].dropoffBusinessName
+										: '',
+									instructions: payload.drops[0].dropoffInstructions
+										? payload.drops[0].dropoffInstructions
+										: ''
+								},
+								trackingURL: '',
+								status: STATUS.NEW
+							}
+						]
+					},
+					selectedConfiguration: {
+						createdAt: moment().format(),
+						deliveryFee: settings ? settings.driverDeliveryFee : 5.0,
+						winnerQuote: 'N/A',
+						providerId: 'private',
+						quotes: []
+					},
+					dispatchMode: DISPATCH_MODES.MANUAL,
+					status: STATUS.NEW
+				};
+				return await finaliseJob(user, job, clientId, commissionCharge, settings.sms)
+			}
+		}
+		// if the default dispatcher = COURIER, attempt to send the job to a third party courier
+		// This is the default option for new users who have not set up their business workflow
+		const QUOTES = await getResultantQuotes(payload, vehicleSpecs, jobDistance);
+		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
+		if (!bestQuote) {
+			const error = new Error('No couriers available at this time. Please try again later!');
+			error.status = 500;
+			throw error;
+		}
+		const providerId = bestQuote.providerId;
+		const winnerQuote = bestQuote.id;
 		const {
 			id: spec_id,
 			deliveryFee,
@@ -1895,8 +2097,7 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, domain)
 			payload,
 			vehicleSpecs
 		);
-		const paymentIntentId = paymentIntent ? paymentIntent.id : undefined;
-		let job = {
+		job = {
 			createdAt: moment().format(),
 			driverInformation: {
 				name: 'Searching',
@@ -1937,14 +2138,7 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, domain)
 			},
 			status: STATUS.NEW
 		};
-		// Append the selected provider job to the jobs database
-		const createdJob = await db.Job.create({ ...job, clientId, commissionCharge, paymentIntentId });
-		console.log(createdJob);
-		await sendNewJobEmails(user.team, job);
-		const trackingMessage = delivery.trackingURL ? `\n\nTrack your delivery here: ${delivery.trackingURL}` : '';
-		const template = `Your ${user.company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today. ${trackingMessage}`;
-		await sendSMS(delivery.dropoffLocation.phoneNumber, template, user.subscriptionItems, true);
-		return true;
+		return await finaliseJob(user, job, clientId, commissionCharge, settings ? settings.sms : false)
 	} catch (err) {
 		console.error(err);
 		await sendEmail({
@@ -1955,6 +2149,21 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, domain)
 		});
 		return err;
 	}
+}
+
+async function finaliseJob(user, job, clientId, commissionCharge, smsEnabled=false){
+	// Create the final job into the jobs database
+	const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
+	console.log(createdJob);
+	let {
+		dropoffLocation: { phoneNumber },
+		trackingURL
+	} = job.jobSpecification.deliveries[0];
+	await sendNewJobEmails(user.team, job);
+	const trackingMessage = trackingURL ? `\n\nTrack your delivery here: ${trackingURL}` : '';
+	const template = `Your ${user.company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today. ${trackingMessage}`;
+	await sendSMS(phoneNumber, template, user.subscriptionItems, smsEnabled);
+	return true;
 }
 
 async function sendWebhookUpdate(payload, topic) {

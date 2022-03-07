@@ -163,6 +163,9 @@ router.post('/', async (req, res) => {
 			const user = await db.User.findOne({ 'shopify.domain': shop.toLowerCase() });
 			console.log('User Found:', !!user);
 			if (user) {
+				// grab the settings for that user (if they have been set)
+				const settings = await db.Settings.findOne({clientId: user['_id']})
+				console.log('Settings:', !!settings);
 				// CHECK if the incoming delivery is a local delivery
 				const isLocalDelivery = req.body['shipping_lines'][0].code === DELIVERY_METHODS.LOCAL || req.body['tags'].includes(DELIVERY_METHODS.LOCAL.toUpperCase());
 				const isSubscribed = !!user.subscriptionId & !!user.subscriptionPlan;
@@ -172,7 +175,7 @@ router.post('/', async (req, res) => {
 						generatePayload(req.body, user)
 							.then(payload => {
 								const ids = { shopifyId: req.body.id, woocommerceId: null };
-								createEcommerceJob("Shopify", req.body.id, payload, ids, user, shop).then(() => console.log("SUCCESS"));
+								createEcommerceJob("Shopify", req.body.id, payload, ids, user, settings, shop).then(() => console.log("SUCCESS"));
 							})
 							.catch(err => console.error(err));
 						res.status(200).json({
