@@ -380,9 +380,11 @@ function setNextDayDeliveryTime(pickupTime, deliveryHours) {
 
 async function findAvailableDriver(user, { autoDispatch }) {
 	try {
+		console.log('-----------------------------------------------');
+		console.log("FINDING AVAILABLE DRIVER...")
 		// fetch all verified drivers under the client
 		let drivers = await db.Driver.find({ clientIds: user['_id'], verified: true });
-		console.log('-----------------------------------------------');
+		console.log('================================================');
 		console.log(drivers);
 		console.log('-----------------------------------------------');
 		// check if settings require drivers to be online, if so filter to include only online drivers
@@ -1941,6 +1943,9 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 		if (settings && settings.defaultDispatch === DISPATCH_OPTIONS.DRIVER) {
 			// if autoDispatch is enabled, find an available driver
 			if (settings.autoDispatch.enabled) {
+				console.log("*****************************************")
+				console.log("AUTO DISPATCH ENABLED!")
+				console.log("*****************************************")
 				const driver = await findAvailableDriver(user, settings);
 				console.log(driver);
 				if (driver) {
@@ -2021,6 +2026,9 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 			// autoDispatch is disabled, then create the job as a private job without assigning it to a driver
 			// specify dispatchMode = MANUAL
 			} else {
+				console.log("*****************************************")
+				console.log("AUTO DISPATCH DISABLED!")
+				console.log("*****************************************")
 				job = {
 					createdAt: moment().format(),
 					driverInformation: {
