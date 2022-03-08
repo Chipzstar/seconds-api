@@ -62,8 +62,11 @@ router.get('/', async (req, res) => {
 		} else if (driverId) {
 			const driver = await db.Driver.findById(driverId);
 			if (driver) {
-				const jobs = await db.Job.find({ 'selectedConfiguration.providerId': PROVIDERS.PRIVATE, 'driverInformation.id': driverId });
-				jobs.sort((a, b) => (b.createdAt - a.createdAt));
+				const jobs = await db.Job.find({
+					'selectedConfiguration.providerId': PROVIDERS.PRIVATE,
+					'driverInformation.id': driverId
+				});
+				jobs.sort((a, b) => b.createdAt - a.createdAt);
 				return res.status(200).json(jobs);
 			} else {
 				res.status(404).json({
@@ -74,7 +77,7 @@ router.get('/', async (req, res) => {
 		} else {
 			res.status(400).json({
 				code: 400,
-				message: "client email / driver id query parameter is missing from request"
+				message: 'client email / driver id query parameter is missing from request'
 			});
 		}
 	} catch (err) {
@@ -120,8 +123,8 @@ router.post('/create', async (req, res) => {
 			deliveryHours,
 			team
 		} = await getClientDetails(apiKey);
-		let settings = await db.Settings.findOne({clientId})
-		let canSend = settings ? settings.sms : false
+		let settings = await db.Settings.findOne({ clientId });
+		let canSend = settings ? settings.sms : false;
 		// check that the vehicleType is valid and return the vehicle's specifications
 		let vehicleSpecs = getVehicleSpecs(vehicleType);
 		console.table(vehicleSpecs);
@@ -259,7 +262,9 @@ router.post('/create', async (req, res) => {
 				sendNewJobEmails(team, job).then(res => console.log(res));
 			const trackingMessage = delivery.trackingURL ? `\n\nTrack your delivery here: ${delivery.trackingURL}` : '';
 			const template = `Your ${company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today. ${trackingMessage}`;
-			sendSMS(delivery.dropoffLocation.phoneNumber, template, subscriptionItems, canSend).then((message) => console.log(message));
+			sendSMS(delivery.dropoffLocation.phoneNumber, template, subscriptionItems, canSend).then(message =>
+				console.log(message)
+			);
 			return res.status(200).json({
 				jobId: createdJob._id,
 				...job
@@ -324,6 +329,9 @@ router.post('/assign', async (req, res) => {
 		// fetch user information from the api key
 		const {
 			_id: clientId,
+			email,
+			firstname,
+			lastname,
 			company,
 			subscriptionItems,
 			subscriptionId,
@@ -331,9 +339,9 @@ router.post('/assign', async (req, res) => {
 			deliveryHours,
 			team
 		} = await getClientDetails(apiKey);
-		let settings = await db.Settings.findOne({clientId})
-		let canSend = settings ? settings.sms : false
-		console.table({canSend})
+		let settings = await db.Settings.findOne({ clientId });
+		let canSend = settings ? settings.sms : false;
+		console.table({ canSend });
 		// check that the vehicleType is valid and return the vehicle's specifications
 		let vehicleSpecs = getVehicleSpecs(vehicleType);
 		console.table(vehicleSpecs);
@@ -390,6 +398,7 @@ router.post('/assign', async (req, res) => {
 			if (numOrders >= limit) {
 				commissionCharge = true;
 			}
+			const orderNumber = orderId.generate();
 			let job = {
 				createdAt: moment().format(),
 				driverInformation: {
@@ -401,7 +410,7 @@ router.post('/assign', async (req, res) => {
 				jobSpecification: {
 					id: genDeliveryId(),
 					jobReference,
-					orderNumber: orderId.generate(),
+					orderNumber,
 					deliveryType: DELIVERY_TYPES[packageDeliveryType].name,
 					pickupStartTime: req.body.packagePickupStartTime,
 					pickupEndTime: req.body.packagePickupEndTime,
@@ -469,9 +478,35 @@ router.post('/assign', async (req, res) => {
 			const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
 			sendNewJobEmails(team, job).then(res => console.log(res));
 			const template = `Your ${company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today.`;
-			sendSMS(req.body.drops[0].dropoffPhoneNumber, template, subscriptionItems, canSend).then(() => console.log('SMS sent successfully!'));
+			sendSMS(req.body.drops[0].dropoffPhoneNumber, template, subscriptionItems, canSend).then(() =>
+				console.log('SMS sent successfully!')
+			);
 			// send driver notification
 			// sendNotification([""]).then(() => console.log("sent"))
+			// set driver response timeout which changes the status of the job to CANCELLED when job is not accepted before that time
+			settings &&
+				setTimeout(async () => {
+					let futureJob = await db.Job.findOne({ 'jobSpecification.orderNumber': orderNumber });
+					if (futureJob && [STATUS.NEW, STATUS.PENDING].includes(futureJob.status)) {
+						console.log(futureJob.toObject());
+						futureJob.status = STATUS.CANCELLED;
+						await futureJob.save();
+						console.log(
+							`Order: ${orderNumber} has been cancelled\nReason: No driver accepted the order within your response time window`
+						);
+						if (settings['expiredJobAlerts']) {
+							await sendEmail({
+								email: email,
+								name: `${firstname} ${lastname}`,
+								subject: `Job Expired #${orderNumber}`,
+								text: `Hey, ${driver.firstname} ${driver.lastname} has not accepted the delivery you assigned to them.\n The order has now been cancelled and you can re-assign the delivery to another driver!`,
+								html: `<p>Hey, ${driver.firstname} ${driver.lastname} has not accepted the delivery you assigned to them.<br/>The order has now been cancelled, and you can re-assign the delivery to another driver!</p>`
+							});
+						}
+					} else {
+						console.log(`No job found with order number: ${orderNumber}`);
+					}
+				}, settings['driverResponseTime'] * 60000);
 			return res.status(200).json({
 				jobId: createdJob._id,
 				...job
@@ -508,26 +543,26 @@ router.post('/assign', async (req, res) => {
 	}
 });
 
-router.patch('/dispatch', async(req, res) => {
+router.patch('/dispatch', async (req, res) => {
 	try {
-	    const { driverId, orderNumber } = req.body;
+		const { driverId, orderNumber } = req.body;
 		const driver = await db.Driver.findById(driverId);
-		const job = await db.Job.findOne({'jobSpecification.orderNumber': orderNumber});
+		const job = await db.Job.findOne({ 'jobSpecification.orderNumber': orderNumber });
 		if (job && driver) {
 			job.driverInformation.id = driver._id;
 			job.driverInformation.name = `${driver.firstname} ${driver.lastname}`;
 			job.driverInformation.phone = driver.phone;
 			job.driverInformation.transport = driver.vehicle;
-			await job.save()
-			console.log(job)
+			await job.save();
+			console.log(job);
 			res.status(200).json(job);
 		} else {
-			let err = new Error('ID for the job/driver is invalid')
-			err.status = 404
-			throw err
+			let err = new Error('ID for the job/driver is invalid');
+			err.status = 404;
+			throw err;
 		}
 	} catch (err) {
-	    console.error(err);
+		console.error(err);
 		if (err.message) {
 			return res.status(err.status).json({
 				error: err
@@ -540,7 +575,7 @@ router.patch('/dispatch', async(req, res) => {
 			}
 		});
 	}
-})
+});
 
 /**
  * Create Multi-drop Job - creates a job with multiple dropoffs based on delivery requirements
