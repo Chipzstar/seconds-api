@@ -455,7 +455,7 @@ router.post('/assign', async (req, res) => {
 				},
 				selectedConfiguration: {
 					createdAt: moment().format(),
-					deliveryFee: settings ? settings.deliveryFee : 5.0,
+					deliveryFee: settings ? settings['driverDeliveryFee'] : 5.0,
 					winnerQuote: 'N/A',
 					providerId: 'private',
 					quotes: []
