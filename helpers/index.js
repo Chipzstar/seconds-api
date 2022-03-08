@@ -416,6 +416,28 @@ async function findAvailableDriver(user, { autoDispatch }) {
 	}
 }
 
+async function checkJobExpired(orderNumber, driver, user, settings) {
+	let futureJob = await db.Job.findOne({ 'jobSpecification.orderNumber': orderNumber });
+	if (futureJob && [STATUS.NEW, STATUS.PENDING].includes(futureJob.status)) {
+		futureJob.status = STATUS.CANCELLED;
+		await futureJob.save();
+		console.log(
+			`Order: ${orderNumber} has been cancelled\nReason: No driver accepted the order within your response time window`
+		);
+		if (settings['expiredJobAlerts']) {
+			await sendEmail({
+				email: user.email,
+				name: `${user.firstname} ${user.lastname}`,
+				subject: `Job Expired #${orderNumber}`,
+				text: `Hey, ${driver.firstname} ${driver.lastname} has not accepted the delivery you assigned to them.\n The order has now been cancelled and you can re-assign the delivery to another driver!`,
+				html: `<p>Hey, ${driver.firstname} ${driver.lastname} has not accepted the delivery you assigned to them.<br/>The order has now been cancelled, and you can re-assign the delivery to another driver!</p>`
+			});
+		}
+	} else {
+		console.log(`No job found with order number: ${orderNumber}`);
+	}
+}
+
 // QUOTE AGGREGATION
 // send delivery request to integrated providers
 async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance) {
@@ -1994,10 +2016,10 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 						},
 						status: STATUS.PENDING
 					};
-					return await finaliseJob(user, job, clientId, commissionCharge, settings.sms);
+					return await finaliseJob(user, job, clientId, commissionCharge, driver, settings, settings.sms);
 				}
-				// autoDispatch is disabled, then create the job as a private job without assigning it to a driver
-				// specify dispatchMode = MANUAL
+			// autoDispatch is disabled, then create the job as a private job without assigning it to a driver
+			// specify dispatchMode = MANUAL
 			} else {
 				job = {
 					createdAt: moment().format(),
@@ -2071,7 +2093,7 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 					dispatchMode: DISPATCH_MODES.MANUAL,
 					status: STATUS.NEW
 				};
-				return await finaliseJob(user, job, clientId, commissionCharge, settings.sms);
+				return await finaliseJob(user, job, clientId, commissionCharge, null, settings, settings.sms);
 			}
 		}
 		// if the default dispatcher = COURIER, attempt to send the job to a third party courier
@@ -2142,11 +2164,19 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 			let template = `The price for one of your orders has exceeded your courier price range of £${
 				settings.courierPriceThreshold
 			}.\nPrice: £${deliveryFee.toFixed(2)}\nOrder Number: ${job.jobSpecification.orderNumber}`;
-			sendSMS(user.phone, template, { smsCommission: '' }, true, 'Seconds').then(() =>
+			sendSMS(user.phone, template, { smsCommission: '' }, true).then(() =>
 				console.log('Alert has been sent!')
 			);
 		}
-		return await finaliseJob(user, job, clientId, commissionCharge, settings ? settings.sms : false);
+		return await finaliseJob(
+			user,
+			job,
+			clientId,
+			commissionCharge,
+			null,
+			settings,
+			settings ? settings.sms : false
+		);
 	} catch (err) {
 		console.error(err);
 		await sendEmail({
@@ -2159,7 +2189,7 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 	}
 }
 
-async function finaliseJob(user, job, clientId, commissionCharge, smsEnabled = false) {
+async function finaliseJob(user, job, clientId, commissionCharge, driver = null, settings = null, smsEnabled = false) {
 	// Create the final job into the jobs database
 	const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
 	console.log(createdJob);
@@ -2171,6 +2201,12 @@ async function finaliseJob(user, job, clientId, commissionCharge, smsEnabled = f
 	const trackingMessage = trackingURL ? `\n\nTrack your delivery here: ${trackingURL}` : '';
 	const template = `Your ${user.company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today. ${trackingMessage}`;
 	await sendSMS(phoneNumber, template, user.subscriptionItems, smsEnabled);
+	if (job.selectedConfiguration.providerId === PROVIDERS.PRIVATE && driver && settings) {
+		setTimeout(
+			() => checkJobExpired(job.jobSpecification.orderNumber, driver, user, settings),
+			settings['driverResponseTime'] * 60000
+		);
+	}
 	return true;
 }
 
@@ -2216,6 +2252,7 @@ module.exports = {
 	getVehicleSpecs,
 	calculateJobDistance,
 	checkAlternativeVehicles,
+	checkJobExpired,
 	chooseBestProvider,
 	checkPickupHours,
 	getResultantQuotes,

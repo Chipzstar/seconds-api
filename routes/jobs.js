@@ -17,7 +17,8 @@ const {
 	sendNewJobEmails,
 	cancelOrder,
 	geocodeAddress,
-	genDeliveryId
+	genDeliveryId,
+	checkJobExpired
 } = require('../helpers');
 const {
 	AUTHORIZATION_KEY,
@@ -485,28 +486,20 @@ router.post('/assign', async (req, res) => {
 			// sendNotification([""]).then(() => console.log("sent"))
 			// set driver response timeout which changes the status of the job to CANCELLED when job is not accepted before that time
 			settings &&
-				setTimeout(async () => {
-					let futureJob = await db.Job.findOne({ 'jobSpecification.orderNumber': orderNumber });
-					if (futureJob && [STATUS.NEW, STATUS.PENDING].includes(futureJob.status)) {
-						console.log(futureJob.toObject());
-						futureJob.status = STATUS.CANCELLED;
-						await futureJob.save();
-						console.log(
-							`Order: ${orderNumber} has been cancelled\nReason: No driver accepted the order within your response time window`
-						);
-						if (settings['expiredJobAlerts']) {
-							await sendEmail({
-								email: email,
-								name: `${firstname} ${lastname}`,
-								subject: `Job Expired #${orderNumber}`,
-								text: `Hey, ${driver.firstname} ${driver.lastname} has not accepted the delivery you assigned to them.\n The order has now been cancelled and you can re-assign the delivery to another driver!`,
-								html: `<p>Hey, ${driver.firstname} ${driver.lastname} has not accepted the delivery you assigned to them.<br/>The order has now been cancelled, and you can re-assign the delivery to another driver!</p>`
-							});
-						}
-					} else {
-						console.log(`No job found with order number: ${orderNumber}`);
-					}
-				}, settings['driverResponseTime'] * 60000);
+				setTimeout(
+					() =>
+						checkJobExpired(
+							orderNumber,
+							driver,
+							{
+								email,
+								firstname,
+								lastname
+							},
+							settings
+						),
+					settings['driverResponseTime'] * 60000
+				);
 			return res.status(200).json({
 				jobId: createdJob._id,
 				...job
@@ -545,6 +538,8 @@ router.post('/assign', async (req, res) => {
 
 router.patch('/dispatch', async (req, res) => {
 	try {
+		const apiKey = req.headers[AUTHORIZATION_KEY];
+		const { _id: clientId, email, firstname, lastname } = await getClientDetails(apiKey);
 		const { driverId, orderNumber } = req.body;
 		const driver = await db.Driver.findById(driverId);
 		const job = await db.Job.findOne({ 'jobSpecification.orderNumber': orderNumber });
@@ -555,6 +550,23 @@ router.patch('/dispatch', async (req, res) => {
 			job.driverInformation.transport = driver.vehicle;
 			await job.save();
 			console.log(job);
+			// use clientId of the job to find the client's settings
+			const settings = await db.Settings.findOne({ clientId });
+			settings &&
+				setTimeout(
+					() =>
+						checkJobExpired(
+							orderNumber,
+							driver,
+							{
+								email,
+								firstname,
+								lastname
+							},
+							settings
+						),
+					settings['driverResponseTime'] * 60000
+				);
 			res.status(200).json(job);
 		} else {
 			let err = new Error('ID for the job/driver is invalid');
