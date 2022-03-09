@@ -35,7 +35,7 @@ function translateGophrStatus(value) {
 
 async function updateStatus(data) {
 	try {
-		console.log(data);
+		console.table(data);
 		const {
 			status: jobStatus,
 			external_id: clientReference,
@@ -45,7 +45,6 @@ async function updateStatus(data) {
 			courier_name,
 			cancellation_reason
 		} = data;
-		console.log({ jobStatus, JOB_ID, clientReference });
 		// update the status for the current job
 		await db.Job.findOneAndUpdate(
 			{ 'jobSpecification.id': JOB_ID },
@@ -148,7 +147,6 @@ router.post('/', async (req, res) => {
 			if (webhook_type === WEBHOOK_TYPES.STATUS) {
 				// update the status of the job in db and return it
 				job = await updateStatus(req.body);
-				console.log(job);
 				// define the topic name for the webhook
 				let topic = [JOB_STATUS.PENDING, JOB_STATUS.ACCEPTED].includes(req.body.status)
 					? 'job.create'
@@ -185,7 +183,6 @@ router.post('/', async (req, res) => {
 				}
 			} else if (webhook_type === WEBHOOK_TYPES.ETA) {
 				job = await updateETA(req.body);
-				console.log(job);
 				sendWebhookUpdate(job, 'delivery.update').then(() => console.log('ETA UPDATE DELIVERED TO CLIENT'));
 			} else {
 				throw new Error(`Unknown webhook type, ${webhook_type}`);
