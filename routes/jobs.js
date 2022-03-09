@@ -125,7 +125,8 @@ router.post('/create', async (req, res) => {
 			team
 		} = await getClientDetails(apiKey);
 		let settings = await db.Settings.findOne({ clientId });
-		let canSend = settings ? settings.sms : false;
+		let smsEnabled = settings ? settings.sms : false;
+		let newJobAlerts = settings ? settings['jobAlerts'].new : false
 		// check that the vehicleType is valid and return the vehicle's specifications
 		let vehicleSpecs = getVehicleSpecs(vehicleType);
 		console.table(vehicleSpecs);
@@ -259,11 +260,10 @@ router.post('/create', async (req, res) => {
 			console.log('======================================================================================');
 			// Append the selected provider job to the jobs database
 			const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
-			process.env.NEW_RELIC_APP_NAME === 'seconds-api' &&
-				sendNewJobEmails(team, job).then(res => console.log(res));
+			newJobAlerts && sendNewJobEmails(team, job).then(res => console.log(res));
 			const trackingMessage = delivery.trackingURL ? `\n\nTrack your delivery here: ${delivery.trackingURL}` : '';
 			const template = `Your ${company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today. ${trackingMessage}`;
-			sendSMS(delivery.dropoffLocation.phoneNumber, template, subscriptionItems, canSend).then(message =>
+			sendSMS(delivery.dropoffLocation.phoneNumber, template, subscriptionItems, smsEnabled).then(message =>
 				console.log(message)
 			);
 			return res.status(200).json({
@@ -341,8 +341,9 @@ router.post('/assign', async (req, res) => {
 			team
 		} = await getClientDetails(apiKey);
 		let settings = await db.Settings.findOne({ clientId });
-		let canSend = settings ? settings.sms : false;
-		console.table({ canSend });
+		let smsEnabled = settings ? settings.sms : false;
+		let newJobAlerts = settings ? settings['jobAlerts'].new : false
+		console.table({ smsEnabled, newJobAlerts });
 		// check that the vehicleType is valid and return the vehicle's specifications
 		let vehicleSpecs = getVehicleSpecs(vehicleType);
 		console.table(vehicleSpecs);
@@ -477,9 +478,9 @@ router.post('/assign', async (req, res) => {
 			console.log('======================================================================================');
 			// Append the selected provider job to the jobs database
 			const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
-			sendNewJobEmails(team, job).then(res => console.log(res));
+			newJobAlerts && sendNewJobEmails(team, job).then(res => console.log(res));
 			const template = `Your ${company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today.`;
-			sendSMS(req.body.drops[0].dropoffPhoneNumber, template, subscriptionItems, canSend).then(() =>
+			sendSMS(req.body.drops[0].dropoffPhoneNumber, template, subscriptionItems, smsEnabled).then(() =>
 				console.log('SMS sent successfully!')
 			);
 			// send driver notification
@@ -613,6 +614,8 @@ router.post('/multi-drop', async (req, res) => {
 			deliveryHours,
 			team
 		} = await getClientDetails(apiKey);
+		let settings = await db.Settings.findOne({ clientId });
+		let newJobAlerts = settings ? settings['jobAlerts'].new : false
 		// check that the vehicleType is valid and return the vehicle's specifications
 		let vehicleSpecs = getVehicleSpecs(vehicleType);
 		console.table(vehicleSpecs);
@@ -636,7 +639,6 @@ router.post('/multi-drop', async (req, res) => {
 			req.body.packagePickupStartTime = moment().add(30, 'minutes').format();
 		}
 		//TODO - Test multi drop with dashboard -> use packageDropoffEndTime instead of packageDropoffStartTime to base dropoff windows (see line 336)
-
 		// CHECK DELIVERY HOURS
 		let canDeliver = checkPickupHours(req.body.packagePickupStartTime, deliveryHours);
 		if (!canDeliver) {
@@ -720,8 +722,7 @@ router.post('/multi-drop', async (req, res) => {
 			console.log('======================================================================================');
 			// Append the selected provider job to the jobs database
 			const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
-			process.env.NEW_RELIC_APP_NAME === 'seconds-api' &&
-				sendNewJobEmails(team, job).then(res => console.log(res));
+			newJobAlerts &&	sendNewJobEmails(team, job).then(res => console.log(res));
 			return res.status(200).json({
 				jobId: createdJob._id,
 				...job

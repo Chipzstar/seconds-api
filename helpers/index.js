@@ -426,7 +426,7 @@ async function checkJobExpired(orderNumber, driver, user, settings) {
 		console.log(
 			`Order: ${orderNumber} has been cancelled\nReason: No driver accepted the order within your response time window`
 		);
-		if (settings['expiredJobAlerts']) {
+		if (settings['jobAlerts'].expired) {
 			await sendEmail({
 				email: user.email,
 				name: `${user.firstname} ${user.lastname}`,
