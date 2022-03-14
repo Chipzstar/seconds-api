@@ -442,7 +442,7 @@ async function checkJobExpired(orderNumber, driver, user, settings) {
 
 // QUOTE AGGREGATION
 // send delivery request to integrated providers
-async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance) {
+async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance, settings) {
 	try {
 		const QUOTES = [];
 		// check if distance is less than or equal to the vehicle's max pickup to dropoff distance
@@ -457,19 +457,19 @@ async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance) {
 			console.table(vehicleSpecs);
 		}
 		// check if the current vehicle is supported by Stuart and if the job distance is within the maximum limit
-		if (vehicleSpecs.stuart.packageType && process.env.STUART_STATUS === 'active') {
+		if (vehicleSpecs.stuart.packageType && process.env.STUART_STATUS === 'active' && settings.activeFleetProviders.stuart) {
 			let stuartQuote = await getStuartQuote(genJobReference(), requestBody, vehicleSpecs);
 			stuartQuote && QUOTES.push(stuartQuote);
 		}
-		if (process.env.GOPHR_STATUS === 'active') {
+		if (process.env.GOPHR_STATUS === 'active' && settings.activeFleetProviders.gophr) {
 			let gophrQuote = await getGophrQuote(requestBody, vehicleSpecs);
 			gophrQuote && QUOTES.push(gophrQuote);
 		}
-		if (process.env.STREET_STREAM_STATUS === 'active') {
+		if (process.env.STREET_STREAM_STATUS === 'active' && settings.activeFleetProviders.street_stream) {
 			let streetStreamQuote = await getStreetStreamQuote(requestBody, vehicleSpecs);
 			streetStreamQuote && QUOTES.push(streetStreamQuote);
 		}
-		if (vehicleSpecs.ecofleetVehicle && process.env.ECOFLEET_STATUS === 'active') {
+		if (vehicleSpecs.ecofleetVehicle && process.env.ECOFLEET_STATUS === 'active' && settings.activeFleetProviders.ecofleet) {
 			let ecoFleetQuote = {
 				...quoteSchema,
 				id: `quote_${nanoid(15)}`,
@@ -2106,7 +2106,7 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 		}
 		// if the default dispatcher = COURIER, attempt to send the job to a third party courier
 		// This is the default option for new users who have not set up their business workflow
-		const QUOTES = await getResultantQuotes(payload, vehicleSpecs, jobDistance);
+		const QUOTES = await getResultantQuotes(payload, vehicleSpecs, jobDistance, settings);
 		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
 		if (!bestQuote) {
 			const error = new Error('No couriers available at this time. Please try again later!');

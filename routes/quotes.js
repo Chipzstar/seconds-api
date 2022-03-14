@@ -8,6 +8,7 @@ const {
 	calculateJobDistance
 } = require('../helpers');
 const moment = require('moment');
+const db = require('../models');
 const router = express.Router();
 
 /*
@@ -20,6 +21,7 @@ const router = express.Router();
 router.post('/', async (req, res) => {
 	try {
 		const user = await getClientDetails(req.headers[AUTHORIZATION_KEY]);
+		const settings = await db.Settings.findOne({clientId: user['_id']})
 		console.log('Strategy: ', user['selectionStrategy']);
 		// check that the vehicleType is valid and return the vehicle's specifications
 		let vehicleSpecs = getVehicleSpecs(req.body.vehicleType);
@@ -35,7 +37,7 @@ router.post('/', async (req, res) => {
 			req.body.packagePickupStartTime = moment().add(20, 'minutes').format();
 			req.body.drops[0].packageDropoffEndTime = moment().add(120, 'minutes').format();
 		}
-		const quotes = await getResultantQuotes(req.body, vehicleSpecs, jobDistance);
+		const quotes = await getResultantQuotes(req.body, vehicleSpecs, jobDistance, settings);
 		const bestQuote = chooseBestProvider(user['selectionStrategy'], quotes);
 		if (!bestQuote) {
 			const error = new Error('No couriers available at this time. Please try again later!');
