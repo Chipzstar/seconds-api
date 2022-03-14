@@ -40,7 +40,7 @@ router.post('/', async (req, res) => {
 		const quotes = await getResultantQuotes(req.body, vehicleSpecs, jobDistance, settings);
 		const bestQuote = chooseBestProvider(user['selectionStrategy'], quotes);
 		if (!bestQuote) {
-			const error = new Error('No couriers available at this time. Please try again later!');
+			const error = new Error('No couriers available at this time. Please try again later or enable other third party providers');
 			error.status = 500;
 			throw error
 		}
