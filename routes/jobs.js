@@ -20,15 +20,17 @@ const {
 	genDeliveryId,
 	checkJobExpired
 } = require('../helpers');
+
 const {
-	AUTHORIZATION_KEY,
-	PROVIDER_ID,
 	STATUS,
 	COMMISSION,
 	DELIVERY_TYPES,
 	PROVIDERS,
 	VEHICLE_CODES_MAP
-} = require('../constants');
+} = require('@seconds-technologies/database_schemas/constants');
+
+const { AUTHORIZATION_KEY, PROVIDER_ID } = require('../constants');
+
 const moment = require('moment');
 const mongoose = require('mongoose');
 const router = express.Router();
@@ -126,7 +128,7 @@ router.post('/create', async (req, res) => {
 		} = await getClientDetails(apiKey);
 		let settings = await db.Settings.findOne({ clientId });
 		let smsEnabled = settings ? settings.sms : false;
-		let newJobAlerts = settings ? settings['jobAlerts'].new : false
+		let newJobAlerts = settings ? settings['jobAlerts'].new : false;
 		// check that the vehicleType is valid and return the vehicle's specifications
 		let vehicleSpecs = getVehicleSpecs(vehicleType);
 		console.table(vehicleSpecs);
@@ -253,7 +255,11 @@ router.post('/create', async (req, res) => {
 					providerId,
 					quotes: QUOTES
 				},
-				status: STATUS.NEW
+				status: STATUS.NEW,
+				trackingHistory: [{
+					timestamp: moment().unix(),
+					status: STATUS.NEW
+				}]
 			};
 			console.log('======================================================================================');
 			console.log('JOB', job);
@@ -342,7 +348,7 @@ router.post('/assign', async (req, res) => {
 		} = await getClientDetails(apiKey);
 		let settings = await db.Settings.findOne({ clientId });
 		let smsEnabled = settings ? settings.sms : false;
-		let newJobAlerts = settings ? settings['jobAlerts'].new : false
+		let newJobAlerts = settings ? settings['jobAlerts'].new : false;
 		console.table({ smsEnabled, newJobAlerts });
 		// check that the vehicleType is valid and return the vehicle's specifications
 		let vehicleSpecs = getVehicleSpecs(vehicleType);
@@ -471,7 +477,13 @@ router.post('/assign', async (req, res) => {
 					providerId: 'private',
 					quotes: []
 				},
-				status: STATUS.PENDING
+				status: STATUS.NEW,
+				trackingHistory: [
+					{
+						timestamp: moment().unix(),
+						status: STATUS.NEW
+					}
+				]
 			};
 			console.log('======================================================================================');
 			console.log('JOB', job);
@@ -615,7 +627,7 @@ router.post('/multi-drop', async (req, res) => {
 			team
 		} = await getClientDetails(apiKey);
 		let settings = await db.Settings.findOne({ clientId });
-		let newJobAlerts = settings ? settings['jobAlerts'].new : false
+		let newJobAlerts = settings ? settings['jobAlerts'].new : false;
 		// check that the vehicleType is valid and return the vehicle's specifications
 		let vehicleSpecs = getVehicleSpecs(vehicleType);
 		console.table(vehicleSpecs);
@@ -722,7 +734,7 @@ router.post('/multi-drop', async (req, res) => {
 			console.log('======================================================================================');
 			// Append the selected provider job to the jobs database
 			const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
-			newJobAlerts &&	sendNewJobEmails(team, job).then(res => console.log(res));
+			newJobAlerts && sendNewJobEmails(team, job).then(res => console.log(res));
 			return res.status(200).json({
 				jobId: createdJob._id,
 				...job
