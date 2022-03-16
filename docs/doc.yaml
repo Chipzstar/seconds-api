@@ -305,6 +305,15 @@ components:
                     type: "string"
         status:
           type: "string"
+        trackingHistory:
+          type: "array"
+          items:
+            type: "object"
+            properties:
+              timestamp:
+                type: "number"
+              status:
+                type: "string"
     JobUpdateRequirements:
       type: "object"
       properties:
@@ -594,7 +603,7 @@ components:
                   dropoffEndTime: "2021-09-10T16:00:14+0000"
                   transport: "Bicycle"
                   trackingURL: "https://stuart.sandbox.followmy.delivery/100216675/ee69dc71a6e496fc6a4a6fe1eb54ba1b"
-                  status: "PENDING"
+                  status: "COMPLETED"
             selectedConfiguration:
               createdAt: "2021-06-22T18:16:54.025917"
               deliveryFee: 14.9
@@ -622,7 +631,20 @@ components:
                   id: "quote_4scqthaB61oasna7c1at"
                   priceExVAT: 14.15
                   providerId: "street_stream"
-            status: "NEW"
+            status: "COMPLETED"
+            trackingHistory:
+              - timestamp: 1642331978
+                status: "NEW"
+              - timestamp: 1642331978
+                status: "DISPATCHING"
+              - timestamp: 1642331978
+                status: "COLLECTED"
+              - timestamp: 1642331978
+                status: "EN-ROUTE"
+              - timestamp: 1642331978
+                status: "ARRIVED"
+              - timestamp: 1642331978
+                status: "COMPLETED"
     multiDropJobResponse:
       description: "The created multi drop job"
       content:
@@ -745,6 +767,9 @@ components:
                   priceExVAT: 14.15
                   providerId: "street_stream"
             status: "NEW"
+            trackingHistory:
+              - timestamp: 1642331978
+                status: "NEW"
     requestedJobResponse:
       description: "The requested job"
       content:
@@ -834,6 +859,9 @@ components:
                   priceExVAT: 14.15
                   providerId: "street_stream"
             status: "NEW"
+            trackingHistory:
+              - timestamp: 1642331978
+                status: "NEW"
     updatedJobResponse:
       description: "The updated job"
       content:
@@ -923,6 +951,11 @@ components:
                   priceExVAT: 14.15
                   providerId: "street_stream"
             status: "DISPATCHING"
+            trackingHistory:
+              - timestamp: 1642331978
+                status: "NEW"
+              - timestamp: 1642331978
+                status: "DISPATCHING"
     deletedJobResponse:
       description: "Confirmation of cancelled job"
       content:
@@ -1242,6 +1275,9 @@ paths:
                         priceExVAT: 13.04
                         providerId: "gophr"
                   status: "CREATED"
+                  trackingHistory:
+                    - timestamp: 1642331978
+                      status: "NEW"
                 - createdAt: "2021-09-27T13:06:59.560Z"
                   jobId: "6151c1f38a9660a0241d2e06"
                   driverInformation:
@@ -1307,6 +1343,19 @@ paths:
                         priceExVAT: 13.04
                         providerId: "gophr"
                   status: "DISPATCHING"
+                  trackingHistory:
+                    - timestamp: 1642331978
+                      status: "NEW"
+                    - timestamp: 1642331978
+                      status: "DISPATCHING"
+                    - timestamp: 1642331978
+                      status: "COLLECTED"
+                    - timestamp: 1642331978
+                      status: "EN-ROUTE"
+                    - timestamp: 1642331978
+                      status: "ARRIVED"
+                    - timestamp: 1642331978
+                      status: "COMPLETED"
         "400":
           description: "email paramenter missing from the endpoint URL"
           content:
