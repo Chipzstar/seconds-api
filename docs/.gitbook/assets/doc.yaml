@@ -151,6 +151,9 @@ components:
         driverInformation:
           type: "object"
           properties:
+            id:
+              type: "string"
+              default: ""
             name:
               type: "string"
               default: "Searching"
@@ -160,6 +163,19 @@ components:
             transport:
               type: "string"
               default: "Searching"
+            location:
+              type: "object"
+              properties:
+                type:
+                  type: "array"
+                  items:
+                    type: string
+                    default: "Point"
+                coordinates:
+                  type: "array"
+                  items:
+                    type: "number"
+                    format: "double"
         jobSpecification:
           type: "object"
           properties:
@@ -739,9 +755,16 @@ components:
             createdAt: "2021-09-27T13:06:59.560Z"
             jobId: "6151c1f38a9660a0241d2e06"
             driverInformation:
+              id: "6151c1f38a9660a0241d2e06"
               name: "David Willis"
               phone: "07534670805"
               transport: "bike"
+              location:
+                type:
+                  - "Point"
+                coordinates:
+                  - 0.158226
+                  - 51.5449262
             jobSpecification:
               id: 100172991
               shopifyId: null
@@ -821,9 +844,16 @@ components:
             createdAt: "2021-09-27T13:06:59.560Z"
             jobId: "6151c1f38a9660a0241d2e06"
             driverInformation:
+              id: "6151c1f38a9660a0241d2e06"
               name: "Lucy Baker"
               phone: "07595217501"
               transport: "bike"
+              location:
+                type:
+                  - "Point"
+                coordinates:
+                  - 0.158226
+                  - 51.5449262
             jobSpecification:
               id: "100172991"
               shopifyId: null
@@ -1143,9 +1173,16 @@ paths:
                 - createdAt: "2021-09-27T13:06:59.560Z"
                   jobId: "6151c1f38a9660a0241d2e06"
                   driverInformation:
+                    id: "6151c1f38a9660a0241d2e06"
                     name: "Searching"
                     phone: "Searching"
                     transport: "Searching"
+                    location:
+                      type:
+                        - "Point"
+                      coordinates:
+                        - 0.158226
+                        - 51.5449262
                   jobSpecification:
                     id: 100172991
                     shopifyId: null
