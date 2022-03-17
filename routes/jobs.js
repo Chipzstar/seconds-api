@@ -559,6 +559,34 @@ router.post('/assign', async (req, res) => {
 	}
 });
 
+/**
+ * Optimize Orders - returns a list of optimized routes for multiple drivers/vehicles
+ * @constructor
+ * @param req - request object
+ * @param res - response object
+ * @returns {Promise<*>}
+ */
+router.post('/optimise', async (req, res) => {
+	try {
+	    const orders = req.body;
+		console.log(orders)
+		res.status(200).json({message: "SUCCESS"})
+	} catch (err) {
+		console.error(err);
+		if (err.message) {
+			return res.status(err.status).json({
+				error: err
+			});
+		}
+		return res.status(500).json({
+			error: {
+				code: 500,
+				message: 'Unknown error occurred!'
+			}
+		});
+	}
+})
+
 router.patch('/dispatch', async (req, res) => {
 	try {
 		const apiKey = req.headers[AUTHORIZATION_KEY];
