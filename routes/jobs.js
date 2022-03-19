@@ -812,7 +812,7 @@ router.get('/:job_id', async (req, res) => {
 		const { job_id } = req.params;
 		let foundJob = await db.Job.findOne({ _id: job_id });
 		if (foundJob) {
-			let { _id, ...job } = foundJob['_doc'];
+			let { _id, ...job } = foundJob.toObject();
 			return res.status(200).json({
 				jobId: job_id,
 				...job
