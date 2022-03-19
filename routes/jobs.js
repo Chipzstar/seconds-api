@@ -26,7 +26,7 @@ const {
 	COMMISSION,
 	DELIVERY_TYPES,
 	PROVIDERS,
-	VEHICLE_CODES_MAP
+	VEHICLE_CODES_MAP, DISPATCH_MODES
 } = require('@seconds-technologies/database_schemas/constants');
 
 const { AUTHORIZATION_KEY, PROVIDER_ID } = require('../constants');
@@ -256,10 +256,12 @@ router.post('/create', async (req, res) => {
 					quotes: QUOTES
 				},
 				status: STATUS.NEW,
-				trackingHistory: [{
-					timestamp: moment().unix(),
-					status: STATUS.NEW
-				}]
+				trackingHistory: [
+					{
+						timestamp: moment().unix(),
+						status: STATUS.NEW
+					}
+				]
 			};
 			console.log('======================================================================================');
 			console.log('JOB', job);
@@ -309,7 +311,7 @@ router.post('/create', async (req, res) => {
 });
 
 /**
- * Assign Delivery Job - Assigns a single point to point job based on delivery requirements to a custom driver
+ * Assign Delivery Job - Assigns a single point to point job based on delivery requirements to a custom driver / or unassigned job if no driverId passed
  * @constructor
  * @param req - request object
  * @param res - response object
@@ -318,188 +320,190 @@ router.post('/create', async (req, res) => {
 router.post('/assign', async (req, res) => {
 	try {
 		const { driverId } = req.query;
-		const driver = await db.Driver.findById(driverId);
-		if (driver) {
-			console.table(req.body);
-			console.table(req.body.drops[0]);
-			let { pickupAddress, packageDeliveryType, vehicleType } = req.body;
-			req.body.drops[0]['reference'] = genOrderReference();
-			//generate client reference number
-			let commissionCharge = false;
-			const jobReference = genJobReference();
-			// fetch api key
-			const apiKey = req.headers[AUTHORIZATION_KEY];
-			const selectedProvider = req.headers[PROVIDER_ID];
-			console.log('---------------------------------------------');
-			console.log('Provider selected manually: ', Boolean(selectedProvider));
-			console.log('SELECTED PROVIDER:', selectedProvider);
-			console.log('---------------------------------------------');
-			// fetch user information from the api key
+		console.table({driverId})
+		const driver = driverId ? await db.Driver.findById(driverId) : undefined;
+		console.table(req.body);
+		console.table(req.body.drops[0]);
+		let { pickupAddress, packageDeliveryType, vehicleType } = req.body;
+		req.body.drops[0]['reference'] = genOrderReference();
+		//generate client reference number
+		let commissionCharge = false;
+		const jobReference = genJobReference();
+		// fetch api key
+		const apiKey = req.headers[AUTHORIZATION_KEY];
+		const selectedProvider = req.headers[PROVIDER_ID];
+		console.log('---------------------------------------------');
+		console.log('Provider selected manually: ', Boolean(selectedProvider));
+		console.log('SELECTED PROVIDER:', selectedProvider);
+		console.log('---------------------------------------------');
+		// fetch user information from the api key
+		const {
+			_id: clientId,
+			email,
+			firstname,
+			lastname,
+			company,
+			subscriptionItems,
+			subscriptionId,
+			subscriptionPlan,
+			deliveryHours,
+			team
+		} = await getClientDetails(apiKey);
+		let settings = await db.Settings.findOne({ clientId });
+		let smsEnabled = settings ? settings.sms : false;
+		let newJobAlerts = settings ? settings['jobAlerts'].new : false;
+		console.table({ smsEnabled, newJobAlerts });
+		// check that the vehicleType is valid and return the vehicle's specifications
+		let vehicleSpecs = getVehicleSpecs(vehicleType);
+		console.table(vehicleSpecs);
+		// do job distance calculation
+		const jobDistance = await calculateJobDistance(
+			pickupAddress,
+			req.body.drops[0].dropoffAddress,
+			vehicleSpecs.travelMode
+		);
+		// get geo-coordinates of pickup + dropoff locations (if not passed in the request)
+		if (!(req.body.pickupLatitude && req.body.pickupLongitude)) {
+			let {
+				formattedAddress: { longitude, latitude }
+			} = await geocodeAddress(req.body.pickupAddress);
+			req.body.pickupLatitude = latitude;
+			req.body.pickupLongitude = longitude;
+		}
+		if (!(req.body.drops[0].dropoffLatitude && !req.body.drops[0].dropoffLongitude)) {
 			const {
-				_id: clientId,
-				email,
-				firstname,
-				lastname,
-				company,
-				subscriptionItems,
-				subscriptionId,
-				subscriptionPlan,
-				deliveryHours,
-				team
-			} = await getClientDetails(apiKey);
-			let settings = await db.Settings.findOne({ clientId });
-			let smsEnabled = settings ? settings.sms : false;
-			let newJobAlerts = settings ? settings['jobAlerts'].new : false;
-			console.table({ smsEnabled, newJobAlerts });
-			// check that the vehicleType is valid and return the vehicle's specifications
-			let vehicleSpecs = getVehicleSpecs(vehicleType);
-			console.table(vehicleSpecs);
-			// do job distance calculation
-			const jobDistance = await calculateJobDistance(
-				pickupAddress,
-				req.body.drops[0].dropoffAddress,
-				vehicleSpecs.travelMode
+				formattedAddress: { longitude, latitude }
+			} = await geocodeAddress(req.body.drops[0].dropoffAddress);
+			req.body.drops[0].dropoffLatitude = latitude;
+			req.body.drops[0].dropoffLongitude = longitude;
+		}
+		// Check if a pickupStartTime was passed through, if not set it to 15 minutes ahead of current time
+		if (packageDeliveryType === DELIVERY_TYPES.ON_DEMAND.name) {
+			req.body.packagePickupStartTime = moment().add(15, 'minutes').format();
+			req.body.drops[0].packageDropoffEndTime = moment().add(2, 'hours').format();
+		}
+		// CHECK DELIVERY HOURS
+		let canDeliver = checkPickupHours(req.body.packagePickupStartTime, deliveryHours);
+		if (!canDeliver) {
+			const { nextDayPickup, nextDayDropoff } = setNextDayDeliveryTime(
+				req.body.packagePickupStartTime,
+				deliveryHours
 			);
-			// get geo-coordinates of pickup + dropoff locations (if not passed in the request)
-			if (!(req.body.pickupLatitude && req.body.pickupLongitude)) {
-				let {
-					formattedAddress: { longitude, latitude }
-				} = await geocodeAddress(req.body.pickupAddress);
-				req.body.pickupLatitude = latitude;
-				req.body.pickupLongitude = longitude;
+			console.table({ nextDayPickup, nextDayDropoff });
+			req.body.packageDeliveryType = 'NEXT_DAY';
+			req.body.packagePickupStartTime = nextDayPickup;
+			req.body.drops[0].packageDropoffEndTime = nextDayDropoff;
+		}
+		// check if user has a subscription active
+		console.log('SUBSCRIPTION ID:', !!subscriptionId);
+		if (subscriptionId && subscriptionPlan) {
+			// check the payment plan and lookup the associated commission fee
+			let { fee, limit } = COMMISSION[subscriptionPlan.toUpperCase()];
+			console.log('--------------------------------');
+			console.log('COMMISSION FEE:', fee);
+			// check whether the client number of orders has exceeded the limit
+			const numOrders = await db.Job.where({ clientId: clientId, status: STATUS.COMPLETED }).countDocuments();
+			console.log('NUM COMPLETED ORDERS:', numOrders);
+			console.log('--------------------------------');
+			// if the order limit is exceeded, mark the job with a commission fee charge
+			if (numOrders >= limit) {
+				commissionCharge = true;
 			}
-			if (!(req.body.drops[0].dropoffLatitude && !req.body.drops[0].dropoffLongitude)) {
-				const {
-					formattedAddress: { longitude, latitude }
-				} = await geocodeAddress(req.body.drops[0].dropoffAddress);
-				req.body.drops[0].dropoffLatitude = latitude;
-				req.body.drops[0].dropoffLongitude = longitude;
-			}
-			// Check if a pickupStartTime was passed through, if not set it to 15 minutes ahead of current time
-			if (packageDeliveryType === DELIVERY_TYPES.ON_DEMAND.name) {
-				req.body.packagePickupStartTime = moment().add(15, 'minutes').format();
-				req.body.drops[0].packageDropoffEndTime = moment().add(2, 'hours').format();
-			}
-			// CHECK DELIVERY HOURS
-			let canDeliver = checkPickupHours(req.body.packagePickupStartTime, deliveryHours);
-			if (!canDeliver) {
-				const { nextDayPickup, nextDayDropoff } = setNextDayDeliveryTime(
-					req.body.packagePickupStartTime,
-					deliveryHours
-				);
-				console.table({ nextDayPickup, nextDayDropoff });
-				req.body.packageDeliveryType = 'NEXT_DAY';
-				req.body.packagePickupStartTime = nextDayPickup;
-				req.body.drops[0].packageDropoffEndTime = nextDayDropoff;
-			}
-			// check if user has a subscription active
-			console.log('SUBSCRIPTION ID:', !!subscriptionId);
-			if (subscriptionId && subscriptionPlan) {
-				// check the payment plan and lookup the associated commission fee
-				let { fee, limit } = COMMISSION[subscriptionPlan.toUpperCase()];
-				console.log('--------------------------------');
-				console.log('COMMISSION FEE:', fee);
-				// check whether the client number of orders has exceeded the limit
-				const numOrders = await db.Job.where({ clientId: clientId, status: STATUS.COMPLETED }).countDocuments();
-				console.log('NUM COMPLETED ORDERS:', numOrders);
-				console.log('--------------------------------');
-				// if the order limit is exceeded, mark the job with a commission fee charge
-				if (numOrders >= limit) {
-					commissionCharge = true;
-				}
-				const orderNumber = orderId.generate();
-				let job = {
-					createdAt: moment().format(),
-					driverInformation: {
-						id: `${driver['_id']}`,
-						name: `${driver.firstname} ${driver.lastname}`,
-						phone: driver.phone,
-						transport: VEHICLE_CODES_MAP[driver.vehicle].name
+			const orderNumber = orderId.generate();
+			let job = {
+				createdAt: moment().format(),
+				driverInformation: {
+					...(driver && { id: `${driver['_id']}`}),
+					name: driver ? `${driver.firstname} ${driver.lastname}` : 'NO DRIVER ASSIGNED',
+					phone: driver ? driver.phone : '',
+					transport: driver ? VEHICLE_CODES_MAP[driver.vehicle].name : ''
+				},
+				jobSpecification: {
+					id: genDeliveryId(),
+					jobReference,
+					orderNumber,
+					deliveryType: DELIVERY_TYPES[packageDeliveryType].name,
+					pickupStartTime: req.body.packagePickupStartTime,
+					pickupEndTime: req.body.packagePickupEndTime,
+					pickupLocation: {
+						fullAddress: req.body.pickupAddress,
+						streetAddress: String(req.body.pickupAddressLine1).trim(),
+						city: String(req.body.pickupCity).trim(),
+						postcode: String(req.body.pickupPostcode).trim(),
+						latitude: req.body.pickupLatitude,
+						longitude: req.body.pickupLongitude,
+						country: 'UK',
+						phoneNumber: req.body.pickupPhoneNumber,
+						email: req.body.pickupEmailAddress,
+						firstName: req.body.pickupFirstName,
+						lastName: req.body.pickupLastName,
+						businessName: req.body.pickupBusinessName,
+						instructions: req.body.pickupInstructions
 					},
-					jobSpecification: {
-						id: genDeliveryId(),
-						jobReference,
-						orderNumber,
-						deliveryType: DELIVERY_TYPES[packageDeliveryType].name,
-						pickupStartTime: req.body.packagePickupStartTime,
-						pickupEndTime: req.body.packagePickupEndTime,
-						pickupLocation: {
-							fullAddress: req.body.pickupAddress,
-							streetAddress: String(req.body.pickupAddressLine1).trim(),
-							city: String(req.body.pickupCity).trim(),
-							postcode: String(req.body.pickupPostcode).trim(),
-							latitude: req.body.pickupLatitude,
-							longitude: req.body.pickupLongitude,
-							country: 'UK',
-							phoneNumber: req.body.pickupPhoneNumber,
-							email: req.body.pickupEmailAddress,
-							firstName: req.body.pickupFirstName,
-							lastName: req.body.pickupLastName,
-							businessName: req.body.pickupBusinessName,
-							instructions: req.body.pickupInstructions
-						},
-						deliveries: [
-							{
-								id: genDeliveryId(),
-								orderReference: req.body.drops[0]['reference'],
-								description: req.body.drops[0]['packageDescription'],
-								dropoffStartTime: req.body.drops[0].packageDropoffStartTime,
-								dropoffEndTime: req.body.drops[0].packageDropoffEndTime,
-								transport: vehicleSpecs.name,
-								dropoffLocation: {
-									fullAddress: req.body.drops[0].dropoffAddress,
-									streetAddress:
-										req.body.drops[0].dropoffAddressLine1 + req.body.drops[0].dropoffAddressLine2,
-									city: req.body.drops[0].dropoffCity,
-									postcode: req.body.drops[0].dropoffPostcode,
-									country: 'UK',
-									latitude: req.body.drops[0].dropoffLatitude,
-									longitude: req.body.drops[0].dropoffLongitude,
-									phoneNumber: req.body.drops[0].dropoffPhoneNumber,
-									email: req.body.drops[0].dropoffEmailAddress,
-									firstName: req.body.drops[0].dropoffFirstName,
-									lastName: req.body.drops[0].dropoffLastName,
-									businessName: req.body.drops[0].dropoffBusinessName
-										? req.body.drops[0].dropoffBusinessName
-										: '',
-									instructions: req.body.drops[0].dropoffInstructions
-										? req.body.drops[0].dropoffInstructions
-										: ''
-								},
-								trackingURL: '',
-								status: STATUS.PENDING
-							}
-						]
-					},
-					selectedConfiguration: {
-						createdAt: moment().format(),
-						deliveryFee: settings ? settings['driverDeliveryFee'] : 5.0,
-						winnerQuote: 'N/A',
-						providerId: 'private',
-						quotes: []
-					},
-					status: STATUS.NEW,
-					trackingHistory: [
+					deliveries: [
 						{
-							timestamp: moment().unix(),
-							status: STATUS.NEW
+							id: genDeliveryId(),
+							orderReference: req.body.drops[0]['reference'],
+							description: req.body.drops[0]['packageDescription'],
+							dropoffStartTime: req.body.drops[0].packageDropoffStartTime,
+							dropoffEndTime: req.body.drops[0].packageDropoffEndTime,
+							transport: vehicleSpecs.name,
+							dropoffLocation: {
+								fullAddress: req.body.drops[0].dropoffAddress,
+								streetAddress:
+									req.body.drops[0].dropoffAddressLine1 + req.body.drops[0].dropoffAddressLine2,
+								city: req.body.drops[0].dropoffCity,
+								postcode: req.body.drops[0].dropoffPostcode,
+								country: 'UK',
+								latitude: req.body.drops[0].dropoffLatitude,
+								longitude: req.body.drops[0].dropoffLongitude,
+								phoneNumber: req.body.drops[0].dropoffPhoneNumber,
+								email: req.body.drops[0].dropoffEmailAddress,
+								firstName: req.body.drops[0].dropoffFirstName,
+								lastName: req.body.drops[0].dropoffLastName,
+								businessName: req.body.drops[0].dropoffBusinessName
+									? req.body.drops[0].dropoffBusinessName
+									: '',
+								instructions: req.body.drops[0].dropoffInstructions
+									? req.body.drops[0].dropoffInstructions
+									: ''
+							},
+							trackingURL: '',
+							status: STATUS.PENDING
 						}
 					]
-				};
-				console.log('======================================================================================');
-				console.log('JOB', job);
-				console.log('======================================================================================');
-				// Append the selected provider job to the jobs database
-				const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
-				newJobAlerts && sendNewJobEmails(team, job).then(res => console.log(res));
-				const template = `Your ${company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today.`;
-				sendSMS(req.body.drops[0].dropoffPhoneNumber, template, subscriptionItems, smsEnabled).then(() =>
-					console.log('SMS sent successfully!')
-				);
-				// send driver notification
-				// sendNotification([""]).then(() => console.log("sent"))
-				// set driver response timeout which changes the status of the job to CANCELLED when job is not accepted before that time
-				settings &&
+				},
+				selectedConfiguration: {
+					createdAt: moment().format(),
+					deliveryFee: settings ? settings['driverDeliveryFee'] : 5.0,
+					winnerQuote: 'N/A',
+					providerId: 'private',
+					quotes: []
+				},
+				dispatchMode: DISPATCH_MODES.MANUAL,
+				status: STATUS.NEW,
+				trackingHistory: [
+					{
+						timestamp: moment().unix(),
+						status: STATUS.NEW
+					}
+				]
+			};
+			console.log('======================================================================================');
+			console.log('JOB', job);
+			console.log('======================================================================================');
+			// Append the selected provider job to the jobs database
+			const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
+			newJobAlerts && sendNewJobEmails(team, job).then(res => console.log(res));
+			const template = `Your ${company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today.`;
+			sendSMS(req.body.drops[0].dropoffPhoneNumber, template, subscriptionItems, smsEnabled).then(() =>
+				console.log('SMS sent successfully!')
+			);
+			// send driver notification
+			// sendNotification([""]).then(() => console.log("sent"))
+			// set driver response timeout which changes the status of the job to CANCELLED when job is not accepted before that time
+			settings &&
+				driver &&
 				setTimeout(
 					() =>
 						checkJobExpired(
@@ -514,25 +518,16 @@ router.post('/assign', async (req, res) => {
 						),
 					settings['driverResponseTime'] * 60000
 				);
-				return res.status(200).json({
-					jobId: createdJob._id,
-					...job
-				});
-			} else {
-				console.error('No subscription detected!');
-				return res.status(402).json({
-					error: {
-						code: 402,
-						message: 'Please purchase a subscription plan before making an order. Thank you! 😊'
-					}
-				});
-			}
+			return res.status(200).json({
+				jobId: createdJob._id,
+				...job
+			});
 		} else {
-			console.error('Driver not found');
-			return res.status(404).json({
+			console.error('No subscription detected!');
+			return res.status(402).json({
 				error: {
-					code: 404,
-					message: 'No driver exists with the requested driver Id'
+					code: 402,
+					message: 'Please purchase a subscription plan before making an order. Thank you! 😊'
 				}
 			});
 		}
@@ -568,9 +563,9 @@ router.post('/assign', async (req, res) => {
  */
 router.post('/optimise', async (req, res) => {
 	try {
-	    const orders = req.body;
-		console.log(orders)
-		res.status(200).json({message: "SUCCESS"})
+		const orders = req.body;
+		console.log(orders);
+		res.status(200).json({ message: 'SUCCESS' });
 	} catch (err) {
 		console.error(err);
 		if (err.message) {
@@ -585,7 +580,7 @@ router.post('/optimise', async (req, res) => {
 			}
 		});
 	}
-})
+});
 
 router.patch('/dispatch', async (req, res) => {
 	try {
