@@ -270,7 +270,7 @@ router.post('/create', async (req, res) => {
 			// Append the selected provider job to the jobs database
 			const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
 			newJobAlerts && sendNewJobEmails(team, job).then(res => console.log(res));
-			const trackingMessage = delivery.trackingURL ? `\n\nTrack your delivery here: ${delivery.trackingURL}` : '';
+			const trackingMessage = `Track your delivery here: ${process.env.TRACKING_BASE_URL}/${createdJob._id}`;
 			const template = `Your ${company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today. ${trackingMessage}`;
 			sendSMS(delivery.dropoffLocation.phoneNumber, template, subscriptionItems, smsEnabled).then(message =>
 				console.log(message)

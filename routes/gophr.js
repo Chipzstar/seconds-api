@@ -76,9 +76,7 @@ async function updateStatus(data) {
 		console.log('User:', !!user);
 		// check if job is en-route, send en-route SMS
 		if (jobStatus === JOB_STATUS.EN_ROUTE) {
-			const trackingMessage = job.jobSpecification.deliveries[0].trackingURL
-				? `\nTrack the delivery here: ${job.jobSpecification.deliveries[0].trackingURL}`
-				: '';
+			const trackingMessage = `\nTrack the delivery here: ${process.env.TRACKING_BASE_URL}/${job._id}`;
 			const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`;
 			let settings = await db.Settings.findOne({clientId})
 			let canSend = settings ? settings.sms : false

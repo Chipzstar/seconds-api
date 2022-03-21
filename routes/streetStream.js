@@ -85,9 +85,7 @@ async function update(data) {
 				await sendEmail(options);
 				console.log('CANCELLATION EMAIL SENT!');
 			} else if (jobStatus === JOB_STATUS.COLLECTED) {
-				const trackingMessage = job['jobSpecification'].deliveries[0].trackingURL
-					? `\nTrack the delivery here: ${job['jobSpecification'].deliveries[0].trackingURL}`
-					: '';
+				const trackingMessage = `\nTrack the delivery here: ${process.env.TRACKING_BASE_URL}/${job._id}`;
 				const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`;
 				sendSMS(job['jobSpecification'].deliveries[0].dropoffLocation.phoneNumber, template, user.subscriptionItems, canSend).then(() =>
 					console.log('SMS sent successfully!')

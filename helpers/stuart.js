@@ -170,9 +170,7 @@ async function updateDelivery(data) {
 		let canSend = settings ? settings.sms : false
 		// check if the delivery status is "en-route"
 		if (deliveryStatus === DELIVERY_STATUS.DELIVERING) {
-			const trackingMessage = job.jobSpecification.deliveries[0].trackingURL
-				? `\nTrack the delivery here: ${job.jobSpecification.deliveries[0].trackingURL}`
-				: '';
+			const trackingMessage = `\nTrack the delivery here: ${process.env.TRACKING_BASE_URL}/${job._id}`
 			const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`;
 			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template, user.subscriptionItems, canSend).then((message) =>
 				console.log(message)
