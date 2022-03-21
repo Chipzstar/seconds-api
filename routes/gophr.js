@@ -44,22 +44,28 @@ async function updateStatus(data) {
 			courier_name,
 			cancellation_reason
 		} = data;
-		console.log({ jobStatus, JOB_ID, clientReference });
 		// update the status for the current job
-		await db.Job.findOneAndUpdate(
+		const newStatus = translateGophrStatus(jobStatus)
+		let job = await db.Job.findOne(
 			{ 'jobSpecification.id': JOB_ID },
-			{ status: translateGophrStatus(jobStatus) },
-			{ new: true }
 		);
-		let job = await db.Job.findOneAndUpdate(
+		if (newStatus !== job.status) {
+			job.status = newStatus
+			job.trackingHistory.push({
+				timestamp: moment().unix(),
+				status: newStatus
+			})
+			await job.save()
+		}
+		job = await db.Job.findOneAndUpdate(
 			{ 'jobSpecification.id': JOB_ID },
 			{
 				$set: {
 					'jobSpecification.pickupStartTime': moment(pickup_eta).toISOString(true),
 					'jobSpecification.deliveries.$[].dropoffEndTime': moment(delivery_eta).toISOString(true),
 					'driverInformation.name': courier_name,
-					'driverInformation.phone': 'Open tracking URL to see contact number',
-					'jobSpecification.deliveries.$[].status': translateGophrStatus(jobStatus)
+					'driverInformation.phone': 'Open tracking link to see contact number',
+					'jobSpecification.deliveries.$[].status': newStatus
 				}
 			},
 			{
