@@ -607,6 +607,7 @@ router.patch('/dispatch', async (req, res) => {
 				job.driverInformation.name = `${driver.firstname} ${driver.lastname}`;
 				job.driverInformation.phone = driver.phone;
 				job.driverInformation.transport = driver.vehicle;
+				job.selectedConfiguration.providerId = PROVIDERS.PRIVATE
 				await job.save();
 				console.log(job);
 				// use clientId of the job to find the client's settings
