@@ -80,9 +80,6 @@ async function updateJob(data) {
 		//
 		if (newStatus !== job.status && jobStatus !== JOB_STATUS.IN_PROGRESS) {
 			job.status = newStatus;
-			job['driverInformation'].name = `${firstname} ${lastname}`
-			job['driverInformation'].phone = phone;
-			job['driverInformation'].transport = code;
 			job.trackingHistory.push({
 				timestamp: moment().unix(),
 				status: newStatus
@@ -93,6 +90,9 @@ async function updateJob(data) {
 			{ 'jobSpecification.id': jobId, 'jobSpecification.deliveries.id': deliveryId },
 			{
 				$set: {
+					'driverInformation.name': `${firstname} ${lastname}`,
+					'driverInformation.phone': phone,
+					'driverInformation.transport': code,
 					'jobSpecification.pickupStartTime': moment(etaToOrigin).toISOString(),
 					'jobSpecification.deliveries.$.dropoffEndTime': moment(etaToDestination).toISOString(),
 					'jobSpecification.deliveries.$.status': translateStuartStatus(deliveryStatus)
