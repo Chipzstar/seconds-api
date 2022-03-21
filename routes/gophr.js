@@ -34,7 +34,7 @@ function translateGophrStatus(value) {
 
 async function updateStatus(data) {
 	try {
-		console.log(data);
+		console.table(data);
 		const {
 			status: jobStatus,
 			external_id: clientReference,
