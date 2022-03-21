@@ -20,6 +20,11 @@ exports.DELIVERY_TYPES = {
 	}
 }
 
+exports.PROVIDER_TYPES = {
+	COURIER: 'courier',
+	DRIVER: 'driver'
+}
+
 exports.STATUS = {
 	NEW: 'new'.toUpperCase(),
 	PENDING: 'pending'.toUpperCase(),
@@ -41,7 +46,8 @@ exports.PROVIDERS = {
 	STREET_STREAM: 'street_stream',
 	ECOFLEET: 'ecofleet',
 	ADDISON_LEE: 'addison_lee',
-	PRIVATE: 'private'
+	PRIVATE: 'private',
+	UNASSIGNED: 'unassigned'
 };
 
 exports.VEHICLE_CODES = ['BIC', 'MTB', 'CAR', 'CGB', 'VAN'];

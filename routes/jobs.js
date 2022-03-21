@@ -18,7 +18,7 @@ const {
 	cancelOrder,
 	geocodeAddress,
 	genDeliveryId,
-	checkJobExpired
+	checkJobExpired, createJobRequestPayload
 } = require('../helpers');
 
 const {
@@ -29,7 +29,7 @@ const {
 	VEHICLE_CODES_MAP, DISPATCH_MODES
 } = require('@seconds-technologies/database_schemas/constants');
 
-const { AUTHORIZATION_KEY, PROVIDER_ID } = require('../constants');
+const { AUTHORIZATION_KEY, PROVIDER_ID, PROVIDER_TYPES } = require('../constants');
 
 const moment = require('moment');
 const mongoose = require('mongoose');
@@ -261,7 +261,8 @@ router.post('/create', async (req, res) => {
 						timestamp: moment().unix(),
 						status: STATUS.NEW
 					}
-				]
+				],
+				vehicleType: vehicleType
 			};
 			console.log('======================================================================================');
 			console.log('JOB', job);
@@ -477,7 +478,7 @@ router.post('/assign', async (req, res) => {
 					createdAt: moment().format(),
 					deliveryFee: settings ? settings['driverDeliveryFee'] : 5.0,
 					winnerQuote: 'N/A',
-					providerId: 'private',
+					providerId: driver ? PROVIDERS.PRIVATE : PROVIDERS.UNASSIGNED,
 					quotes: []
 				},
 				dispatchMode: DISPATCH_MODES.MANUAL,
@@ -487,7 +488,8 @@ router.post('/assign', async (req, res) => {
 						timestamp: moment().unix(),
 						status: STATUS.NEW
 					}
-				]
+				],
+				vehicleType: vehicleType
 			};
 			console.log('======================================================================================');
 			console.log('JOB', job);
@@ -582,23 +584,34 @@ router.post('/optimise', async (req, res) => {
 	}
 });
 
+/**
+ * Manual Dispatch - updates an existing UNASSIGNED job by assigning it to a driver or a third party courier
+ * @constructor
+ * @param req - request object
+ * @param res - response object
+ * @returns {Promise<*>}
+ */
 router.patch('/dispatch', async (req, res) => {
 	try {
+		console.table(req.body)
 		const apiKey = req.headers[AUTHORIZATION_KEY];
-		const { _id: clientId, email, firstname, lastname } = await getClientDetails(apiKey);
-		const { driverId, orderNumber } = req.body;
-		const driver = await db.Driver.findById(driverId);
+		const { _id: clientId, email, firstname, lastname, deliveryHours, subscriptionId, subscriptionPlan, selectionStrategy } = await getClientDetails(apiKey);
+		const { type, providerId, orderNumber } = req.body;
 		const job = await db.Job.findOne({ 'jobSpecification.orderNumber': orderNumber });
-		if (job && driver) {
-			job.driverInformation.id = driver._id;
-			job.driverInformation.name = `${driver.firstname} ${driver.lastname}`;
-			job.driverInformation.phone = driver.phone;
-			job.driverInformation.transport = driver.vehicle;
-			await job.save();
-			console.log(job);
-			// use clientId of the job to find the client's settings
-			const settings = await db.Settings.findOne({ clientId });
-			settings &&
+		console.log(job)
+		// TODO - add middleware to validate request params + handle errors
+		if (type === PROVIDER_TYPES.DRIVER) {
+			const driver = await db.Driver.findById(providerId);
+			if (job && driver) {
+				job.driverInformation.id = driver._id;
+				job.driverInformation.name = `${driver.firstname} ${driver.lastname}`;
+				job.driverInformation.phone = driver.phone;
+				job.driverInformation.transport = driver.vehicle;
+				await job.save();
+				console.log(job);
+				// use clientId of the job to find the client's settings
+				const settings = await db.Settings.findOne({ clientId });
+				settings &&
 				setTimeout(
 					() =>
 						checkJobExpired(
@@ -613,11 +626,81 @@ router.patch('/dispatch', async (req, res) => {
 						),
 					settings['driverResponseTime'] * 60000
 				);
-			res.status(200).json(job);
+				res.status(200).json(job);
+			} else {
+				let err = new Error('ID for the job/driver is invalid');
+				err.status = 404;
+				throw err;
+			}
 		} else {
-			let err = new Error('ID for the job/driver is invalid');
-			err.status = 404;
-			throw err;
+			let commissionCharge;
+			const jobReference = genJobReference();
+			// check that the vehicleType is valid and return the vehicle's specifications
+			let vehicleSpecs = getVehicleSpecs(job.vehicleType);
+			console.table(vehicleSpecs);
+			// Check if a pickupStartTime was passed through, if not set it to 15 minutes ahead of current time
+			if (job.jobSpecification.deliveryType === DELIVERY_TYPES.ON_DEMAND.name) {
+				job.jobSpecification.pickupStartTime = moment().add(15, 'minutes').format();
+				job.jobSpecification.deliveries[0].dropoffEndTime = moment().add(2, 'hours').format();
+			}
+			// CHECK DELIVERY HOURS
+			let canDeliver = checkPickupHours(job.jobSpecification.pickupStartTime, deliveryHours);
+			if (!canDeliver) {
+				const { nextDayPickup, nextDayDropoff } = setNextDayDeliveryTime(
+					job.jobSpecification.pickupStartTime,
+					deliveryHours
+				);
+				console.table({ nextDayPickup, nextDayDropoff });
+				job.jobSpecification.deliveryType = 'NEXT_DAY';
+				job.jobSpecification.pickupStartTime = nextDayPickup;
+				job.jobSpecification.deliveries[0].dropoffEndTime = nextDayDropoff;
+			}
+			// check if user has a subscription active
+			console.log('SUBSCRIPTION ID:', !!subscriptionId);
+			if (subscriptionId && subscriptionPlan) {
+				// check the payment plan and lookup the associated commission fee
+				let { fee, limit } = COMMISSION[subscriptionPlan.toUpperCase()];
+				console.log('--------------------------------');
+				console.log('COMMISSION FEE:', fee);
+				// check whether the client number of orders has exceeded the limit
+				const numOrders = await db.Job.where({
+					clientId,
+					status: STATUS.COMPLETED
+				}).countDocuments();
+				console.log('NUM COMPLETED ORDERS:', numOrders);
+				console.log('--------------------------------');
+				// if the order limit is exceeded, mark the job with a commission fee charge
+				if (numOrders >= limit) {
+					commissionCharge = true;
+				}
+				const {
+					id: spec_id,
+					deliveryFee,
+					pickupAt,
+					delivery
+				} = await providerCreatesJob(
+					providerId.toLowerCase(),
+					jobReference,
+					selectionStrategy,
+					createJobRequestPayload(job.toObject()),
+					vehicleSpecs
+				);
+				job.jobSpecification.id = spec_id
+				job.jobSpecification.jobReference = jobReference
+				if (pickupAt) job.jobSpecification.pickupStartTime = moment(pickupAt).format()
+				job.jobSpecification.deliveries = [delivery]
+				job.selectedConfiguration.deliveryFee = deliveryFee.toFixed(2)
+				job.selectedConfiguration.providerId = providerId
+				job.commissionCharge = commissionCharge
+				job.driverInformation.name = "Searching..."
+				job.driverInformation.phone = "Searching..."
+				job.driverInformation.transport = "Searching..."
+				await job.save()
+				return res.status(200).json({
+					jobId: job._id,
+					...job
+				});
+			}
 		}
 	} catch (err) {
 		console.error(err);

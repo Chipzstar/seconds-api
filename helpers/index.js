@@ -11,7 +11,7 @@ const HmacSHA256 = require('crypto-js/hmac-sha256');
 const moment = require('moment-timezone');
 const { nanoid } = require('nanoid');
 const orderId = require('order-id')(process.env.UID_SECRET_KEY);
-const { quoteSchema } = require('../schemas/quote');
+const { quoteSchema, jobRequestSchema } = require('../schemas');
 const {
 	SELECTION_STRATEGIES,
 	PROVIDERS,
@@ -161,6 +161,51 @@ function genDeliveryId() {
 	return str;
 }
 
+function createJobRequestPayload({ jobSpecification, vehicleType }){
+	let payload = {
+		...jobRequestSchema,
+		pickupFirstName: jobSpecification.pickupLocation.firstName,
+		pickupLastName: jobSpecification.pickupLocation.lastName,
+		pickupBusinessName: jobSpecification.pickupLocation.businessName,
+		pickupAddress: jobSpecification.pickupLocation.fullAddress,
+		pickupAddressLine1: jobSpecification.pickupLocation.streetAddress,
+		pickupAddressLine2: "",
+		pickupCity: jobSpecification.pickupLocation.city,
+		pickupPostcode: jobSpecification.pickupLocation.postcode,
+		pickupLongitude: jobSpecification.pickupLocation.longitude,
+		pickupLatitude: jobSpecification.pickupLocation.latitude,
+		pickupEmailAddress: jobSpecification.pickupLocation.email,
+		pickupPhoneNumber: jobSpecification.pickupLocation.phoneNumber,
+		pickupInstructions: jobSpecification.pickupLocation.instructions,
+		packagePickupStartTime: jobSpecification.pickupStartTime,
+		...(jobSpecification.pickupEndTime && { packagePickupEndTime: jobSpecification.pickupStartTime }),
+		drops: jobSpecification.deliveries.map(({ description, dropoffLocation, dropoffEndTime }) => ({
+			dropoffFirstName: dropoffLocation.firstName,
+			dropoffLastName: dropoffLocation.lastName,
+			dropoffBusinessName: dropoffLocation.businessName,
+			dropoffAddress: dropoffLocation.fullAddress,
+			dropoffAddressLine1: dropoffLocation.streetAddress,
+			dropoffAddressLine2: "",
+			dropoffLatitude: dropoffLocation.latitude,
+			dropoffLongitude: dropoffLocation.longitude,
+			dropoffCity: dropoffLocation.city,
+			dropoffPostcode: dropoffLocation.postcode,
+			dropoffEmailAddress: dropoffLocation.email,
+			dropoffPhoneNumber: dropoffLocation.phoneNumber,
+			dropoffInstructions: dropoffLocation.instructions,
+			packageDropoffEndTime: dropoffEndTime,
+			packageDescription: description,
+			reference: genOrderReference()
+		})),
+		packageDeliveryType: jobSpecification.deliveryType,
+		vehicleType
+	};
+	console.log("***********************************************")
+	console.log(payload);
+	console.log("***********************************************")
+	return payload;
+}
+
 function chooseBestProvider(strategy, quotes) {
 	let bestPriceIndex;
 	let bestEtaIndex;
@@ -243,6 +288,7 @@ function checkMultiDropPrice(numDrops) {
 }
 
 function getVehicleSpecs(vehicleCode) {
+	// TODO - convert to promise based function
 	if (VEHICLE_CODES.includes(vehicleCode)) {
 		return VEHICLE_CODES_MAP[vehicleCode];
 	} else {
@@ -1151,9 +1197,9 @@ async function gophrJobRequest(ref, params, vehicleSpecs) {
 			console.log('****************************');
 			console.log(response.data);
 			console.log('****************************');
-			const { job_id, public_tracker_url, pickup_eta, delivery_eta, price_gross, external_id } = response.data;
+			const { job_id, public_tracker_url, pickup_eta, delivery_eta, price_gross } = response.data;
 			let delivery = {
-				id: external_id,
+				id: genDeliveryId(),
 				orderReference: drops[0].reference,
 				description: packageDescription ? packageDescription : '',
 				dropoffStartTime: delivery_eta ? moment(delivery_eta).format() : drops[0].packageDropoffStartTime,
@@ -2016,10 +2062,17 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 							createdAt: moment().format(),
 							deliveryFee: settings ? settings.driverDeliveryFee : 5.0,
 							winnerQuote: 'N/A',
-							providerId: 'private',
+							providerId: PROVIDERS.PRIVATE,
 							quotes: []
 						},
-						status: STATUS.PENDING
+						status: STATUS.PENDING,
+						trackingHistory: [
+							{
+								timestamp: moment().unix(),
+								status: STATUS.NEW
+							}
+						],
+						vehicleType: payload.vehicleType
 					};
 					return await finaliseJob(user, job, clientId, commissionCharge, driver, settings, settings.sms);
 				}
@@ -2087,7 +2140,7 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 										: ''
 								},
 								trackingURL: '',
-								status: STATUS.NEW
+								status: STATUS.NEW,
 							}
 						]
 					},
@@ -2095,11 +2148,18 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 						createdAt: moment().format(),
 						deliveryFee: settings ? settings.driverDeliveryFee : 5.0,
 						winnerQuote: 'N/A',
-						providerId: 'private',
+						providerId: PROVIDERS.UNASSIGNED,
 						quotes: []
 					},
 					dispatchMode: DISPATCH_MODES.MANUAL,
-					status: STATUS.NEW
+					status: STATUS.NEW,
+					trackingHistory: [
+						{
+							timestamp: moment().unix(),
+							status: STATUS.NEW
+						}
+					],
+					vehicleType: payload.vehicleType
 				};
 				return await finaliseJob(user, job, clientId, commissionCharge, null, settings, settings.sms);
 			}
@@ -2166,7 +2226,15 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 				providerId,
 				quotes: QUOTES
 			},
-			status: STATUS.NEW
+			dispatchMode: DISPATCH_MODES.AUTO,
+			status: STATUS.NEW,
+			trackingHistory: [
+				{
+					timestamp: moment().unix(),
+					status: STATUS.NEW
+				}
+			],
+			vehicleType: payload.vehicleType
 		};
 		if (settings && deliveryFee.toFixed(2) > settings.courierPriceThreshold) {
 			let template = `The price for one of your orders has exceeded your courier price range of £${
@@ -2256,6 +2324,7 @@ module.exports = {
 	genJobReference,
 	genOrderReference,
 	genDeliveryId,
+	createJobRequestPayload,
 	getClientDetails,
 	getVehicleSpecs,
 	calculateJobDistance,

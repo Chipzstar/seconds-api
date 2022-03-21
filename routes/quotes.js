@@ -20,6 +20,7 @@ const router = express.Router();
  */
 router.post('/', async (req, res) => {
 	try {
+		console.table(req.body)
 		const user = await getClientDetails(req.headers[AUTHORIZATION_KEY]);
 		const settings = await db.Settings.findOne({clientId: user['_id']})
 		console.log('Strategy: ', user['selectionStrategy']);
