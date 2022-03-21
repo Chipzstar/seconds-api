@@ -44,10 +44,11 @@ function translateStreetStreamStatus(value) {
 async function update(data) {
 	try {
 		console.log(data);
-		const { status: jobStatus, jobId: ID } = data;
+		const { status: jobStatus, jobId } = data;
 		// update the status for the current job
 		const newStatus = translateStreetStreamStatus(jobStatus)
-		let job = await db.Job.findOne({ 'jobSpecification.id': ID });
+		let job = await db.Job.findOne({ 'jobSpecification.id': jobId });
+		console.log(job)
 		if (newStatus !== job.status) {
 			job['jobSpecification'].deliveries[0].status = newStatus
 			job.status = newStatus
