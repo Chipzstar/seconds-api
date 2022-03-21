@@ -72,18 +72,23 @@ async function updateJob(data) {
 			phone,
 			transportType: { code }
 		} = driver;
+		const newStatus = translateStuartStatus(jobStatus);
 		// update the status for the current job
-		await db.Job.findOneAndUpdate(
-			{ 'jobSpecification.id': jobId },
-			{
-				status: translateStuartStatus(jobStatus),
-				'driverInformation.name': `${firstname} ${lastname}`,
-				'driverInformation.phone': phone,
-				'driverInformation.transport': code
-			},
-			{ new: true }
+		let job = await db.Job.findOne(
+			{ 'jobSpecification.id': jobId }
 		);
-		const job = await db.Job.findOneAndUpdate(
+		if (newStatus !== job.status) {
+			job.status = newStatus;
+			job['driverInformation'].name = `${firstname} ${lastname}`
+			job['driverInformation'].phone = phone;
+			job['driverInformation'].transport = code;
+			job.trackingHistory.push({
+				timestamp: moment().unix(),
+				status: newStatus
+			})
+			await job.save()
+		}
+		job = await db.Job.findOneAndUpdate(
 			{ 'jobSpecification.id': jobId, 'jobSpecification.deliveries.id': deliveryId },
 			{
 				$set: {
@@ -96,7 +101,7 @@ async function updateJob(data) {
 				returnOriginal: false
 			}
 		);
-		console.log("JOB ID:", job['_id']);
+		console.table({JOB_ID: job['_id']});
 		// add commission charge depending on payment plan
 		if (jobStatus === JOB_STATUS.COMPLETED) {
 			console.log('****************************************************************');
