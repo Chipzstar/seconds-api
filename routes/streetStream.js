@@ -47,9 +47,7 @@ async function update(data) {
 		const { status: jobStatus, jobId: ID } = data;
 		// update the status for the current job
 		const newStatus = translateStreetStreamStatus(jobStatus)
-		let job = await db.Job.findOne(
-			{ 'jobSpecification.id': ID },
-		);
+		let job = await db.Job.findOne({ 'jobSpecification.id': ID });
 		if (newStatus !== job.status) {
 			job['jobSpecification'].deliveries[0].status = newStatus
 			job.status = newStatus
