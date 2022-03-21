@@ -78,7 +78,7 @@ async function updateJob(data) {
 			{ 'jobSpecification.id': jobId }
 		);
 		//
-		if (newStatus !== job.status) {
+		if (newStatus !== job.status && jobStatus !== JOB_STATUS.IN_PROGRESS) {
 			job.status = newStatus;
 			job['driverInformation'].name = `${firstname} ${lastname}`
 			job['driverInformation'].phone = phone;
