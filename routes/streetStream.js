@@ -7,6 +7,7 @@ const sendEmail = require('../services/email');
 const confirmCharge = require('../services/payments');
 const sendSMS = require('../services/sms');
 const { sendWebhookUpdate } = require('../helpers');
+const moment = require('moment');
 const router = express.Router();
 
 function translateStreetStreamStatus(value) {
@@ -45,14 +46,19 @@ async function update(data) {
 		console.log(data);
 		const { status: jobStatus, jobId: ID } = data;
 		// update the status for the current job
-		let job = await db.Job.findOneAndUpdate(
+		const newStatus = translateStreetStreamStatus(jobStatus)
+		let job = await db.Job.findOne(
 			{ 'jobSpecification.id': ID },
-			{
-				status: translateStreetStreamStatus(jobStatus),
-				'jobSpecification.deliveries.$[].status': translateStreetStreamStatus(jobStatus)
-			},
-			{ new: true }
 		);
+		if (newStatus !== job.status) {
+			job['jobSpecification'].deliveries[0].status = newStatus
+			job.status = newStatus
+			job.trackingHistory.push({
+				timestamp: moment().unix(),
+				status: newStatus
+			})
+			await job.save()
+		}
 		if (job) {
 			const user = await db.User.findOne({ _id: job.clientId });
 			let settings = await db.Settings.findOne({ clientId: job.clientId })
@@ -69,10 +75,10 @@ async function update(data) {
 					email: `${user.email}`,
 					templateId: 'd-90f8f075032e4d4b90fc595ad084d2a6',
 					templateData: {
-						client_reference: `${job.jobSpecification.deliveries[0].orderReference}`,
-						customer: `${job.jobSpecification.deliveries[0].dropoffLocation.firstName} ${job.jobSpecification.deliveries[0].dropoffLocation.lastName}`,
-						pickup: `${job.jobSpecification.pickupLocation.fullAddress}`,
-						dropoff: `${job.jobSpecification.deliveries[0].dropoffLocation.fullAddress}`,
+						client_reference: `${job['jobSpecification'].deliveries[0].orderReference}`,
+						customer: `${job['jobSpecification'].deliveries[0].dropoffLocation.firstName} ${job['jobSpecification'].deliveries[0].dropoffLocation.lastName}`,
+						pickup: `${job['jobSpecification'].pickupLocation.fullAddress}`,
+						dropoff: `${job['jobSpecification'].deliveries[0].dropoffLocation.fullAddress}`,
 						reason: `${jobStatus} - ${CANCELLATION_REASONS[jobStatus].replace(/[-_]/g, ' ')}`,
 						cancelled_by: `operations`,
 						provider: `street stream`
@@ -81,11 +87,11 @@ async function update(data) {
 				await sendEmail(options);
 				console.log('CANCELLATION EMAIL SENT!');
 			} else if (jobStatus === JOB_STATUS.COLLECTED) {
-				const trackingMessage = job.jobSpecification.deliveries[0].trackingURL
-					? `\nTrack the delivery here: ${job.jobSpecification.deliveries[0].trackingURL}`
+				const trackingMessage = job['jobSpecification'].deliveries[0].trackingURL
+					? `\nTrack the delivery here: ${job['jobSpecification'].deliveries[0].trackingURL}`
 					: '';
 				const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`;
-				sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template, user.subscriptionItems, canSend).then(() =>
+				sendSMS(job['jobSpecification'].deliveries[0].dropoffLocation.phoneNumber, template, user.subscriptionItems, canSend).then(() =>
 					console.log('SMS sent successfully!')
 				);
 			}
