@@ -73,10 +73,11 @@ async function updateJob(data) {
 			transportType: { code }
 		} = driver;
 		const newStatus = translateStuartStatus(jobStatus);
-		// update the status for the current job
+		// find the job in the database
 		let job = await db.Job.findOne(
 			{ 'jobSpecification.id': jobId }
 		);
+		//
 		if (newStatus !== job.status) {
 			job.status = newStatus;
 			job['driverInformation'].name = `${firstname} ${lastname}`
@@ -138,14 +139,23 @@ async function updateJob(data) {
 async function updateDelivery(data) {
 	try {
 		const { status: deliveryStatus, id, clientReference, etaToOrigin, etaToDestination } = data;
-		const job = await db.Job.findOneAndUpdate(
+		const newStatus = translateStuartStatus(deliveryStatus)
+		let job = await db.Job.findOne({ 'jobSpecification.deliveries.id': id.toString() });
+		if (newStatus !== job.status) {
+			job.trackingHistory.push({
+				timestamp: moment().unix(),
+				status: newStatus
+			})
+			await job.save()
+		}
+		job = await db.Job.findOneAndUpdate(
 			{ 'jobSpecification.deliveries.id': id.toString() },
 			{
 				$set: {
-					status: translateStuartStatus(deliveryStatus),
+					status: newStatus,
 					'jobSpecification.pickupStartTime': moment(etaToOrigin).toISOString(),
 					'jobSpecification.deliveries.$.dropoffEndTime': moment(etaToDestination).toISOString(),
-					'jobSpecification.deliveries.$.status': translateStuartStatus(deliveryStatus)
+					'jobSpecification.deliveries.$.status': newStatus
 				}
 			},
 			{
