@@ -18,7 +18,8 @@ const {
 	cancelOrder,
 	geocodeAddress,
 	genDeliveryId,
-	checkJobExpired, createJobRequestPayload
+	checkJobExpired,
+	createJobRequestPayload
 } = require('../helpers');
 
 const {
@@ -26,7 +27,8 @@ const {
 	COMMISSION,
 	DELIVERY_TYPES,
 	PROVIDERS,
-	VEHICLE_CODES_MAP, DISPATCH_MODES
+	VEHICLE_CODES_MAP,
+	DISPATCH_MODES
 } = require('@seconds-technologies/database_schemas/constants');
 
 const { AUTHORIZATION_KEY, PROVIDER_ID, PROVIDER_TYPES } = require('../constants');
@@ -321,7 +323,7 @@ router.post('/create', async (req, res) => {
 router.post('/assign', async (req, res) => {
 	try {
 		const { driverId } = req.query;
-		console.table({driverId})
+		console.table({ driverId });
 		const driver = driverId ? await db.Driver.findById(driverId) : undefined;
 		console.table(req.body);
 		console.table(req.body.drops[0]);
@@ -414,7 +416,7 @@ router.post('/assign', async (req, res) => {
 			let job = {
 				createdAt: moment().format(),
 				driverInformation: {
-					...(driver && { id: `${driver['_id']}`}),
+					...(driver && { id: `${driver['_id']}` }),
 					name: driver ? `${driver.firstname} ${driver.lastname}` : 'NO DRIVER ASSIGNED',
 					phone: driver ? driver.phone : '',
 					transport: driver ? VEHICLE_CODES_MAP[driver.vehicle].name : ''
@@ -593,12 +595,21 @@ router.post('/optimise', async (req, res) => {
  */
 router.patch('/dispatch', async (req, res) => {
 	try {
-		console.table(req.body)
+		console.table(req.body);
 		const apiKey = req.headers[AUTHORIZATION_KEY];
-		const { _id: clientId, email, firstname, lastname, deliveryHours, subscriptionId, subscriptionPlan, selectionStrategy } = await getClientDetails(apiKey);
+		const {
+			_id: clientId,
+			email,
+			firstname,
+			lastname,
+			deliveryHours,
+			subscriptionId,
+			subscriptionPlan,
+			selectionStrategy
+		} = await getClientDetails(apiKey);
 		const { type, providerId, orderNumber } = req.body;
 		const job = await db.Job.findOne({ 'jobSpecification.orderNumber': orderNumber });
-		console.log(job)
+		console.log(job);
 		// TODO - add middleware to validate request params + handle errors
 		if (type === PROVIDER_TYPES.DRIVER) {
 			const driver = await db.Driver.findById(providerId);
@@ -607,26 +618,26 @@ router.patch('/dispatch', async (req, res) => {
 				job.driverInformation.name = `${driver.firstname} ${driver.lastname}`;
 				job.driverInformation.phone = driver.phone;
 				job.driverInformation.transport = driver.vehicle;
-				job.selectedConfiguration.providerId = PROVIDERS.PRIVATE
+				job.selectedConfiguration.providerId = PROVIDERS.PRIVATE;
 				await job.save();
 				console.log(job);
 				// use clientId of the job to find the client's settings
 				const settings = await db.Settings.findOne({ clientId });
 				settings &&
-				setTimeout(
-					() =>
-						checkJobExpired(
-							orderNumber,
-							driver,
-							{
-								email,
-								firstname,
-								lastname
-							},
-							settings
-						),
-					settings['driverResponseTime'] * 60000
-				);
+					setTimeout(
+						() =>
+							checkJobExpired(
+								orderNumber,
+								driver,
+								{
+									email,
+									firstname,
+									lastname
+								},
+								settings
+							),
+						settings['driverResponseTime'] * 60000
+					);
 				res.status(200).json(job);
 			} else {
 				let err = new Error('ID for the job/driver is invalid');
@@ -686,17 +697,17 @@ router.patch('/dispatch', async (req, res) => {
 					createJobRequestPayload(job.toObject()),
 					vehicleSpecs
 				);
-				job.jobSpecification.id = spec_id
-				job.jobSpecification.jobReference = jobReference
-				if (pickupAt) job.jobSpecification.pickupStartTime = moment(pickupAt).format()
-				job.jobSpecification.deliveries = [delivery]
-				job.selectedConfiguration.deliveryFee = deliveryFee.toFixed(2)
-				job.selectedConfiguration.providerId = providerId
-				job.commissionCharge = commissionCharge
-				job.driverInformation.name = "Searching..."
-				job.driverInformation.phone = "Searching..."
-				job.driverInformation.transport = "Searching..."
-				await job.save()
+				job.jobSpecification.id = spec_id;
+				job.jobSpecification.jobReference = jobReference;
+				if (pickupAt) job.jobSpecification.pickupStartTime = moment(pickupAt).format();
+				job.jobSpecification.deliveries = [delivery];
+				job.selectedConfiguration.deliveryFee = deliveryFee.toFixed(2);
+				job.selectedConfiguration.providerId = providerId;
+				job.commissionCharge = commissionCharge;
+				job.driverInformation.name = 'Searching...';
+				job.driverInformation.phone = 'Searching...';
+				job.driverInformation.transport = 'Searching...';
+				await job.save();
 				return res.status(200).json({
 					jobId: job._id,
 					...job
@@ -925,42 +936,38 @@ router.patch('/:job_id', async (req, res) => {
 			message: 'Missing Payload!'
 		});
 	}
-	const { packageDescription: description, pickupInstructions, dropoffInstructions } = req.body;
-	console.log(req.body);
+	console.table(req.body);
+	const { packageDescription, pickupInstructions, dropoffInstructions, pickupStartTime, dropoffStartTime, dropoffEndTime } = req.body;
 	try {
 		let jobId = req.params['job_id'];
 		if (mongoose.Types.ObjectId.isValid(jobId)) {
-			let {
-				_doc: { _id, ...updatedJob }
-			} = await db.Job.findOneAndUpdate(
-				{ _id: jobId },
-				{
-					$set: {
-						'jobSpecification.packages.$[].description': description,
-						'jobSpecification.packages.$[].pickupLocation.instructions': pickupInstructions,
-						'jobSpecification.packages.$[].dropoffLocation.instructions': dropoffInstructions
-					}
-				},
-				{
-					new: true,
-					sanitizeProjection: true
-				}
-			);
-			return updatedJob
-				? res.status(200).json({
-						jobId: _id,
-						...updatedJob
-				  })
-				: res.status(404).json({
-						code: 404,
-						description: `No job found with ID: ${jobId}`,
-						message: 'Not Found'
-				  });
+			let job = await db.Job.findById(jobId);
+			if (job) {
+				if (packageDescription) job['jobSpecification'].deliveries[0].description = packageDescription;
+				if (pickupInstructions) job['jobSpecification'].pickupLocation.instructions = pickupInstructions;
+				if (dropoffInstructions)
+					job['jobSpecification'].deliveries[0].dropoffLocation.instructions = dropoffInstructions;
+				if (pickupStartTime) job['jobSpecification'].pickupStartTime = pickupStartTime;
+				if (dropoffStartTime) job['jobSpecification'].deliveries[0].dropoffStartTime = dropoffStartTime;
+				if (dropoffEndTime) job['jobSpecification'].deliveries[0].dropoffEndTime = dropoffEndTime;
+				await job.save();
+				res.status(200).json({
+					jobId: job._id,
+					message: "Job updated successfully",
+					...job.toObject()
+				});
+			} else {
+				res.status(404).json({
+					code: 404,
+					description: `No job found with ID: ${jobId}`,
+					message: `Job not found`
+				});
+			}
 		} else {
 			res.status(404).json({
 				code: 404,
-				description: `No job found with ID: ${jobId}`,
-				message: 'Not Found'
+				description: `${jobId} is an invalid Job ID`,
+				message: `Invalid Job ID`
 			});
 		}
 	} catch (e) {
