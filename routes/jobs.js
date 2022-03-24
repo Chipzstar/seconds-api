@@ -40,6 +40,7 @@ const orderId = require('order-id')(process.env.UID_SECRET_KEY);
 const sendEmail = require('../services/email');
 const sendSMS = require('../services/sms');
 const sendNotification = require('../services/notification');
+const { nanoid } = require('nanoid');
 
 /**
  * List Jobs - The API endpoint for listing all jobs currently belonging to a user
@@ -565,19 +566,47 @@ router.post('/assign', async (req, res) => {
  * @param res - response object
  * @returns {Promise<*>}
  */
-router.post('/optimise', async (req, res) => {
+router.patch('/optimise', async (req, res) => {
 	try {
-		const orders = req.body;
-		console.log(orders);
-		res.status(200).json({ message: 'SUCCESS' });
+		const { driverId, route } = req.body;
+		console.log(driverId)
+		console.table(route);
+		const user = await getClientDetails(req.headers[AUTHORIZATION_KEY])
+		const driver = await db.Driver.findById(driverId)
+		if (driver) {
+			let job;
+			let index = 1;
+			let routeId = `route-${nanoid(12)}`
+			console.table({routeId})
+			for (let stop of route) {
+				if (stop.type === 'order') {
+					job = await db.Job.findOne({ 'jobSpecification.orderNumber': stop.id })
+					job.selectedConfiguration.providerId = PROVIDERS.PRIVATE
+					job.driverInformation.id = driverId
+					job.driverInformation.name = `${driver.firstname} ${driver.lastname}`
+					job.driverInformation.phone = driver.phone
+					job.driverInformation.transport = VEHICLE_CODES_MAP[driver.vehicle].name
+					job.vehicleType = driver.vehicle
+					job.routeOptimization.routeId = routeId
+					job.routeOptimization.priority = index
+					index += 1;
+					await job.save();
+				}
+			}
+			res.status(200).json({ message: 'SUCCESS' });
+		} else {
+			res.status(404).json({
+				message: "No driver found with that driverId"
+			});
+		}
 	} catch (err) {
 		console.error(err);
 		if (err.message) {
-			return res.status(err.status).json({
+			res.status(err.status).json({
 				error: err
 			});
 		}
-		return res.status(500).json({
+		res.status(500).json({
 			error: {
 				code: 500,
 				message: 'Unknown error occurred!'
