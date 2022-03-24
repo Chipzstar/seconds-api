@@ -167,7 +167,7 @@ router.post('/', async (req, res) => {
 				const settings = await db.Settings.findOne({clientId: user['_id']})
 				console.log('Settings:', !!settings);
 				// CHECK if the incoming delivery is a local delivery
-				const isLocalDelivery = req.body['shipping_lines'][0].code === DELIVERY_METHODS.LOCAL || req.body['tags'].includes(DELIVERY_METHODS.LOCAL.toUpperCase());
+				const isLocalDelivery = Object.values(DELIVERY_METHODS).includes(req.body['shipping_lines'][0].code) || req.body['tags'].includes(DELIVERY_METHODS.LOCAL.toUpperCase());
 				const isSubscribed = !!user.subscriptionId & !!user.subscriptionPlan;
 				console.log('isLocalDelivery:', isLocalDelivery);
 				if (isLocalDelivery) {
