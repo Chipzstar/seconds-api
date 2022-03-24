@@ -589,6 +589,7 @@ router.patch('/optimise', async (req, res) => {
 					job.vehicleType = driver.vehicle
 					job.routeOptimization.routeId = routeId
 					job.routeOptimization.priority = index
+					job.createdAt = moment().format()
 					index += 1;
 					await job.save();
 				}
@@ -648,6 +649,7 @@ router.patch('/dispatch', async (req, res) => {
 				job.driverInformation.phone = driver.phone;
 				job.driverInformation.transport = driver.vehicle;
 				job.selectedConfiguration.providerId = PROVIDERS.PRIVATE;
+				job.createdAt = moment().format()
 				await job.save();
 				console.log(job);
 				// use clientId of the job to find the client's settings
