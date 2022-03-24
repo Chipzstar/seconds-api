@@ -127,9 +127,10 @@ router.post('/', async (req, res) => {
 				console.log('isLocalDelivery:', isLocalDelivery);
 				if (isLocalDelivery) {
 					if (isSubscribed) {
+						const settings = await db.Settings.findOne({clientId: user._id})
 						generatePayload(req.body, user).then(payload => {
 							const ids = { shopifyId: null, woocommerceId: req.body['order_key']}
-							createEcommerceJob("WooCommerce", req.body['order_key'], payload, ids, user, domain)
+							createEcommerceJob("WooCommerce", req.body['order_key'], payload, ids, user, settings, domain)
 						}).catch(err => console.error(err));
 						res.status(200).json({
 							success: true,
