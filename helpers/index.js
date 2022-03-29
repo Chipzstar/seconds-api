@@ -12,15 +12,6 @@ const moment = require('moment-timezone');
 const { nanoid } = require('nanoid');
 const orderId = require('order-id')(process.env.UID_SECRET_KEY);
 const { quoteSchema, jobRequestSchema } = require('../schemas');
-const {
-	SELECTION_STRATEGIES,
-	PROVIDERS,
-	VEHICLE_CODES_MAP,
-	DELIVERY_TYPES,
-	VEHICLE_CODES,
-	STATUS,
-	COMMISSION
-} = require('../constants');
 // CONSTANTS
 const { STRATEGIES } = require('../constants/streetStream');
 const { ERROR_CODES: STUART_ERROR_CODES, ERROR_MESSAGES } = require('../constants/stuart');
@@ -32,7 +23,17 @@ const { authStreetStream } = require('./streetStream');
 // SERVICES
 const sendEmail = require('../services/email');
 const sendSMS = require('../services/sms');
-const { DISPATCH_OPTIONS, DISPATCH_MODES } = require('@seconds-technologies/database_schemas/constants');
+const {
+	DISPATCH_OPTIONS,
+	DISPATCH_MODES,
+	SELECTION_STRATEGIES,
+	PROVIDERS,
+	DELIVERY_TYPES,
+	VEHICLE_CODES,
+	STATUS,
+	COMMISSION,
+	VEHICLE_CODES_MAP
+} = require('@seconds-technologies/database_schemas/constants');
 // google maps api client
 const GMapsClient = new Client();
 // setup axios instances
@@ -161,7 +162,7 @@ function genDeliveryId() {
 	return str;
 }
 
-function createJobRequestPayload({ jobSpecification, vehicleType }){
+function createJobRequestPayload({ jobSpecification, vehicleType }) {
 	let payload = {
 		...jobRequestSchema,
 		pickupFirstName: jobSpecification.pickupLocation.firstName,
@@ -169,7 +170,7 @@ function createJobRequestPayload({ jobSpecification, vehicleType }){
 		pickupBusinessName: jobSpecification.pickupLocation.businessName,
 		pickupAddress: jobSpecification.pickupLocation.fullAddress,
 		pickupAddressLine1: jobSpecification.pickupLocation.streetAddress,
-		pickupAddressLine2: "",
+		pickupAddressLine2: '',
 		pickupCity: jobSpecification.pickupLocation.city,
 		pickupPostcode: jobSpecification.pickupLocation.postcode,
 		pickupLongitude: jobSpecification.pickupLocation.longitude,
@@ -185,7 +186,7 @@ function createJobRequestPayload({ jobSpecification, vehicleType }){
 			dropoffBusinessName: dropoffLocation.businessName,
 			dropoffAddress: dropoffLocation.fullAddress,
 			dropoffAddressLine1: dropoffLocation.streetAddress,
-			dropoffAddressLine2: "",
+			dropoffAddressLine2: '',
 			dropoffLatitude: dropoffLocation.latitude,
 			dropoffLongitude: dropoffLocation.longitude,
 			dropoffCity: dropoffLocation.city,
@@ -200,9 +201,9 @@ function createJobRequestPayload({ jobSpecification, vehicleType }){
 		packageDeliveryType: jobSpecification.deliveryType,
 		vehicleType
 	};
-	console.log("***********************************************")
+	console.log('***********************************************');
 	console.log(payload);
-	console.log("***********************************************")
+	console.log('***********************************************');
 	return payload;
 }
 
@@ -427,7 +428,7 @@ function setNextDayDeliveryTime(pickupTime, deliveryHours) {
 async function findAvailableDriver(user, { autoDispatch }) {
 	try {
 		console.log('-----------------------------------------------');
-		console.log("FINDING AVAILABLE DRIVER...")
+		console.log('FINDING AVAILABLE DRIVER...');
 		// fetch all verified drivers under the client
 		let drivers = await db.Driver.find({ clientIds: user['_id'], verified: true });
 		console.log('================================================');
@@ -503,7 +504,11 @@ async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance, settin
 			console.table(vehicleSpecs);
 		}
 		// check if the current vehicle is supported by Stuart and if the job distance is within the maximum limit
-		if (vehicleSpecs.stuart.packageType && process.env.STUART_STATUS === 'active' && settings.activeFleetProviders.stuart) {
+		if (
+			vehicleSpecs.stuart.packageType &&
+			process.env.STUART_STATUS === 'active' &&
+			settings.activeFleetProviders.stuart
+		) {
 			let stuartQuote = await getStuartQuote(genJobReference(), requestBody, vehicleSpecs);
 			stuartQuote && QUOTES.push(stuartQuote);
 		}
@@ -515,7 +520,11 @@ async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance, settin
 			let streetStreamQuote = await getStreetStreamQuote(requestBody, vehicleSpecs);
 			streetStreamQuote && QUOTES.push(streetStreamQuote);
 		}
-		if (vehicleSpecs.ecofleetVehicle && process.env.ECOFLEET_STATUS === 'active' && settings.activeFleetProviders.ecofleet) {
+		if (
+			vehicleSpecs.ecofleetVehicle &&
+			process.env.ECOFLEET_STATUS === 'active' &&
+			settings.activeFleetProviders.ecofleet
+		) {
 			let ecoFleetQuote = {
 				...quoteSchema,
 				id: `quote_${nanoid(15)}`,
@@ -1989,9 +1998,9 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 		if (settings && settings.defaultDispatch === DISPATCH_OPTIONS.DRIVER) {
 			// if autoDispatch is enabled, find an available driver
 			if (settings.autoDispatch.enabled) {
-				console.log("*****************************************")
-				console.log("AUTO DISPATCH ENABLED!")
-				console.log("*****************************************")
+				console.log('*****************************************');
+				console.log('AUTO DISPATCH ENABLED!');
+				console.log('*****************************************');
 				const driver = await findAvailableDriver(user, settings);
 				console.log(driver);
 				if (driver) {
@@ -2076,12 +2085,12 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 					};
 					return await finaliseJob(user, job, clientId, commissionCharge, driver, settings, settings.sms);
 				}
-			// autoDispatch is disabled, then create the job as a private job without assigning it to a driver
-			// specify dispatchMode = MANUAL
+				// autoDispatch is disabled, then create the job as a private job without assigning it to a driver
+				// specify dispatchMode = MANUAL
 			} else {
-				console.log("*****************************************")
-				console.log("AUTO DISPATCH DISABLED!")
-				console.log("*****************************************")
+				console.log('*****************************************');
+				console.log('AUTO DISPATCH DISABLED!');
+				console.log('*****************************************');
 				job = {
 					createdAt: moment().format(),
 					driverInformation: {
@@ -2140,7 +2149,7 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 										: ''
 								},
 								trackingURL: '',
-								status: STATUS.NEW,
+								status: STATUS.NEW
 							}
 						]
 					},
@@ -2240,9 +2249,7 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 			let template = `The price for one of your orders has exceeded your courier price range of £${
 				settings.courierPriceThreshold
 			}.\nPrice: £${deliveryFee.toFixed(2)}\nOrder Number: ${job.jobSpecification.orderNumber}`;
-			sendSMS(user.phone, template, { smsCommission: '' }, true).then(() =>
-				console.log('Alert has been sent!')
-			);
+			sendSMS(user.phone, template, { smsCommission: '' }, true).then(() => console.log('Alert has been sent!'));
 		}
 		return await finaliseJob(
 			user,

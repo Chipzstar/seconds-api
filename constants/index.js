@@ -77,7 +77,7 @@ exports.VEHICLE_CODES_MAP = {
 		weight: 12, // in kg
 		stuart: {
 			vehicleName: "motorbike",
-			packageType: 'small'
+			packageType: 'small',
 		},
 		gophrVehicleType: 20,
 		ecofleetVehicle: false,
