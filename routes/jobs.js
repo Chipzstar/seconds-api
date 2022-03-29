@@ -355,6 +355,9 @@ router.post('/assign', async (req, res) => {
 		} = await getClientDetails(apiKey);
 		let settings = await db.Settings.findOne({ clientId });
 		let smsEnabled = settings ? settings.sms : false;
+		console.log("*********************************************")
+		console.table(smsEnabled)
+		console.log("*********************************************")
 		let newJobAlerts = settings ? settings['jobAlerts'].new : false;
 		console.table({ smsEnabled, newJobAlerts });
 		// check that the vehicleType is valid and return the vehicle's specifications
