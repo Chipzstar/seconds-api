@@ -568,10 +568,9 @@ router.post('/assign', async (req, res) => {
  */
 router.patch('/optimise', async (req, res) => {
 	try {
-		const { driverId, route } = req.body;
-		console.log(driverId)
+		const { driverId, route, timeWindow } = req.body;
+		console.table({driverId, timeWindow})
 		console.table(route);
-		const user = await getClientDetails(req.headers[AUTHORIZATION_KEY])
 		const driver = await db.Driver.findById(driverId)
 		if (driver) {
 			let job;
@@ -589,6 +588,8 @@ router.patch('/optimise', async (req, res) => {
 					job.vehicleType = driver.vehicle
 					job.routeOptimization.routeId = routeId
 					job.routeOptimization.priority = index
+					job.routeOptimization.startTime = timeWindow.startTime
+					job.routeOptimization.endTime = timeWindow.endTime
 					job.createdAt = moment().format()
 					index += 1;
 					await job.save();
