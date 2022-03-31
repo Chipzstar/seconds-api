@@ -356,7 +356,7 @@ router.post('/assign', async (req, res) => {
 		let settings = await db.Settings.findOne({ clientId });
 		let smsEnabled = settings ? settings.sms : false;
 		console.log("*********************************************")
-		console.table(smsEnabled)
+		console.table({ smsEnabled });
 		console.log("*********************************************")
 		let newJobAlerts = settings ? settings['jobAlerts'].new : false;
 		console.table({ smsEnabled, newJobAlerts });
