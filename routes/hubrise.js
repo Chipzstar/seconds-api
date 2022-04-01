@@ -1,6 +1,7 @@
 const express = require('express')
 const db = require('../models');
-const { createEcommerceJob, convertWeightToVehicleCode, geocodeAddress, genOrderReference } = require('../helpers');
+const createEcommerceJob = require('../services/ecommerce');
+const { convertWeightToVehicleCode, geocodeAddress, genOrderReference } = require('../helpers');
 const moment = require('moment');
 const sendEmail = require('../services/email');
 const router = express.Router()

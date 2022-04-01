@@ -1,5 +1,5 @@
 const express = require('express');
-const { updateJob, updateDelivery, updateDriverETA, getStuartAuthToken } = require('../helpers/stuart');
+const { updateJob, updateDelivery, updateDriverETA, getStuartAuthToken } = require('../helpers/couriers/stuart');
 const { sendWebhookUpdate } = require('../helpers');
 const router = express.Router();
 

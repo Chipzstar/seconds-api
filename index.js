@@ -13,7 +13,6 @@ const jobRoutes = require('./routes/jobs');
 const quoteRoutes = require('./routes/quotes');
 // E-COMMERCE ROUTES
 const shopifyRoutes = require('./routes/shopify');
-const squareRoutes = require('./routes/square');
 const woocommerceRoutes = require('./routes/woocommerce');
 const squarespaceRoutes = require('./routes/squarespace');
 const hubriseRoutes = require('./routes/hubrise');
@@ -76,7 +75,6 @@ app.use('/api/v1/street-stream', streetStreamRoutes);
 
 // E-COMMERCE WEBHOOKS
 app.use('/api/v1/shopify', shopifyRoutes);
-app.use('/api/v1/square', squareRoutes);
 app.use('/api/v1/woocommerce', woocommerceRoutes);
 app.use('/api/v1/squarespace', squarespaceRoutes);
 app.use('/api/v1/hubrise', hubriseRoutes);

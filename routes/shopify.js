@@ -6,11 +6,11 @@ const {
 	genOrderReference,
 	geocodeAddress,
 	convertWeightToVehicleCode,
-	createEcommerceJob
 } = require('../helpers');
 const moment = require('moment');
 const { DELIVERY_METHODS } = require('../constants/shopify');
 const sendEmail = require('../services/email');
+const createEcommerceJob = require('../services/ecommerce');
 
 function validateDeliveryDate(date, time, deliveryHours) {
 	console.table({ date, time });

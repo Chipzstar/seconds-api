@@ -1,11 +1,11 @@
-const db = require('../models');
+const db = require('../../models');
 const moment = require('moment');
-const { STATUS } = require('../constants');
-const { JOB_STATUS, DELIVERY_STATUS } = require('../constants/stuart');
+const { STATUS } = require('../../constants');
+const { JOB_STATUS, DELIVERY_STATUS } = require('../../constants/stuart');
 const axios = require('axios');
-const sendEmail = require('../services/email');
-const confirmCharge = require('../services/payments');
-const sendSMS = require('../services/sms');
+const sendEmail = require('../../services/email');
+const confirmCharge = require('../../services/payments');
+const sendSMS = require('../../services/sms');
 
 async function getStuartAuthToken() {
 	const URL = `${process.env.STUART_ENV}/oauth/token`;
@@ -61,6 +61,11 @@ function translateStuartStatus(value) {
 	}
 }
 
+/**
+ * WEBHOOK - job updates
+ * @param data
+ * @returns {Promise<Query<any, any, {}, any>>}
+ */
 async function updateJob(data) {
 	try {
 		const jobStatus = data.status;
@@ -136,6 +141,11 @@ async function updateJob(data) {
 	}
 }
 
+/**
+ * WEBHOOK - delivery updates
+ * @param data
+ * @returns {Promise<Query<any, any, {}, any>>}
+ */
 async function updateDelivery(data) {
 	try {
 		const { status: deliveryStatus, id, clientReference, etaToOrigin, etaToDestination } = data;
@@ -206,6 +216,11 @@ async function updateDelivery(data) {
 	}
 }
 
+/**
+ * WEBHOOK - ETA updates
+ * @param data
+ * @returns {Promise<Query<any, any, {}, any>>}
+ */
 async function updateDriverETA(data) {
 	try {
 		const {
