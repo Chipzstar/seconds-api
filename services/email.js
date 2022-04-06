@@ -7,7 +7,7 @@ const sgMail = require('@sendgrid/mail');
 
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-const sendEmail = async options => {
+const sendEmail = async (options, canSend=true) => {
 	const msg = {
 		from: 'Seconds Technologies <ola@useseconds.com>',
 		to: `${options.name} <${options.email}>`,
@@ -17,7 +17,7 @@ const sendEmail = async options => {
 		...(options.templateId && { templateId: options.templateId }),
 		...(options.templateData && { dynamicTemplateData: options.templateData })
 	};
-	process.env.SENDGRID_STATUS === 'active' && await sgMail.send(msg);
+	process.env.SENDGRID_STATUS === 'active' && canSend && await sgMail.send(msg);
 };
 
 module.exports = sendEmail;

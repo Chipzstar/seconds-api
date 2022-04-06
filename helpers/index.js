@@ -1851,7 +1851,7 @@ async function cancelOrder(jobId, provider, jobDetails, comment) {
 	}
 }
 
-async function sendNewJobEmails(team, job) {
+async function sendNewJobEmails(team, job, canSend=true) {
 	console.log('TEAM');
 	team.forEach(member => console.table(member));
 	try {
@@ -1875,7 +1875,7 @@ async function sendNewJobEmails(team, job) {
 								: 'N/A',
 							unsubscribe: 'https://useseconds.com'
 						}
-					})
+					}, canSend)
 			)
 		);
 	} catch (err) {
@@ -1989,7 +1989,7 @@ async function finaliseJob(user, job, clientId, commissionCharge, driver = null,
 		dropoffLocation: { phoneNumber },
 		trackingURL
 	} = job.jobSpecification.deliveries[0];
-	await sendNewJobEmails(user.team, job);
+	await sendNewJobEmails(user.team, job, settings.jobAlerts.new);
 	const trackingMessage = trackingURL ? `\n\nTrack your delivery here: ${trackingURL}` : '';
 	const template = `Your ${user.company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today. ${trackingMessage}`;
 	await sendSMS(phoneNumber, template, user.subscriptionItems, smsEnabled);
