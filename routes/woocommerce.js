@@ -148,6 +148,7 @@ router.post('/', async (req, res) => {
 						});
 					}
 				} else {
+					console.log(req.body)
 					res.status(200).json({
 						success: false,
 						status: 'NON_LOCAL_DELIVERY',
