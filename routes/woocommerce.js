@@ -29,7 +29,6 @@ async function generatePayload(order, user) {
 						}
 					})
 				).data;
-				console.log(response);
 				return Number(response.weight) * Number(quantity);
 			})
 		);
