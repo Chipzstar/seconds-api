@@ -82,7 +82,7 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 				const job = dailyBatchOrder(payload, settings, deliveryHours, clientRefNumber, vehicleSpecs);
 				return await finaliseJob(user, job, clientId, commissionCharge, null, settings, settings.sms);
 			} else {
-				const job = incrementalBatchOrder(payload);
+				const job = incrementalBatchOrder(payload, settings, deliveryHours, clientRefNumber, vehicleSpecs);
 				return await finaliseJob(user, job, clientId, commissionCharge, null, settings, settings.sms);
 			}
 			// NON-AUTO-BATCHING LOGIC
