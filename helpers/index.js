@@ -320,6 +320,7 @@ async function checkAlternativeVehicles(pickup, dropoff, jobDistance, vehicleSpe
 	}
 }
 
+// TODO - used in seconds-server, remove duplication by placing into database schemas
 function checkPickupHours(pickupTime, deliveryHours) {
 	console.log('===================================================================');
 	const deliveryDay = String(moment(pickupTime).day());
@@ -366,19 +367,6 @@ function setNextDayDeliveryTime(pickupTime, deliveryHours) {
 		// if a day does not allow deliveries OR the day does allow delivery BUT the order's PICKUP time is PAST of the current day's OPENING time (only when nextDay = "deliveryDay")
 		// iterate over to the next day
 		// OTHERWISE set the pickup time = store open hour for current day, dropoff time = store closing hour for current day
-		console.log(
-			"Is past delivery day's closing hours:",
-			moment(pickupTime).diff(
-				moment({
-					y: moment(pickupTime).get('year'),
-					M: moment(pickupTime).get('month'),
-					d: moment(pickupTime).get('date'),
-					h: deliveryHours[nextDay].open['h'],
-					m: deliveryHours[nextDay].open['m']
-				}),
-				'minutes'
-			) > 0
-		);
 		console.log('CAN DELIVER:', deliveryHours[nextDay].canDeliver);
 		while (
 			!deliveryHours[nextDay].canDeliver ||
@@ -1981,6 +1969,26 @@ function generateSignature(payload, secret) {
 	return Base64.stringify(HmacSHA256(payloadBase64, secret));
 }
 
+function calculateNextHourlyBatch(pickupDate, deliveryHours, { batchInterval }) {
+	const dayOfWeek = pickupDate.day()
+	const openTime = moment(deliveryHours[dayOfWeek].open);
+	let canDeliver = deliveryHours[dayOfWeek].canDeliver;
+	let nextBatchTime = openTime.clone();
+	// loop over every <INTERVAL> hours from the store open time for current day
+	// stop when the batch time is after the time scheduled for pickup AND store can deliver on the batch day
+	while (nextBatchTime.isBefore(pickupDate) || !canDeliver) {
+		console.table({ NEXT_BATCH_TIME: nextBatchTime.format() });
+		// if calculated next batch time is in the PAST, add <INTERVAL> hours
+		nextBatchTime.add(batchInterval, 'hours');
+		// check if the new batch time is within the store's delivery hours
+		canDeliver = checkPickupHours(nextBatchTime.format(), deliveryHours);
+		if (!canDeliver) {
+			nextBatchTime = setNextDayDeliveryTime(nextBatchTime.format(), deliveryHours).nextDayPickup;
+		}
+	}
+	return nextBatchTime;
+}
+
 async function finaliseJob(user, job, clientId, commissionCharge, driver = null, settings = null, smsEnabled = false) {
 	// Create the final job into the jobs database
 	const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
@@ -2136,7 +2144,102 @@ function dailyBatchOrder(payload, settings, deliveryHours, jobReference, vehicle
 	return job;
 }
 
-function incrementalBatchOrder() {}
+function incrementalBatchOrder(payload, settings, deliveryHours, jobReference, vehicleSpecs) {
+	let job;
+	let pickupStartTime;
+	let dropoffEndTime;
+	console.log("-------------------------------------------------------")
+	console.log(settings.autoBatch.incremental.batchInterval)
+	console.log("-------------------------------------------------------")
+	console.log(settings.autoBatch.incremental.waitTime)
+	console.log("-------------------------------------------------------")
+	// check if the order is scheduled for SAME DAY
+	if (moment(payload.jobSpecification.pickupStartTime).date() === moment().date()) {
+		const nextBatchTime = calculateNextHourlyBatch(moment(), deliveryHours, settings.autoBatch.incremental);
+		pickupStartTime = nextBatchTime.format();
+		dropoffEndTime = nextBatchTime.set("hour", 21).set("minute", 0).format();
+	} else {
+		const nextBatchTime = calculateNextHourlyBatch(moment(payload.jobSpecification.pickupStartTime), deliveryHours, settings.autoBatch.incremental)
+		pickupStartTime = nextBatchTime.format();
+		dropoffEndTime = nextBatchTime.set("hour", 21).set("minute", 0).format();
+	}
+	console.table({ pickupStartTime, dropoffEndTime });
+	job = {
+		createdAt: moment().format(),
+		driverInformation: {
+			name: `NO DRIVER ASSIGNED`,
+			phone: '',
+			transport: ''
+		},
+		jobSpecification: {
+			id: genDeliveryId(),
+			jobReference: jobReference,
+			orderNumber: orderId.generate(),
+			deliveryType: payload.packageDeliveryType,
+			pickupStartTime,
+			pickupEndTime: payload.packagePickupEndTime,
+			pickupLocation: {
+				fullAddress: payload.pickupAddress,
+				streetAddress: String(payload.pickupAddressLine1).trim(),
+				city: String(payload.pickupCity).trim(),
+				postcode: String(payload.pickupPostcode).trim(),
+				latitude: payload.pickupLatitude,
+				longitude: payload.pickupLongitude,
+				country: 'UK',
+				phoneNumber: payload.pickupPhoneNumber,
+				email: payload.pickupEmailAddress,
+				firstName: payload.pickupFirstName,
+				lastName: payload.pickupLastName,
+				businessName: payload.pickupBusinessName,
+				instructions: payload.pickupInstructions
+			},
+			deliveries: [
+				{
+					id: genDeliveryId(),
+					orderReference: payload.drops[0]['reference'],
+					description: payload.drops[0]['packageDescription'],
+					dropoffEndTime,
+					transport: vehicleSpecs.name,
+					dropoffLocation: {
+						fullAddress: payload.drops[0].dropoffAddress,
+						streetAddress: payload.drops[0].dropoffAddressLine1 + payload.drops[0].dropoffAddressLine2,
+						city: payload.drops[0].dropoffCity,
+						postcode: payload.drops[0].dropoffPostcode,
+						country: 'UK',
+						latitude: payload.drops[0].dropoffLatitude,
+						longitude: payload.drops[0].dropoffLongitude,
+						phoneNumber: payload.drops[0].dropoffPhoneNumber,
+						email: payload.drops[0].dropoffEmailAddress,
+						firstName: payload.drops[0].dropoffFirstName,
+						lastName: payload.drops[0].dropoffLastName,
+						businessName: payload.drops[0].dropoffBusinessName ? payload.drops[0].dropoffBusinessName : '',
+						instructions: payload.drops[0].dropoffInstructions ? payload.drops[0].dropoffInstructions : ''
+					},
+					trackingURL: '',
+					status: STATUS.NEW
+				}
+			]
+		},
+		selectedConfiguration: {
+			createdAt: moment().format(),
+			deliveryFee: settings ? settings.driverDeliveryFee : 5.0,
+			winnerQuote: 'N/A',
+			providerId: PROVIDERS.UNASSIGNED,
+			quotes: []
+		},
+		dispatchMode: DISPATCH_MODES.AUTO,
+		status: STATUS.NEW,
+		trackingHistory: [
+			{
+				timestamp: moment().unix(),
+				status: STATUS.NEW
+			}
+		],
+		vehicleType: payload.vehicleType
+	};
+	console.log(job);
+	return job;
+}
 
 module.exports = {
 	genJobReference,
