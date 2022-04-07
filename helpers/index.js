@@ -1986,11 +1986,10 @@ async function finaliseJob(user, job, clientId, commissionCharge, driver = null,
 	const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
 	console.log(createdJob);
 	let {
-		dropoffLocation: { phoneNumber },
-		trackingURL
+		dropoffLocation: { phoneNumber }
 	} = job.jobSpecification.deliveries[0];
 	await sendNewJobEmails(user.team, job, settings.jobAlerts.new);
-	const trackingMessage = trackingURL ? `\n\nTrack your delivery here: ${trackingURL}` : '';
+	const trackingMessage = `\n\nTrack your delivery here: ${process.env.TRACKING_BASE_URL}/${createdJob._id}`;
 	const template = `Your ${user.company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today. ${trackingMessage}`;
 	await sendSMS(phoneNumber, template, user.subscriptionItems, smsEnabled);
 	if (job.selectedConfiguration.providerId === PROVIDERS.PRIVATE && driver && settings) {
