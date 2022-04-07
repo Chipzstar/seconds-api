@@ -2148,18 +2148,19 @@ function incrementalBatchOrder(payload, settings, deliveryHours, jobReference, v
 	let job;
 	let pickupStartTime;
 	let dropoffEndTime;
-	console.log("-------------------------------------------------------")
-	console.log("Batch Interval:", settings.autoBatch.incremental.batchInterval)
-	console.log("Wait Time:", settings.autoBatch.incremental.waitTime)
-	console.log("-------------------------------------------------------")
+	const batchInterval = settings.autoBatch.incremental.batchInterval
+	const waitTime = settings.autoBatch.incremental.waitTime
+	console.table({batchInterval, waitTime})
 	// check if the order is scheduled for SAME DAY
 	if (moment(payload.packagePickupStartTime).date() === moment().date()) {
 		const nextBatchTime = calculateNextHourlyBatch(moment(), deliveryHours, settings.autoBatch.incremental);
-		pickupStartTime = nextBatchTime.format();
+		// add on the wait time for the final pickup Start time
+		pickupStartTime = nextBatchTime.add(Number(waitTime), "minutes").format();
 		dropoffEndTime = nextBatchTime.set("hour", 21).set("minute", 0).format();
 	} else {
 		const nextBatchTime = calculateNextHourlyBatch(moment(payload.packagePickupStartTime), deliveryHours, settings.autoBatch.incremental)
-		pickupStartTime = nextBatchTime.format();
+		// add on the wait time for the final pickup Start time
+		pickupStartTime = nextBatchTime.add(Number(waitTime), "minutes").format();
 		dropoffEndTime = nextBatchTime.set("hour", 21).set("minute", 0).format();
 	}
 	console.table({ pickupStartTime, dropoffEndTime });
