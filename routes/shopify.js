@@ -51,7 +51,7 @@ async function generatePayload(order, user) {
 		console.log(order);
 		console.log('************************************');
 		const itemsCount = order.line_items.reduce((prev, curr) => prev + curr.quantity, 0);
-		const packageDescription = order.line_items.map(item => item['title']).join('\n');
+		const packageDescription = order.line_items.map(item => item['title']).join(', ');
 		console.log(order['total_weight']);
 		const vehicleType = convertWeightToVehicleCode(order['total_weight'] / 1000).vehicleCode;
 		console.log('DETAILS');

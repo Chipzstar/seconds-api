@@ -36,7 +36,7 @@ async function generatePayload(order, user) {
 		console.log(weights);
 		const totalWeight = weights.reduce((prev, curr) => prev + curr, 0)
 		const vehicleType = convertWeightToVehicleCode(totalWeight).vehicleCode
-		const packageDescription = order.line_items.map(item => item['name']).join('\n');
+		const packageDescription = order.line_items.map(item => item['name']).join(', ');
 		console.table({totalWeight, vehicleType, packageDescription})
 		// geocode dropoff address
 		const { formattedAddress, fullAddress } = await geocodeAddress(
@@ -65,6 +65,7 @@ async function generatePayload(order, user) {
 			itemsCount,
 			vehicleType,
 			parcelWeight: totalWeight,
+			packageDescription,
 			drops: [
 				{
 					dropoffAddress: `${order.shipping['address_1']} ${order.shipping['address_2']} ${order.shipping['city']} ${order.shipping['postcode']}`,
