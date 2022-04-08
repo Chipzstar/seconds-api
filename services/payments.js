@@ -27,7 +27,10 @@ const confirmCharge = async (
 			period: {
 				start: moment().unix(),
 				end: moment().add(1, 'day').unix()
-			}
+			},
+			tax_rates: [
+				String(process.env.STRIPE_TAX_INCLUSIVE)
+			]
 		});
 		console.log('----------------------------------------------');
 		console.log('Delivery Fee added to next invoice!');
