@@ -28,6 +28,7 @@ const moment = require('moment');
 const sendSMS = require('./sms');
 const sendEmail = require('./email');
 const { finaliseJob, dailyBatchOrder, incrementalBatchOrder } = require('../helpers');
+const sendNotification = require('./notification');
 
 async function createEcommerceJob(type, id, payload, ecommerceIds, user, settings, domain) {
 	try {
@@ -344,6 +345,10 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 				settings.courierPriceThreshold
 			}.\nDelivery Fee: £${deliveryFee.toFixed(2)}\nOrder Number: ${job.jobSpecification.orderNumber}`;
 			sendSMS(user.phone, template, { smsCommission: '' }, true).then(() => console.log('Alert has been sent!'));
+			const title = `Price threshold reached!`;
+			const content = `The price for one of your orders has exceeded your courier price range of £${
+				settings.courierPriceThreshold}.\nDelivery Fee: £${deliveryFee.toFixed(2)}\nOrder Number: ${job.jobSpecification.orderNumber}`
+			sendNotification(clientId, title, content).then(() => console.log("notification sent!"))
 		}
 		return await finaliseJob(
 			user,

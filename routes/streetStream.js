@@ -6,6 +6,7 @@ const confirmCharge = require('../services/payments');
 const sendSMS = require('../services/sms');
 const { sendWebhookUpdate } = require('../helpers');
 const { updateJob } = require('../helpers/couriers/streetStream');
+const sendNotification = require('../services/notification');
 const router = express.Router();
 
 router.post('/', async (req, res) => {
@@ -42,6 +43,9 @@ router.post('/', async (req, res) => {
 			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template, subscriptionItems, canSend).then(() =>
 				console.log('SMS sent successfully!')
 			);
+			const title = `Delivery Finished!`;
+			const content = `Order ${job.jobSpecification.orderNumber} has been delivered to the customer`
+			sendNotification(clientId, title, content).then(() => console.log("notification sent!"))
 		}
 		res.status(200).send({
 			success: true,

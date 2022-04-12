@@ -28,10 +28,11 @@ const {
 	DELIVERY_TYPES,
 	PROVIDERS,
 	VEHICLE_CODES_MAP,
-	DISPATCH_MODES
+	DISPATCH_MODES,
+	AUTHORIZATION_KEY,
+	PROVIDER_ID,
+	PROVIDER_TYPES
 } = require('@seconds-technologies/database_schemas/constants');
-
-const { AUTHORIZATION_KEY, PROVIDER_ID, PROVIDER_TYPES } = require('../constants');
 
 const moment = require('moment');
 const mongoose = require('mongoose');
@@ -222,6 +223,7 @@ router.post('/create', async (req, res) => {
 			);
 			let job = {
 				createdAt: moment().format(),
+				dispatchMode: DISPATCH_MODES.MANUAL,
 				driverInformation: {
 					name: 'Searching',
 					phone: 'Searching',
@@ -278,6 +280,9 @@ router.post('/create', async (req, res) => {
 			sendSMS(delivery.dropoffLocation.phoneNumber, template, subscriptionItems, smsEnabled).then(message =>
 				console.log(message)
 			);
+			const title = `New order!`;
+			const content = `Order ${job.jobSpecification.orderNumber} has been created and dispatched to ${job.selectedConfiguration.providerId}`
+			sendNotification(clientId, title, content).then(() => console.log("notification sent!"))
 			return res.status(200).json({
 				jobId: createdJob._id,
 				...job
@@ -355,9 +360,9 @@ router.post('/assign', async (req, res) => {
 		} = await getClientDetails(apiKey);
 		let settings = await db.Settings.findOne({ clientId });
 		let smsEnabled = settings ? settings.sms : false;
-		console.log("*********************************************")
+		console.log('*********************************************');
 		console.table({ smsEnabled });
-		console.log("*********************************************")
+		console.log('*********************************************');
 		let newJobAlerts = settings ? settings['jobAlerts'].new : false;
 		console.table({ smsEnabled, newJobAlerts });
 		// check that the vehicleType is valid and return the vehicle's specifications
@@ -572,28 +577,28 @@ router.post('/assign', async (req, res) => {
 router.patch('/optimise', async (req, res) => {
 	try {
 		const { driverId, route, timeWindow } = req.body;
-		console.table({driverId, timeWindow})
+		console.table({ driverId, timeWindow });
 		console.table(route);
-		const driver = await db.Driver.findById(driverId)
+		const driver = await db.Driver.findById(driverId);
 		if (driver) {
 			let job;
 			let index = 1;
-			let routeId = `route-${nanoid(12)}`
-			console.table({routeId})
+			let routeId = `route-${nanoid(12)}`;
+			console.table({ routeId });
 			for (let stop of route) {
 				if (stop.type === 'order') {
-					job = await db.Job.findOne({ 'jobSpecification.orderNumber': stop.id })
-					job.selectedConfiguration.providerId = PROVIDERS.PRIVATE
-					job.driverInformation.id = driverId
-					job.driverInformation.name = `${driver.firstname} ${driver.lastname}`
-					job.driverInformation.phone = driver.phone
-					job.driverInformation.transport = VEHICLE_CODES_MAP[driver.vehicle].name
-					job.vehicleType = driver.vehicle
-					job.routeOptimization.routeId = routeId
-					job.routeOptimization.priority = index
-					job.routeOptimization.startTime = timeWindow.startTime
-					job.routeOptimization.endTime = timeWindow.endTime
-					job.createdAt = moment().format()
+					job = await db.Job.findOne({ 'jobSpecification.orderNumber': stop.id });
+					job.selectedConfiguration.providerId = PROVIDERS.PRIVATE;
+					job.driverInformation.id = driverId;
+					job.driverInformation.name = `${driver.firstname} ${driver.lastname}`;
+					job.driverInformation.phone = driver.phone;
+					job.driverInformation.transport = VEHICLE_CODES_MAP[driver.vehicle].name;
+					job.vehicleType = driver.vehicle;
+					job.routeOptimization.routeId = routeId;
+					job.routeOptimization.priority = index;
+					job.routeOptimization.startTime = timeWindow.startTime;
+					job.routeOptimization.endTime = timeWindow.endTime;
+					job.createdAt = moment().format();
 					index += 1;
 					await job.save();
 				}
@@ -601,7 +606,7 @@ router.patch('/optimise', async (req, res) => {
 			res.status(200).json({ message: 'SUCCESS' });
 		} else {
 			res.status(404).json({
-				message: "No driver found with that driverId"
+				message: 'No driver found with that driverId'
 			});
 		}
 	} catch (err) {
@@ -653,7 +658,7 @@ router.patch('/dispatch', async (req, res) => {
 				job.driverInformation.phone = driver.phone;
 				job.driverInformation.transport = driver.vehicle;
 				job.selectedConfiguration.providerId = PROVIDERS.PRIVATE;
-				job.createdAt = moment().format()
+				job.createdAt = moment().format();
 				await job.save();
 				console.log(job);
 				// use clientId of the job to find the client's settings
@@ -972,7 +977,14 @@ router.patch('/:job_id', async (req, res) => {
 		});
 	}
 	console.table(req.body);
-	const { packageDescription, pickupInstructions, dropoffInstructions, pickupStartTime, dropoffStartTime, dropoffEndTime } = req.body;
+	const {
+		packageDescription,
+		pickupInstructions,
+		dropoffInstructions,
+		pickupStartTime,
+		dropoffStartTime,
+		dropoffEndTime
+	} = req.body;
 	try {
 		let jobId = req.params['job_id'];
 		if (mongoose.Types.ObjectId.isValid(jobId)) {
@@ -988,7 +1000,7 @@ router.patch('/:job_id', async (req, res) => {
 				await job.save();
 				res.status(200).json({
 					jobId: job._id,
-					message: "Job updated successfully",
+					message: 'Job updated successfully',
 					...job.toObject()
 				});
 			} else {

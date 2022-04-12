@@ -32,6 +32,8 @@ const {
 	VEHICLE_CODES_MAP,
 	DISPATCH_MODES,
 } = require('@seconds-technologies/database_schemas/constants');
+const { Notification } = require('@magicbell/core');
+const sendNotification = require('../services/notification');
 // google maps api client
 const GMapsClient = new Client();
 // setup axios instances
@@ -467,6 +469,9 @@ async function checkJobExpired(orderNumber, driver, user, settings) {
 				text: `Hey, ${driver.firstname} ${driver.lastname} has not accepted the delivery you assigned to them.\n The order has now been cancelled and you can re-assign the delivery to another driver!`,
 				html: `<p>Hey, ${driver.firstname} ${driver.lastname} has not accepted the delivery you assigned to them.<br/>The order has now been cancelled, and you can re-assign the delivery to another driver!</p>`
 			});
+			const title = `Job Expired!`;
+			const content = `Order ${orderNumber} was not accepted by your driver on time and is now cancelled`
+			sendNotification(clientId, title, content).then(() => console.log("notification sent!"))
 		}
 	} else {
 		console.log(`No job found with order number: ${orderNumber}`);
@@ -2006,6 +2011,9 @@ async function finaliseJob(user, job, clientId, commissionCharge, driver = null,
 			settings['driverResponseTime'] * 60000
 		);
 	}
+	const title = `New order!`;
+	const content = `Order ${job.jobSpecification.orderNumber} has been created!`
+	sendNotification(clientId, title, content).then(() => console.log("notification sent!"))
 	return true;
 }
 

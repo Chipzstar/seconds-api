@@ -7,6 +7,7 @@ const sendEmail = require('../services/email');
 const confirmCharge = require('../services/payments');
 const sendSMS = require('../services/sms');
 const { sendWebhookUpdate } = require('../helpers');
+const sendNotification = require('../services/notification');
 const router = express.Router();
 
 function translateGophrStatus(value) {
@@ -188,6 +189,9 @@ router.post('/', async (req, res) => {
 					sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template, subscriptionItems, canSend).then(() =>
 						console.log('SMS sent successfully!')
 					);
+					const title = `Delivery Finished!`;
+					const content = `Order ${job.jobSpecification.orderNumber} has been delivered to the customer`
+					sendNotification(clientId, title, content).then(() => console.log("notification sent!"))
 				}
 			} else if (webhook_type === WEBHOOK_TYPES.ETA) {
 				job = await updateETA(req.body);

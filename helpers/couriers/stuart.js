@@ -6,6 +6,7 @@ const axios = require('axios');
 const sendEmail = require('../../services/email');
 const confirmCharge = require('../../services/payments');
 const sendSMS = require('../../services/sms');
+const sendNotification = require('../../services/notification');
 
 async function getStuartAuthToken() {
 	const URL = `${process.env.STUART_ENV}/oauth/token`;
@@ -133,6 +134,9 @@ async function updateJob(data) {
 			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template, subscriptionItems, canSend).then((message) =>
 				console.log(message)
 			);
+			const title = `Delivery Finished!`;
+			const content = `Order ${job.jobSpecification.orderNumber} has been delivered to the customer`
+			sendNotification(job.clientId, title, content).then(() => console.log("notification sent!"))
 		}
 		return job;
 	} catch (err) {
