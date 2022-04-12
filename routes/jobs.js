@@ -512,8 +512,9 @@ router.post('/assign', async (req, res) => {
 			sendSMS(req.body.drops[0].dropoffPhoneNumber, template, subscriptionItems, smsEnabled).then(() =>
 				console.log('SMS sent successfully!')
 			);
-			// send driver notification
-			// sendNotification([""]).then(() => console.log("sent"))
+			const title = `New order!`;
+			const content = `Order ${job.jobSpecification.orderNumber} has been created and dispatched to ${job.selectedConfiguration.providerId}`
+			sendNotification(clientId, title, content).then(() => console.log("notification sent!"))
 			// set driver response timeout which changes the status of the job to CANCELLED when job is not accepted before that time
 			settings &&
 				driver &&
