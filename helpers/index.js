@@ -2015,15 +2015,13 @@ async function finaliseJob(user, job, clientId, commissionCharge, driver = null,
 		);
 	}
 	const title = `New order!`;
-	const contentDriver = `and assigned to your driver`;
+	const contentDriver = ` and assigned to your driver`;
 	const contentCourier = ` and dispatched to ${job.selectedConfiguration.providerId}`;
-	const content =
-		`Order ${job.jobSpecification.orderNumber} has been created` + job.selectedConfiguration.providerId ===
-		PROVIDERS.UNASSIGNED
-			? '!'
-			: driver
-			? contentDriver
-			: contentCourier;
+	const content = `Order ${job.jobSpecification.orderNumber} has been created`.concat(
+		job.selectedConfiguration.providerId === PROVIDERS.UNASSIGNED ? '!' : driver ? contentDriver : contentCourier
+	);
+	console.log('************************************************');
+	console.log(content);
 	sendNotification(clientId, title, content).then(() => console.log('notification sent!'));
 	return true;
 }
