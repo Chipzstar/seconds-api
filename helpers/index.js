@@ -30,7 +30,7 @@ const {
 	VEHICLE_CODES,
 	STATUS,
 	VEHICLE_CODES_MAP,
-	DISPATCH_MODES,
+	DISPATCH_MODES
 } = require('@seconds-technologies/database_schemas/constants');
 const { Notification } = require('@magicbell/core');
 const sendNotification = require('../services/notification');
@@ -470,8 +470,8 @@ async function checkJobExpired(orderNumber, driver, user, settings) {
 				html: `<p>Hey, ${driver.firstname} ${driver.lastname} has not accepted the delivery you assigned to them.<br/>The order has now been cancelled, and you can re-assign the delivery to another driver!</p>`
 			});
 			const title = `Job Expired!`;
-			const content = `Order ${orderNumber} was not accepted by your driver on time and is now cancelled`
-			sendNotification(clientId, title, content).then(() => console.log("notification sent!"))
+			const content = `Order ${orderNumber} was not accepted by your driver on time and is now cancelled`;
+			sendNotification(clientId, title, content).then(() => console.log('notification sent!'));
 		}
 	} else {
 		console.log(`No job found with order number: ${orderNumber}`);
@@ -1844,31 +1844,34 @@ async function cancelOrder(jobId, provider, jobDetails, comment) {
 	}
 }
 
-async function sendNewJobEmails(team, job, canSend=true) {
+async function sendNewJobEmails(team, job, canSend = true) {
 	console.log('TEAM');
 	team.forEach(member => console.table(member));
 	try {
 		return await Promise.all(
 			team.map(
 				async ({ name, email }) =>
-					await sendEmail({
-						email: email,
-						name: name,
-						subject: 'New delivery job',
-						templateId: 'd-aace035dda44493e8cc507c367da3a03',
-						templateData: {
-							address: job.jobSpecification.deliveries[0].dropoffLocation.fullAddress,
-							customer: `${job.jobSpecification.deliveries[0].dropoffLocation.firstName} ${job.jobSpecification.deliveries[0].dropoffLocation.lastName}`,
-							provider: job.selectedConfiguration.providerId,
-							reference: job.jobSpecification.jobReference,
-							price: `£${job.selectedConfiguration.deliveryFee.toFixed(2)}`,
-							created_at: moment(job.createdAt).format('DD/MM/YYYY HH:mm:ss'),
-							eta: job.jobSpecification.pickupStartTime
-								? moment(job.jobSpecification.pickupStartTime).calendar()
-								: 'N/A',
-							unsubscribe: 'https://useseconds.com'
-						}
-					}, canSend)
+					await sendEmail(
+						{
+							email: email,
+							name: name,
+							subject: 'New delivery job',
+							templateId: 'd-aace035dda44493e8cc507c367da3a03',
+							templateData: {
+								address: job.jobSpecification.deliveries[0].dropoffLocation.fullAddress,
+								customer: `${job.jobSpecification.deliveries[0].dropoffLocation.firstName} ${job.jobSpecification.deliveries[0].dropoffLocation.lastName}`,
+								provider: job.selectedConfiguration.providerId,
+								reference: job.jobSpecification.jobReference,
+								price: `£${Number(job.selectedConfiguration.deliveryFee).toFixed(2)}`,
+								created_at: moment(job.createdAt).format('DD/MM/YYYY HH:mm:ss'),
+								eta: job.jobSpecification.pickupStartTime
+									? moment(job.jobSpecification.pickupStartTime).calendar()
+									: 'N/A',
+								unsubscribe: 'https://useseconds.com'
+							}
+						},
+						canSend
+					)
 			)
 		);
 	} catch (err) {
@@ -1975,7 +1978,7 @@ function generateSignature(payload, secret) {
 }
 
 function calculateNextHourlyBatch(pickupDate, deliveryHours, { batchInterval }) {
-	const dayOfWeek = pickupDate.day()
+	const dayOfWeek = pickupDate.day();
 	const openTime = moment(deliveryHours[dayOfWeek].open);
 	let canDeliver = deliveryHours[dayOfWeek].canDeliver;
 	let nextBatchTime = openTime.clone();
@@ -2012,8 +2015,16 @@ async function finaliseJob(user, job, clientId, commissionCharge, driver = null,
 		);
 	}
 	const title = `New order!`;
-	const content = `Order ${job.jobSpecification.orderNumber} has been created!`
-	sendNotification(clientId, title, content).then(() => console.log("notification sent!"))
+	const contentDriver = `and assigned to your driver`;
+	const contentCourier = ` and dispatched to ${job.selectedConfiguration.providerId}`;
+	const content =
+		`Order ${job.jobSpecification.orderNumber} has been created` + job.selectedConfiguration.providerId ===
+		PROVIDERS.UNASSIGNED
+			? '!'
+			: driver
+			? contentDriver
+			: contentCourier;
+	sendNotification(clientId, title, content).then(() => console.log('notification sent!'));
 	return true;
 }
 
@@ -2021,23 +2032,23 @@ function dailyBatchOrder(payload, settings, deliveryHours, jobReference, vehicle
 	let job;
 	let pickupStartTime;
 	let dropoffEndTime;
-	console.log("-------------------------------------------------------")
-	console.log(Number(settings.autoBatch.daily.deadline.slice(0, 2)))
-	console.log(Number(settings.autoBatch.daily.deadline.slice(3)))
-	console.log("-------------------------------------------------------")
-	console.log(Number(settings.autoBatch.daily.pickupTime.slice(0, 2)))
+	console.log('-------------------------------------------------------');
+	console.log(Number(settings.autoBatch.daily.deadline.slice(0, 2)));
+	console.log(Number(settings.autoBatch.daily.deadline.slice(3)));
+	console.log('-------------------------------------------------------');
+	console.log(Number(settings.autoBatch.daily.pickupTime.slice(0, 2)));
 	console.log(Number(settings.autoBatch.daily.pickupTime.slice(3)));
-	console.log("-------------------------------------------------------")
+	console.log('-------------------------------------------------------');
 	// check if the order is scheduled for same day (day of the month should be equal)
 	if (moment(payload.packagePickupStartTime).date() === moment().date()) {
 		let batchDeadline = moment()
 			.set('hour', Number(settings.autoBatch.daily.deadline.slice(0, 2)))
 			.set('minute', Number(settings.autoBatch.daily.deadline.slice(3)))
-			.set('second', 0)
+			.set('second', 0);
 		let batchPickupTime = moment(batchDeadline)
 			.set('hour', Number(settings.autoBatch.daily.pickupTime.slice(0, 2)))
 			.set('minute', Number(settings.autoBatch.daily.pickupTime.slice(3)))
-			.set('second', 0)
+			.set('second', 0);
 		let batchDropoffTime = moment(batchPickupTime).set('hour', 21).set('minute', 0);
 
 		console.table({ batchDeadline: batchDeadline.format(), batchPickupTime: batchPickupTime.format() });
@@ -2063,7 +2074,7 @@ function dailyBatchOrder(payload, settings, deliveryHours, jobReference, vehicle
 			// if can delivery,
 			// set the pickupTime to daily batch pickup time for tomorrow
 			// set dropoff time at 9pm tomorrow
-			pickupStartTime = newBatchPickupTime.format()
+			pickupStartTime = newBatchPickupTime.format();
 			dropoffEndTime = moment(newBatchPickupTime).set('hour', 21).set('minute', 0).format();
 		}
 		// if order is not scheduled for same-day
@@ -2156,20 +2167,24 @@ function incrementalBatchOrder(payload, settings, deliveryHours, jobReference, v
 	let job;
 	let pickupStartTime;
 	let dropoffEndTime;
-	const batchInterval = settings.autoBatch.incremental.batchInterval
-	const waitTime = settings.autoBatch.incremental.waitTime
-	console.table({batchInterval, waitTime})
+	const batchInterval = settings.autoBatch.incremental.batchInterval;
+	const waitTime = settings.autoBatch.incremental.waitTime;
+	console.table({ batchInterval, waitTime });
 	// check if the order is scheduled for SAME DAY
 	if (moment(payload.packagePickupStartTime).date() === moment().date()) {
 		const nextBatchTime = calculateNextHourlyBatch(moment(), deliveryHours, settings.autoBatch.incremental);
 		// add on the wait time for the final pickup Start time
-		pickupStartTime = nextBatchTime.add(Number(waitTime), "minutes").format();
-		dropoffEndTime = nextBatchTime.set("hour", 21).set("minute", 0).format();
+		pickupStartTime = nextBatchTime.add(Number(waitTime), 'minutes').format();
+		dropoffEndTime = nextBatchTime.set('hour', 21).set('minute', 0).format();
 	} else {
-		const nextBatchTime = calculateNextHourlyBatch(moment(payload.packagePickupStartTime), deliveryHours, settings.autoBatch.incremental)
+		const nextBatchTime = calculateNextHourlyBatch(
+			moment(payload.packagePickupStartTime),
+			deliveryHours,
+			settings.autoBatch.incremental
+		);
 		// add on the wait time for the final pickup Start time
-		pickupStartTime = nextBatchTime.add(Number(waitTime), "minutes").format();
-		dropoffEndTime = nextBatchTime.set("hour", 21).set("minute", 0).format();
+		pickupStartTime = nextBatchTime.add(Number(waitTime), 'minutes').format();
+		dropoffEndTime = nextBatchTime.set('hour', 21).set('minute', 0).format();
 	}
 	console.table({ pickupStartTime, dropoffEndTime });
 	job = {
