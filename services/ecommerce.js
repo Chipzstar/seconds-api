@@ -361,17 +361,19 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 			settings ? settings.sms : false
 		);
 	} catch (err) {
+		console.log('************************************************');
 		console.error(err);
+		console.log('************************************************');
 		await sendEmail({
 			email: 'chipzstar.dev@gmail.com',
 			name: 'Chisom Oguibe',
 			subject: `Failed ${type} order #${id}`,
 			html: `<div><p>OrderId: ${id}</p><p>${type} E-commerce Store: ${domain}</p><p>Job could not be created. <br/>Reason: ${err.message}</p></div>`
-		});
+		})
 		const customerName = `${payload.drops[0].dropoffFirstName} ${payload.drops[0].dropoffLastName}`
 		const title = `Failed Order`
 		const reason = `One of your orders could not be created. See details below:\n\nStore: ${domain}\nOrderId: ${id}\nCustomer: ${customerName}\nReason: ${err.message}`
-		sendNotification(user.clientId, title, reason).then(() => console.log("notification sent!"))
+		await sendNotification(user.clientId, title, reason, MAGIC_BELL_CHANNELS.ORDER_FAILED)
 		return err;
 	}
 }
