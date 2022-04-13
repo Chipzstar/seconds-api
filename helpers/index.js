@@ -675,7 +675,9 @@ async function getStuartQuote(reference, params, vehicleSpecs) {
 	} catch (err) {
 		err.response.data.data && console.log('STUART ERROR:', err.response.data.data);
 		if (err.response.status === STUART_ERROR_CODES.UNPROCESSABLE_ENTITY) {
-			if (err.response.data.error === STUART_ERROR_CODES.RECORD_INVALID) {
+			if (err.response.data.error === STUART_ERROR_CODES.PHONE_INVALID){
+				throw { status: err.response.status, message: err.response.data.message}
+			} else if (err.response.data.error === STUART_ERROR_CODES.RECORD_INVALID) {
 				if (Object.keys(err.response.data.data).includes('deliveries')) {
 					throw { status: err.response.status, message: err.response.data.data['deliveries'][1] };
 				} else if (Object.keys(err.response.data.data).includes('job.pickup_at')) {
