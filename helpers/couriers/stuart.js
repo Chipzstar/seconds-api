@@ -1,6 +1,6 @@
 const db = require('../../models');
 const moment = require('moment');
-const { STATUS } = require('../../constants');
+const { STATUS, MAGIC_BELL_CHANNELS } = require('../../constants');
 const { JOB_STATUS, DELIVERY_STATUS } = require('../../constants/stuart');
 const axios = require('axios');
 const sendEmail = require('../../services/email');
@@ -136,7 +136,7 @@ async function updateJob(data) {
 			);
 			const title = `Delivery Finished!`;
 			const content = `Order ${job.jobSpecification.orderNumber} has been delivered to the customer`
-			sendNotification(job.clientId, title, content).then(() => console.log("notification sent!"))
+			sendNotification(job.clientId, title, content, MAGIC_BELL_CHANNELS.ORDER_CREATED).then(() => console.log("notification sent!"))
 		}
 		return job;
 	} catch (err) {
@@ -211,6 +211,7 @@ async function updateDelivery(data) {
 					provider: `stuart`
 				}
 			};
+			sendNotification(user.clientId, "Delivery Cancelled", reason.replace(/[-_]/g, ' '), MAGIC_BELL_CHANNELS.ORDER_CANCELLED).then(() => console.log("notification sent!"))
 			sendEmail(options).then(() => console.log('CANCELLATION EMAIL SENT!'));
 		}
 		return job;

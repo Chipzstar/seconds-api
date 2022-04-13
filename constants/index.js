@@ -183,3 +183,12 @@ const upperCase = lowerCase.toUpperCase();
 const symbols = "~!@$^&*()-+{}][|,./;:'";
 
 exports.alphabet = String(numbers + numbers + lowerCase + upperCase + symbols);
+
+exports.MAGIC_BELL_CHANNELS = {
+	ORDER_CREATED: "order_created",
+	ORDER_DELIVERED: "order_delivered",
+	ORDER_CANCELLED: "order_cancelled",
+	JOB_EXPIRED: "job_expired",
+	NEW_DRIVER: "driver_registered",
+	BUSINESS_WORKFLOWS: "business_workflows",
+}

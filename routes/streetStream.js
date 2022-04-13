@@ -7,6 +7,7 @@ const sendSMS = require('../services/sms');
 const { sendWebhookUpdate } = require('../helpers');
 const { updateJob } = require('../helpers/couriers/streetStream');
 const sendNotification = require('../services/notification');
+const { MAGIC_BELL_CHANNELS } = require('../constants');
 const router = express.Router();
 
 router.post('/', async (req, res) => {
@@ -45,7 +46,7 @@ router.post('/', async (req, res) => {
 			);
 			const title = `Delivery Finished!`;
 			const content = `Order ${job.jobSpecification.orderNumber} has been delivered to the customer`
-			sendNotification(clientId, title, content).then(() => console.log("notification sent!"))
+			sendNotification(clientId, title, content, MAGIC_BELL_CHANNELS.ORDER_DELIVERED).then(() => console.log("notification sent!"))
 		}
 		res.status(200).send({
 			success: true,

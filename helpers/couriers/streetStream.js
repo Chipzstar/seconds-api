@@ -1,10 +1,11 @@
 const axios = require('axios');
 const { JOB_STATUS, CANCELLATION_REASONS } = require('../../constants/streetStream');
-const { STATUS } = require('../../constants');
+const { STATUS, MAGIC_BELL_CHANNELS } = require('../../constants');
 const db = require('../../models');
 const moment = require('moment');
 const sendEmail = require('../../services/email');
 const sendSMS = require('../../services/sms');
+const sendNotification = require('../../services/notification');
 
 async function authStreetStream() {
 	const authURL = `${process.env.STREET_STREAM_ENV}/api/tokens`;
@@ -89,8 +90,8 @@ async function updateJob(data) {
 						provider: `street stream`
 					}
 				};
-				await sendEmail(options);
-				console.log('CANCELLATION EMAIL SENT!');
+				sendNotification(user.clientId, "Delivery Cancelled", `${jobStatus} - ${CANCELLATION_REASONS[jobStatus].replace(/[-_]/g, ' ')}`, MAGIC_BELL_CHANNELS.ORDER_CANCELLED).then(() => console.log("notification sent!"))
+				sendEmail(options).then(() => console.log('CANCELLATION EMAIL SENT!'));
 			} else if (jobStatus === JOB_STATUS.COLLECTED) {
 				const trackingMessage = `\nTrack the delivery here: ${process.env.TRACKING_BASE_URL}/${job._id}`;
 				const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`;

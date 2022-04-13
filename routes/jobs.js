@@ -42,6 +42,7 @@ const sendEmail = require('../services/email');
 const sendSMS = require('../services/sms');
 const sendNotification = require('../services/notification');
 const { nanoid } = require('nanoid');
+const { MAGIC_BELL_CHANNELS } = require('../constants');
 
 /**
  * List Jobs - The API endpoint for listing all jobs currently belonging to a user
@@ -282,7 +283,7 @@ router.post('/create', async (req, res) => {
 			);
 			const title = `New order!`;
 			const content = `Order ${job.jobSpecification.orderNumber} has been created and dispatched to ${job.selectedConfiguration.providerId}`
-			sendNotification(clientId, title, content).then(() => console.log("notification sent!"))
+			sendNotification(clientId, title, content, MAGIC_BELL_CHANNELS.ORDER_CREATED).then(() => console.log("notification sent!"))
 			return res.status(200).json({
 				jobId: createdJob._id,
 				...job
@@ -514,7 +515,7 @@ router.post('/assign', async (req, res) => {
 			);
 			const title = `New order!`;
 			const content = `Order ${job.jobSpecification.orderNumber} has been created ${driver && 'and dispatched to your driver'}`
-			sendNotification(clientId, title, content).then(() => console.log("notification sent!"))
+			sendNotification(clientId, title, content, MAGIC_BELL_CHANNELS.ORDER_CREATED).then(() => console.log("notification sent!"))
 			// set driver response timeout which changes the status of the job to CANCELLED when job is not accepted before that time
 			settings &&
 				driver &&

@@ -1,6 +1,6 @@
 const express = require('express');
 const { JOB_STATUS, WEBHOOK_TYPES } = require('../constants/gophr');
-const { STATUS } = require('../constants');
+const { STATUS, MAGIC_BELL_CHANNELS } = require('../constants');
 const db = require('../models');
 const moment = require('moment');
 const sendEmail = require('../services/email');
@@ -101,8 +101,8 @@ async function updateStatus(data) {
 					provider: `gophr`
 				}
 			};
-			await sendEmail(options);
-			console.log('CANCELLATION EMAIL SENT!');
+			sendNotification(user.clientId, "Delivery Cancelled", cancellation_reason, MAGIC_BELL_CHANNELS.ORDER_CANCELLED).then(() => console.log("notification sent!"))
+			sendEmail(options).then(() => console.log('CANCELLATION EMAIL SENT!'));
 		}
 		return job;
 	} catch (err) {
@@ -191,7 +191,7 @@ router.post('/', async (req, res) => {
 					);
 					const title = `Delivery Finished!`;
 					const content = `Order ${job.jobSpecification.orderNumber} has been delivered to the customer`
-					sendNotification(clientId, title, content).then(() => console.log("notification sent!"))
+					sendNotification(clientId, title, content, MAGIC_BELL_CHANNELS.ORDER_DELIVERED).then(() => console.log("notification sent!"))
 				}
 			} else if (webhook_type === WEBHOOK_TYPES.ETA) {
 				job = await updateETA(req.body);

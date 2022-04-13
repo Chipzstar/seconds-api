@@ -29,6 +29,7 @@ const sendSMS = require('./sms');
 const sendEmail = require('./email');
 const { finaliseJob, dailyBatchOrder, incrementalBatchOrder } = require('../helpers');
 const sendNotification = require('./notification');
+const { MAGIC_BELL_CHANNELS } = require('../constants');
 
 async function createEcommerceJob(type, id, payload, ecommerceIds, user, settings, domain) {
 	try {
@@ -348,7 +349,7 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 			const title = `Price threshold reached!`;
 			const content = `The price for one of your orders has exceeded your courier price range of £${
 				settings.courierPriceThreshold}.\nDelivery Fee: £${deliveryFee.toFixed(2)}\nOrder Number: ${job.jobSpecification.orderNumber}`
-			sendNotification(clientId, title, content).then(() => console.log("notification sent!"))
+			sendNotification(clientId, title, content, MAGIC_BELL_CHANNELS.BUSINESS_WORKFLOWS).then(() => console.log("notification sent!"))
 		}
 		return await finaliseJob(
 			user,
