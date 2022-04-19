@@ -282,8 +282,10 @@ router.post('/create', async (req, res) => {
 				console.log(message)
 			);
 			const title = `New order!`;
-			const content = `Order ${job.jobSpecification.orderNumber} has been created and dispatched to ${job.selectedConfiguration.providerId}`
-			sendNotification(clientId, title, content, MAGIC_BELL_CHANNELS.ORDER_CREATED).then(() => console.log("notification sent!"))
+			const content = `Order ${job.jobSpecification.orderNumber} has been created and dispatched to ${job.selectedConfiguration.providerId}`;
+			sendNotification(clientId, title, content, MAGIC_BELL_CHANNELS.ORDER_CREATED).then(() =>
+				console.log('notification sent!')
+			);
 			return res.status(200).json({
 				jobId: createdJob._id,
 				...job
@@ -514,8 +516,12 @@ router.post('/assign', async (req, res) => {
 				console.log('SMS sent successfully!')
 			);
 			const title = `New order!`;
-			const content = `Order ${job.jobSpecification.orderNumber} has been created ${driver && 'and dispatched to your driver'}`
-			sendNotification(clientId, title, content, MAGIC_BELL_CHANNELS.ORDER_CREATED).then(() => console.log("notification sent!"))
+			const content = `Order ${job.jobSpecification.orderNumber} has been created ${
+				driver && 'and dispatched to your driver'
+			}`;
+			sendNotification(clientId, title, content, MAGIC_BELL_CHANNELS.ORDER_CREATED).then(() =>
+				console.log('notification sent!')
+			);
 			// set driver response timeout which changes the status of the job to CANCELLED when job is not accepted before that time
 			settings &&
 				driver &&
@@ -692,13 +698,9 @@ router.patch('/dispatch', async (req, res) => {
 			// check that the vehicleType is valid and return the vehicle's specifications
 			let vehicleSpecs = getVehicleSpecs(job.vehicleType);
 			console.table(vehicleSpecs);
-			// Check if a pickupStartTime was passed through, if not set it to 15 minutes ahead of current time
-			if (job.jobSpecification.deliveryType === DELIVERY_TYPES.ON_DEMAND.name) {
-				job.jobSpecification.pickupStartTime = moment().add(15, 'minutes').format();
-				job.jobSpecification.deliveries[0].dropoffEndTime = moment().add(2, 'hours').format();
-			}
 			// CHECK DELIVERY HOURS
 			let canDeliver = checkPickupHours(job.jobSpecification.pickupStartTime, deliveryHours);
+			// If cannot deliver at the specified pickup time, calculate next available pickup time
 			if (!canDeliver) {
 				const { nextDayPickup, nextDayDropoff } = setNextDayDeliveryTime(
 					job.jobSpecification.pickupStartTime,
@@ -707,7 +709,16 @@ router.patch('/dispatch', async (req, res) => {
 				console.table({ nextDayPickup, nextDayDropoff });
 				job.jobSpecification.deliveryType = 'NEXT_DAY';
 				job.jobSpecification.pickupStartTime = nextDayPickup;
-				job.jobSpecification.deliveries[0].dropoffEndTime = nextDayDropoff;
+				if (job.jobSpecification.deliveryType === DELIVERY_TYPES.ON_DEMAND.name) {
+					job.jobSpecification.deliveries[0].dropoffEndTime = moment(nextDayPickup).add(2, 'hours').format();
+				} else {
+					job.jobSpecification.deliveries[0].dropoffEndTime = nextDayDropoff;
+				}
+				// If delivery hours are valid, check the delivery type of the order
+				// if ON-DEMAND, the difference between pickup and dropoff time should be max. 2 hours
+			} else if (job.jobSpecification.deliveryType === DELIVERY_TYPES.ON_DEMAND.name) {
+				job.jobSpecification.pickupStartTime = moment().add(20, 'minutes').format();
+				job.jobSpecification.deliveries[0].dropoffEndTime = moment().add(2, 'hours').add(20, 'minutes').format();
 			}
 			// check if user has a subscription active
 			console.log('SUBSCRIPTION ID:', !!subscriptionId);
