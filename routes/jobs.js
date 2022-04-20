@@ -997,6 +997,7 @@ router.patch('/:job_id', async (req, res) => {
 		pickupStartTime,
 		dropoffStartTime,
 		dropoffEndTime,
+		fullAddress,
 		firstname,
 		lastname,
 		email,
@@ -1019,12 +1020,13 @@ router.patch('/:job_id', async (req, res) => {
 				if (dropoffStartTime) job['jobSpecification'].deliveries[0].dropoffStartTime = dropoffStartTime;
 				if (dropoffEndTime) job['jobSpecification'].deliveries[0].dropoffEndTime = dropoffEndTime;
 				if (firstname) job.jobSpecification.deliveries[0].dropoffLocation.firstName = firstname
-				if(lastname) job.jobSpecification.deliveries[0].dropoffLocation.lastName = lastname
+				if (lastname) job.jobSpecification.deliveries[0].dropoffLocation.lastName = lastname
 				if (email) job.jobSpecification.deliveries[0].dropoffLocation.email = email
 				if (phone) job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber = phone
 				if (addressLine1) job.jobSpecification.deliveries[0].dropoffLocation.streetAddress = addressLine2 ? addressLine1 + addressLine2 : addressLine1
 				if (city) job.jobSpecification.deliveries[0].dropoffLocation.city = city
 				if (postcode) job.jobSpecification.deliveries[0].dropoffLocation.postcode = postcode
+				if (fullAddress) job.jobSpecification.deliveries[0].dropoffLocation.fullAddress = fullAddress
 				await job.save();
 				res.status(200).json({
 					jobId: job._id,
