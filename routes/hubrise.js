@@ -1,33 +1,33 @@
-const express = require('express')
+const express = require('express');
 const db = require('../models');
 const createEcommerceJob = require('../services/ecommerce');
 const { convertWeightToVehicleCode, geocodeAddress, genOrderReference } = require('../helpers');
 const moment = require('moment');
 const sendEmail = require('../services/email');
-const router = express.Router()
+const router = express.Router();
 
-async function sumProductWeights(items, user){
-	const all_catalogs = await db.Catalog.find({})
-	console.log("CATALOGS:", all_catalogs)
-	console.log("------------------------------------------------------------------")
-	const catalog = await db.Catalog.findOne({ clientId: user['_id'] })
-	console.log(catalog)
-	console.log("------------------------------------------------------------------")
+async function sumProductWeights(items, user) {
+	const all_catalogs = await db.Catalog.find({});
+	console.log('CATALOGS:', all_catalogs);
+	console.log('------------------------------------------------------------------');
+	const catalog = await db.Catalog.findOne({ clientId: user['_id'] });
+	console.log(catalog);
+	console.log('------------------------------------------------------------------');
 	let totalWeight = 0;
-	for (let item of items){
-		console.table(item)
-		console.log("*********************************************")
+	for (let item of items) {
+		console.table(item);
+		console.log('*********************************************');
 		catalog['products'].forEach(({ variants }) => {
 			variants.forEach(({ ref, weight }, index) => {
-				console.table({index, ref, weight})
-				console.log(ref === item.sku_ref)
+				console.table({ index, ref, weight });
+				console.log(ref === item.sku_ref);
 				if (ref === item.sku_ref) {
-					totalWeight += weight * Number(item.quantity)
+					totalWeight += weight * Number(item.quantity);
 				}
-			})
+			});
 		});
 	}
-	return totalWeight
+	return totalWeight;
 }
 
 async function generatePayload(order, user) {
@@ -36,7 +36,7 @@ async function generatePayload(order, user) {
 		console.log(order);
 		console.log('************************************');
 		const packageDescription = order.items.map(item => item['product_name']).join('\n');
-		const totalWeight = await sumProductWeights(order.items, user)
+		const totalWeight = await sumProductWeights(order.items, user);
 		const vehicleType = convertWeightToVehicleCode(totalWeight).vehicleCode;
 		console.log('DETAILS');
 		console.table({ vehicleType });
@@ -72,10 +72,8 @@ async function generatePayload(order, user) {
 				{
 					dropoffAddress: `${order.customer['address_1']} ${order.customer['address_2']} ${order.customer['city']} ${order.customer['postal_code']}`,
 					dropoffAddressLine1: order.customer['address_1'],
-					dropoffAddressLine2: order.customer['address_2'] ? order.customer['address_2'] : "",
-					dropoffCity: order.customer['city']
-						? order.customer['city']
-						: formattedAddress.city,
+					dropoffAddressLine2: order.customer['address_2'] ? order.customer['address_2'] : '',
+					dropoffCity: order.customer['city'] ? order.customer['city'] : formattedAddress.city,
 					dropoffPostcode: order.customer['postal_code']
 						? order.customer['postal_code']
 						: formattedAddress.postcode,
@@ -86,7 +84,11 @@ async function generatePayload(order, user) {
 					dropoffBusinessName: order.customer.company_name ? order.customer.company_name : '',
 					dropoffFirstName: order.customer.first_name,
 					dropoffLastName: order.customer.last_name,
-					dropoffInstructions: order['customer_notes'] ? order['customer_notes'] : order.customer['delivery_notes'] ? order.customer['delivery_notes'] : '',
+					dropoffInstructions: order['customer_notes']
+						? order['customer_notes']
+						: order.customer['delivery_notes']
+						? order.customer['delivery_notes']
+						: '',
 					packageDropoffEndTime: moment().add(200, 'minutes').format(),
 					packageDescription,
 					reference: genOrderReference()
@@ -125,37 +127,55 @@ router.post('/', async (req, res) => {
 			const user = await db.User.findOne({ 'hubrise.locationId': req.body['location_id'] });
 			console.log('User Found:', !!user);
 			if (user) {
-				// CHECK if the incoming delivery is a local delivery
-				const isLocalDelivery = req.body['new_state']['service_type'] === 'delivery'
-				const isSubscribed = !!user.subscriptionId & !!user.subscriptionPlan;
-				console.log('isLocalDelivery:', isLocalDelivery);
-				if (isLocalDelivery) {
-					if (isSubscribed) {
-						generatePayload(req.body['new_state'], user)
-							.then(payload => {
-								const ids = { hubriseId: req.body['order_id'] };
-								createEcommerceJob("Hubrise", req.body['order_id'], payload, ids, user, req.body['location_id']).then(() => console.log("SUCCESS"));
-							})
-							.catch(err => console.error(err));
-						res.status(200).json({
-							success: true,
-							status: 'DELIVERY_JOB_CREATED',
-							message: 'webhook received'
-						});
+				// check that the platform integration is enabled for that user
+				const isEnabled = user['hubrise'].active;
+				console.log('isEnabled:', isEnabled);
+				if (isEnabled) {
+					// CHECK if the incoming delivery is a local delivery
+					const isLocalDelivery = req.body['new_state']['service_type'] === 'delivery';
+					const isSubscribed = !!user.subscriptionId & !!user.subscriptionPlan;
+					console.log('isLocalDelivery:', isLocalDelivery);
+					if (isLocalDelivery) {
+						if (isSubscribed) {
+							generatePayload(req.body['new_state'], user)
+								.then(payload => {
+									const ids = { hubriseId: req.body['order_id'] };
+									createEcommerceJob(
+										'Hubrise',
+										req.body['order_id'],
+										payload,
+										ids,
+										user,
+										req.body['location_id']
+									).then(() => console.log('SUCCESS'));
+								})
+								.catch(err => console.error(err));
+							res.status(200).json({
+								success: true,
+								status: 'DELIVERY_JOB_CREATED',
+								message: 'webhook received'
+							});
+						} else {
+							console.error('No subscription detected!');
+							return res.status(200).json({
+								success: false,
+								status: 'NO_SUBSCRIPTION',
+								message:
+									'We cannot carry out orders without a subscription. Please subscribe to one of our business plans!'
+							});
+						}
 					} else {
-						console.error('No subscription detected!');
-						return res.status(200).json({
+						res.status(200).json({
 							success: false,
-							status: 'NO_SUBSCRIPTION',
-							message:
-								'We cannot carry out orders without a subscription. Please subscribe to one of our business plans!'
+							status: 'NON_LOCAL_DELIVERY',
+							message: 'Seconds can only fulfill orders that require local delivery'
 						});
 					}
 				} else {
 					res.status(200).json({
 						success: false,
-						status: 'NON_LOCAL_DELIVERY',
-						message: 'Seconds can only fulfill orders that require local delivery'
+						status: 'INACTIVE_INTEGRATION_STATUS',
+						message: `The user has disabled this platform integration`
 					});
 				}
 			} else {
@@ -180,7 +200,7 @@ router.post('/', async (req, res) => {
 			message: err.message
 		});
 	}
-})
+});
 
 
 module.exports = router;

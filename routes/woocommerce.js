@@ -14,7 +14,7 @@ async function generatePayload(order, user) {
 		console.log('************************************');
 		console.log(order);
 		console.log('************************************');
-		const itemsCount = order.line_items.reduce((prev, curr) => prev + curr.quantity, 0)
+		const itemsCount = order.line_items.reduce((prev, curr) => prev + curr.quantity, 0);
 		// iterate through each product and record its weight multiplied by the quantity
 		const weights = await Promise.all(
 			order['line_items'].map(async ({ product_id, quantity }) => {
@@ -33,10 +33,10 @@ async function generatePayload(order, user) {
 			})
 		);
 		console.log(weights);
-		const totalWeight = weights.reduce((prev, curr) => prev + curr, 0)
-		const vehicleType = convertWeightToVehicleCode(totalWeight).vehicleCode
+		const totalWeight = weights.reduce((prev, curr) => prev + curr, 0);
+		const vehicleType = convertWeightToVehicleCode(totalWeight).vehicleCode;
 		const packageDescription = order.line_items.map(item => item['name']).join(', ');
-		console.table({totalWeight, vehicleType, packageDescription})
+		console.table({ totalWeight, vehicleType, packageDescription });
 		// geocode dropoff address
 		const { formattedAddress, fullAddress } = await geocodeAddress(
 			`${order.shipping['address_1']} ${order.shipping['address_2']} ${order.shipping['city']} ${order.shipping['postcode']}`
@@ -70,14 +70,14 @@ async function generatePayload(order, user) {
 					dropoffAddress: `${order.shipping['address_1']} ${order.shipping['address_2']} ${order.shipping['city']} ${order.shipping['postcode']}`,
 					dropoffAddressLine1: order.shipping['address_1'],
 					dropoffAddressLine2: order.shipping['address_2'],
-					dropoffCity: order.shipping['city']
-						? order.shipping['city']
-						: formattedAddress.city,
-					dropoffPostcode: order.shipping['postcode'] ? order.shipping['postcode'] : formattedAddress.postcode ,
+					dropoffCity: order.shipping['city'] ? order.shipping['city'] : formattedAddress.city,
+					dropoffPostcode: order.shipping['postcode']
+						? order.shipping['postcode']
+						: formattedAddress.postcode,
 					dropoffLongitude: formattedAddress.longitude,
 					dropoffLatitude: formattedAddress.latitude,
 					dropoffPhoneNumber: order.shipping['phone'],
-					dropoffEmailAddress: order.billing.email ? order.billing.email : "",
+					dropoffEmailAddress: order.billing.email ? order.billing.email : '',
 					dropoffBusinessName: order.shipping.company ? order.shipping.company : '',
 					dropoffFirstName: order.shipping.first_name,
 					dropoffLastName: order.shipping.last_name,
@@ -117,50 +117,71 @@ router.post('/', async (req, res) => {
 		const user = await db.User.findOne({ 'woocommerce.domain': domain });
 		console.log('User Found:', !!user);
 		if (user) {
-			if (topic === 'order.created') {
-				console.log('-----------------------------');
-				console.log('ORDER ID:');
-				console.table({ id: req.body.id, orderKey: req.body['order_key'] });
-				console.log('-----------------------------');
-				// CHECK if the incoming delivery is a local delivery
-				const isLocalDelivery = req.body['shipping_lines'][0]['method_title'] === DELIVERY_METHODS.LOCAL;
-				const isSubscribed = !!user.subscriptionId & !!user.subscriptionPlan;
-				console.log('isLocalDelivery:', isLocalDelivery);
-				if (isLocalDelivery) {
-					if (isSubscribed) {
-						const settings = await db.Settings.findOne({clientId: user._id})
-						generatePayload(req.body, user).then(payload => {
-							const ids = { shopifyId: null, woocommerceId: req.body['order_key']}
-							createEcommerceJob("WooCommerce", req.body['order_key'], payload, ids, user, settings, domain)
-						}).catch(err => console.error(err));
-						res.status(200).json({
-							success: true,
-							status: 'ORDER_RECEIVED',
-							message: 'webhook received'
-						});
+			// check that the platform integration is enabled for that user
+			const isEnabled = user['woocommerce'].active;
+			console.log('isEnabled:', isEnabled);
+			if (isEnabled) {
+				if (topic === 'order.created') {
+					console.log('-----------------------------');
+					console.log('ORDER ID:');
+					console.table({ id: req.body.id, orderKey: req.body['order_key'] });
+					console.log('-----------------------------');
+					// CHECK if the incoming delivery is a local delivery
+					const isLocalDelivery = req.body['shipping_lines'][0]['method_title'] === DELIVERY_METHODS.LOCAL;
+					const isSubscribed = !!user.subscriptionId & !!user.subscriptionPlan;
+					console.log('isLocalDelivery:', isLocalDelivery);
+					if (isLocalDelivery) {
+						if (isSubscribed) {
+							const settings = await db.Settings.findOne({ clientId: user._id });
+							generatePayload(req.body, user)
+								.then(payload => {
+									const ids = { shopifyId: null, woocommerceId: req.body['order_key'] };
+									createEcommerceJob(
+										'WooCommerce',
+										req.body['order_key'],
+										payload,
+										ids,
+										user,
+										settings,
+										domain
+									);
+								})
+								.catch(err => console.error(err));
+							res.status(200).json({
+								success: true,
+								status: 'ORDER_RECEIVED',
+								message: 'webhook received'
+							});
+						} else {
+							console.error('No subscription detected!');
+							return res.status(200).json({
+								success: false,
+								status: 'NO_SUBSCRIPTION',
+								message:
+									'We cannot carry out orders without a subscription. Please subscribe to one of our business plans!'
+							});
+						}
 					} else {
-						console.error('No subscription detected!');
-						return res.status(200).json({
+						console.log(req.body);
+						res.status(200).json({
 							success: false,
-							status: 'NO_SUBSCRIPTION',
-							message:
-								'We cannot carry out orders without a subscription. Please subscribe to one of our business plans!'
+							status: 'NON_LOCAL_DELIVERY',
+							message: 'Seconds can only fulfill orders using the local delivery method'
 						});
 					}
 				} else {
-					console.log(req.body)
+					console.log('Unknown topic');
 					res.status(200).json({
 						success: false,
-						status: 'NON_LOCAL_DELIVERY',
-						message: 'Seconds can only fulfill orders using the local delivery method'
+						status: 'UNKNOWN_TOPIC',
+						message: `Webhook topic ${topic} is not recognised`
 					});
 				}
 			} else {
-				console.log('Unknown topic');
 				res.status(200).json({
 					success: false,
-					status: 'UNKNOWN_TOPIC',
-					message: `Webhook topic ${topic} is not recognised`
+					status: 'INACTIVE_INTEGRATION_STATUS',
+					message: `The user has disabled this platform integration`
 				});
 			}
 		} else {

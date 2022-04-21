@@ -163,42 +163,53 @@ router.post('/', async (req, res) => {
 			const user = await db.User.findOne({ 'shopify.domain': shop.toLowerCase() });
 			console.log('User Found:', !!user);
 			if (user) {
-				// grab the settings for that user (if they have been set)
-				const settings = await db.Settings.findOne({clientId: user['_id']})
-				console.log('Settings:', !!settings);
-				// CHECK if the incoming delivery is a local delivery
-				const isLocalDelivery = Object.values(DELIVERY_METHODS).includes(req.body['shipping_lines'][0].code) || req.body['tags'].includes(DELIVERY_METHODS.LOCAL.toUpperCase());
-				const isSubscribed = !!user.subscriptionId & !!user.subscriptionPlan;
-				console.log('isLocalDelivery:', isLocalDelivery);
-				if (isLocalDelivery) {
-					if (isSubscribed) {
-						generatePayload(req.body, user)
-							.then(payload => {
-								const ids = { shopifyId: req.body.id, woocommerceId: null };
-								createEcommerceJob("Shopify", req.body.id, payload, ids, user, settings, shop).then(() => console.log("SUCCESS"));
-							})
-							.catch(err => console.error(err));
-						res.status(200).json({
-							success: true,
-							status: 'DELIVERY_JOB_CREATED',
-							message: 'webhook received'
-						});
+				// check that the platform integration is enabled for that user
+				const isEnabled = user['shopify'].active
+				console.log('isEnabled:', isEnabled);
+				if (isEnabled) {
+					// grab the settings for that user (if they have been set)
+					const settings = await db.Settings.findOne({ clientId: user['_id'] })
+					console.log('Settings:', !!settings);
+					// CHECK if the incoming delivery is a local delivery
+					const isLocalDelivery = Object.values(DELIVERY_METHODS).includes(req.body['shipping_lines'][0].code) || req.body['tags'].includes(DELIVERY_METHODS.LOCAL.toUpperCase());
+					const isSubscribed = !!user.subscriptionId & !!user.subscriptionPlan;
+					console.log('isLocalDelivery:', isLocalDelivery);
+					if (isLocalDelivery) {
+						if (isSubscribed) {
+							generatePayload(req.body, user)
+								.then(payload => {
+									const ids = { shopifyId: req.body.id, woocommerceId: null };
+									createEcommerceJob("Shopify", req.body.id, payload, ids, user, settings, shop).then(() => console.log("SUCCESS"));
+								})
+								.catch(err => console.error(err));
+							res.status(200).json({
+								success: true,
+								status: 'DELIVERY_JOB_CREATED',
+								message: 'webhook received'
+							});
+						} else {
+							console.error('No subscription detected!');
+							return res.status(200).json({
+								success: false,
+								status: 'NO_SUBSCRIPTION',
+								message:
+									'We cannot carry out orders without a subscription. Please subscribe to one of our business plans!'
+							});
+						}
 					} else {
-						console.error('No subscription detected!');
-						return res.status(200).json({
+						res.status(200).json({
 							success: false,
-							status: 'NO_SUBSCRIPTION',
+							status: 'NON_LOCAL_DELIVERY',
 							message:
-								'We cannot carry out orders without a subscription. Please subscribe to one of our business plans!'
+								'Seconds can only fulfill orders using the local delivery method\n' +
+								'See https://help.shopify.com/en/manual/shipping/setting-up-and-managing-your-shipping/local-methods/local-delivery for reference '
 						});
 					}
 				} else {
 					res.status(200).json({
 						success: false,
-						status: 'NON_LOCAL_DELIVERY',
-						message:
-							'Seconds can only fulfill orders using the local delivery method\n' +
-							'See https://help.shopify.com/en/manual/shipping/setting-up-and-managing-your-shipping/local-methods/local-delivery for reference '
+						status: 'INACTIVE_INTEGRATION_STATUS',
+						message: `The user has disabled this platform integration`
 					});
 				}
 			} else {

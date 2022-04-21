@@ -12,7 +12,7 @@ const squarespaceAxios = axios.create();
 
 async function refreshSquarespaceToken(refreshToken) {
 	try {
-		console.log("REFRESH TOKEN", refreshToken)
+		console.log('REFRESH TOKEN', refreshToken);
 		const URL = 'https://login.squarespace.com/api/1/login/oauth/provider/tokens';
 		const payload = {
 			grant_type: 'refresh_token',
@@ -29,13 +29,13 @@ async function refreshSquarespaceToken(refreshToken) {
 			{
 				'squarespace.accessToken': access_token,
 				'squarespace.refreshToken': refresh_token,
-				'squarespace.accessTokenExpireTime' : access_token_expires_at,
-				'squarespace.refreshTokenExpireTime' : refresh_token_expires_at
+				'squarespace.accessTokenExpireTime': access_token_expires_at,
+				'squarespace.refreshTokenExpireTime': refresh_token_expires_at
 			}
-		).then(() => console.log("Squarespace credentials updated!"));
+		).then(() => console.log('Squarespace credentials updated!'));
 		return { access_token, access_token_expires_at, refresh_token, refresh_token_expires_at };
 	} catch (err) {
-		throw err
+		throw err;
 	}
 }
 
@@ -44,8 +44,8 @@ squarespaceAxios.interceptors.response.use(
 		return response;
 	},
 	error => {
-		console.log("CONFIG", error.config)
-		console.log("DATA", error.response.data);
+		console.log('CONFIG', error.config);
+		console.log('DATA', error.response.data);
 		if (
 			error.response &&
 			error.response.status === 401 &&
@@ -153,64 +153,75 @@ router.post('/', async (req, res) => {
 		const user = await db.User.findOne({ 'squarespace.siteId': websiteId });
 		console.log('User Found:', !!user);
 		if (user) {
-			if (topic === 'order.create') {
-				console.log('-----------------------------');
-				console.log('ORDER ID:', data['orderId']);
-				// retrieve full order information
-				let URL = `https://api.squarespace.com/1.0/commerce/orders/${data['orderId']}`;
-				const order = (
-					await squarespaceAxios.get(URL, {
-						headers: {
-							Authorization: `Bearer ${user.squarespace.secretKey}`,
-							"X-Refresh-Token": user.squarespace.refreshToken
+			// check that the platform integration is enabled for that user
+			const isEnabled = user['squarespace'].active;
+			console.log('isEnabled:', isEnabled);
+			if (isEnabled) {
+				if (topic === 'order.create') {
+					console.log('-----------------------------');
+					console.log('ORDER ID:', data['orderId']);
+					// retrieve full order information
+					let URL = `https://api.squarespace.com/1.0/commerce/orders/${data['orderId']}`;
+					const order = (
+						await squarespaceAxios.get(URL, {
+							headers: {
+								Authorization: `Bearer ${user.squarespace.secretKey}`,
+								'X-Refresh-Token': user.squarespace.refreshToken
+							}
+						})
+					).data;
+					console.log('-----------------------------');
+					// CHECK if the incoming delivery is a local delivery
+					const isLocalDelivery = order['shippingLines'][0]['method'] === DELIVERY_METHODS.LOCAL;
+					const isSubscribed = !!user.subscriptionId & !!user.subscriptionPlan;
+					console.log('isLocalDelivery:', isLocalDelivery);
+					if (isLocalDelivery) {
+						if (isSubscribed) {
+							generatePayload(order, user)
+								.then(payload => {
+									const ids = { squarespaceId: data['orderId'] };
+									createEcommerceJob('Squarespace', data['orderId'], payload, ids, user, websiteId);
+								})
+								.catch(err => console.error(err));
+							res.status(200).json({
+								success: true,
+								status: 'ORDER_RECEIVED',
+								message: 'webhook received'
+							});
+						} else {
+							console.error('No subscription detected!');
+							return res.status(200).json({
+								success: false,
+								status: 'NO_SUBSCRIPTION',
+								message:
+									'We cannot carry out orders without a subscription. Please subscribe to one of our business plans!'
+							});
 						}
-					})
-				).data;
-				console.log('-----------------------------');
-				// CHECK if the incoming delivery is a local delivery
-				const isLocalDelivery = order['shippingLines'][0]['method'] === DELIVERY_METHODS.LOCAL;
-				const isSubscribed = !!user.subscriptionId & !!user.subscriptionPlan;
-				console.log('isLocalDelivery:', isLocalDelivery);
-				if (isLocalDelivery) {
-					if (isSubscribed) {
-						generatePayload(order, user)
-							.then(payload => {
-								const ids = { squarespaceId: data['orderId'] };
-								createEcommerceJob('Squarespace', data['orderId'], payload, ids, user, websiteId);
-							})
-							.catch(err => console.error(err));
-						res.status(200).json({
-							success: true,
-							status: 'ORDER_RECEIVED',
-							message: 'webhook received'
-						});
 					} else {
-						console.error('No subscription detected!');
-						return res.status(200).json({
+						console.error('Non Local Delivery');
+						res.status(200).json({
 							success: false,
-							status: 'NO_SUBSCRIPTION',
-							message:
-								'We cannot carry out orders without a subscription. Please subscribe to one of our business plans!'
+							status: 'NON_LOCAL_DELIVERY',
+							message: 'Seconds can only fulfill orders using the local delivery method'
 						});
 					}
 				} else {
-					console.error("Non Local Delivery")
+					console.error('Unknown topic');
 					res.status(200).json({
 						success: false,
-						status: 'NON_LOCAL_DELIVERY',
-						message: 'Seconds can only fulfill orders using the local delivery method'
+						status: 'UNKNOWN_TOPIC',
+						message: `Webhook topic ${topic} is not recognised`
 					});
 				}
 			} else {
-				console.error('Unknown topic');
 				res.status(200).json({
 					success: false,
-					status: 'UNKNOWN_TOPIC',
-					message: `Webhook topic ${topic} is not recognised`
+					status: 'INACTIVE_INTEGRATION_STATUS',
+					message: `The user has disabled this platform integration`
 				});
 			}
 		} else {
-			console.error("User not found")
+			console.error('User not found');
 			res.status(200).json({
 				success: false,
 				status: 'USER_NOT_FOUND',
