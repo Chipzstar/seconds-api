@@ -1067,7 +1067,6 @@ router.delete('/:job_id', async (req, res) => {
 		const id = req.params['job_id'];
 		console.table(id, comment);
 		let foundJob = await db.Job.findByIdAndUpdate(id, { status: STATUS.CANCELLED }, { new: true });
-		console.log(foundJob);
 		if (foundJob) {
 			let jobId = foundJob.jobSpecification.id;
 			let provider = foundJob.selectedConfiguration.providerId;

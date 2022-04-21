@@ -1832,6 +1832,18 @@ async function gophrCancelRequest(jobId, comment) {
 	}
 }
 
+async function cancelDriverJob(jobId, job, comment){
+	try {
+		const user = await db.User.findById(job.clientId);
+		const driver = await db.Driver.findOne({clientIds: job.clientId})
+		let template = `Order ${job.jobSpecification.orderNumber} to ${job.jobSpecification.deliveries[0].dropoffLocation.fullAddress} has been cancelled by ${user.company}.`
+		driver && sendSMS(driver.phone, template, {smsCommission: user['subscriptionItems'].smsCommission}, true).then(() => console.log("sms sent successfully"))
+		return 'Order cancelled successfully';
+	} catch (err) {
+		throw err;
+	}
+}
+
 async function cancelOrder(jobId, provider, jobDetails, comment) {
 	switch (provider) {
 		case PROVIDERS.STUART:
@@ -1840,6 +1852,9 @@ async function cancelOrder(jobId, provider, jobDetails, comment) {
 		case PROVIDERS.GOPHR:
 			console.log('Cancelling GOPHR Job');
 			return await gophrCancelRequest(jobId, comment);
+		case PROVIDERS.PRIVATE:
+			console.log('Cancelling PRIVATE Job');
+			return await cancelDriverJob(jobId, jobDetails, comment)
 		// default case if the provider does not support cancellation via API
 		default:
 			console.log('Sending cancellation request');
