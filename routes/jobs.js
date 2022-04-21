@@ -1073,6 +1073,9 @@ router.delete('/:job_id', async (req, res) => {
 			let provider = foundJob.selectedConfiguration.providerId;
 			let message = await cancelOrder(jobId, provider, foundJob, comment);
 			console.log(message);
+			const title = `Delivery Cancelled!`;
+			const content = `Order ${foundJob.jobSpecification.orderNumber} has been cancelled by the client`
+			sendNotification(foundJob.clientId, title, content, MAGIC_BELL_CHANNELS.ORDER_CANCELLED).then(() => console.log("notification sent!"))
 			return res.status(200).json({
 				message,
 				jobId,
