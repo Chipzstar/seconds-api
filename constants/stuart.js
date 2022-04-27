@@ -19,7 +19,6 @@ exports.JOB_STATUS = {
 }
 
 exports.DELIVERY_STATUS = {
-	NEW: "N/A",
 	PENDING: "pending",
 	ALMOST_PICKING: "almost_picking",
 	PICKING: "picking",

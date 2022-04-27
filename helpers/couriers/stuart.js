@@ -2,11 +2,13 @@ const db = require('../../models');
 const moment = require('moment');
 const { STATUS, MAGIC_BELL_CHANNELS } = require('../../constants');
 const { JOB_STATUS, DELIVERY_STATUS } = require('../../constants/stuart');
+const { ORDER_STATUS } = require('../../constants/hubrise');
 const axios = require('axios');
 const sendEmail = require('../../services/email');
 const confirmCharge = require('../../services/payments');
 const sendSMS = require('../../services/sms');
 const sendNotification = require('../../services/notification');
+const sendHubriseStatusUpdate = require('../../services/hubrise');
 
 async function getStuartAuthToken() {
 	const URL = `${process.env.STUART_ENV}/oauth/token`;
@@ -25,40 +27,40 @@ async function getStuartAuthToken() {
 /**
  * Maps the current job status of a STUART delivery with the SECONDS delivery status
  * @param value - delivery status returned from the stuart delivery update
- * @returns {string|*}
+ * @returns {{newStatus: string, hubriseStatus: string}|{newStatus: string, hubriseStatus: null}|{newStatus, hubriseStatus: null}}
  */
 function translateStuartStatus(value) {
 	switch (value) {
 		case JOB_STATUS.NEW:
-			return STATUS.NEW;
+			return { newStatus: STATUS.NEW, hubriseStatus: ORDER_STATUS.NEW }
 		case DELIVERY_STATUS.PENDING:
-			return STATUS.PENDING;
+			return { newStatus: STATUS.NEW, hubriseStatus: ORDER_STATUS.RECEIVED }
 		case JOB_STATUS.PENDING:
-			return STATUS.PENDING;
+			return { newStatus: STATUS.NEW, hubriseStatus: ORDER_STATUS.RECEIVED }
 		case JOB_STATUS.IN_PROGRESS:
-			return STATUS.DISPATCHING;
+			return { newStatus: STATUS.DISPATCHING, hubriseStatus: ORDER_STATUS.ACCEPTED }
 		case DELIVERY_STATUS.ALMOST_PICKING:
-			return STATUS.DISPATCHING;
+			return { newStatus: STATUS.DISPATCHING, hubriseStatus: ORDER_STATUS.IN_PREPARATION }
 		case DELIVERY_STATUS.PICKING:
-			return STATUS.DISPATCHING;
+			return { newStatus: STATUS.DISPATCHING, hubriseStatus: ORDER_STATUS.IN_PREPARATION }
 		case DELIVERY_STATUS.WAITING_AT_PICKUP:
-			return STATUS.DISPATCHING;
-		case DELIVERY_STATUS.DELIVERING:
-			return STATUS.EN_ROUTE;
+			return { newStatus: STATUS.DISPATCHING, hubriseStatus: ORDER_STATUS.AWAITING_SHIPMENT }
 		case DELIVERY_STATUS.ALMOST_DELIVERING:
-			return STATUS.EN_ROUTE;
+			return { newStatus: STATUS.EN_ROUTE, hubriseStatus: ORDER_STATUS.IN_DELIVERY }
+		case DELIVERY_STATUS.DELIVERING:
+			return { newStatus: STATUS.EN_ROUTE, hubriseStatus: ORDER_STATUS.IN_DELIVERY }
 		case DELIVERY_STATUS.WAITING_AT_DROPOFF:
-			return STATUS.EN_ROUTE;
+			return { newStatus: STATUS.EN_ROUTE, hubriseStatus: ORDER_STATUS.AWAITING_COLLECTION }
 		case DELIVERY_STATUS.DELIVERED:
-			return STATUS.COMPLETED;
+			return { newStatus: STATUS.EN_ROUTE, hubriseStatus: null}
 		case JOB_STATUS.COMPLETED:
-			return STATUS.COMPLETED;
+			return { newStatus: STATUS.EN_ROUTE, hubriseStatus: ORDER_STATUS.COMPLETED }
 		case DELIVERY_STATUS.CANCELLED:
-			return STATUS.CANCELLED;
+			return { newStatus: STATUS.EN_ROUTE, hubriseStatus: null }
 		case JOB_STATUS.CANCELLED:
-			return STATUS.CANCELLED;
+			return { newStatus: STATUS.EN_ROUTE, hubriseStatus: ORDER_STATUS.CANCELLED }
 		default:
-			return value;
+			return { newStatus: value, hubriseStatus: null };
 	}
 }
 
@@ -78,12 +80,17 @@ async function updateJob(data) {
 			phone,
 			transportType: { code }
 		} = driver;
-		const newStatus = translateStuartStatus(jobStatus);
+		const { newStatus, hubriseStatus } = translateStuartStatus(jobStatus);
 		// find the job in the database
 		let job = await db.Job.findOne(
 			{ 'jobSpecification.id': jobId }
 		);
-		//
+		if (job && job['jobSpecification'].hubriseId) {
+			const hubrise = await db.Hubrise.findOne({clientId: job.clientId})
+			sendHubriseStatusUpdate(hubriseStatus, job['jobSpecification'].hubriseId, hubrise)
+				.then(() => console.log("Hubrise status update sent!"))
+				.catch(err => console.error(err))
+		}
 		if (newStatus !== job.status && jobStatus !== JOB_STATUS.IN_PROGRESS) {
 			job.status = newStatus;
 			job.trackingHistory.push({
@@ -153,8 +160,14 @@ async function updateJob(data) {
 async function updateDelivery(data) {
 	try {
 		const { status: deliveryStatus, id, clientReference, etaToOrigin, etaToDestination } = data;
-		const newStatus = translateStuartStatus(deliveryStatus)
+		const { newStatus, hubriseStatus } = translateStuartStatus(deliveryStatus);
 		let job = await db.Job.findOne({ 'jobSpecification.deliveries.id': id.toString() });
+		if (job && job['jobSpecification'].hubriseId) {
+			const hubrise = await db.Hubrise.findOne({clientId: job.clientId})
+			sendHubriseStatusUpdate(hubriseStatus, job['jobSpecification'].hubriseId, hubrise)
+				.then(() => console.log("Hubrise status update sent!"))
+				.catch(err => console.error(err))
+		}
 		if (newStatus !== job.status) {
 			job.trackingHistory.push({
 				timestamp: moment().unix(),
@@ -230,7 +243,7 @@ async function updateDriverETA(data) {
 	try {
 		const {
 			job: {
-				currentDelivery: { id, etaToDestination, etaToOrigin, status: deliveryStatus, driver }
+				currentDelivery: { id, etaToDestination, etaToOrigin, driver }
 			}
 		} = data;
 		const deliveryId = id.toString();
@@ -254,7 +267,6 @@ async function updateDriverETA(data) {
 				$set: {
 					'jobSpecification.pickupStartTime': moment(etaToOrigin).toISOString(),
 					'jobSpecification.deliveries.$.dropoffEndTime': moment(etaToDestination).toISOString(),
-					'jobSpecification.deliveries.$.status': translateStuartStatus(deliveryStatus),
 					'driverInformation.location': {
 						type: 'Point',
 						coordinates: [Number(driver.longitude), Number(driver.latitude)]
