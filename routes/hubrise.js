@@ -123,12 +123,12 @@ router.post('/', async (req, res) => {
 			console.log('ORDER ID:');
 			console.log(req.body['order_id']);
 			console.log('-----------------------------');
-			// check that the shop domain belongs to a user
-			const user = await db.User.findOne({ 'hubrise.locationId': req.body['location_id'] });
-			console.log('User Found:', !!user);
-			if (user) {
+			// check that the locationId belongs to a hubrise user
+			const hubrise = await db.Hubrise.findOne({ locationId: req.body['location_id'] });
+			console.log('Hubrise Account Found:', !!hubrise);
+			if (hubrise) {
 				// check that the platform integration is enabled for that user
-				const isEnabled = user['hubrise'].active;
+				const isEnabled = hubrise['active'];
 				console.log('isEnabled:', isEnabled);
 				if (isEnabled) {
 					// CHECK if the incoming delivery is a local delivery
