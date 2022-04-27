@@ -127,6 +127,7 @@ router.post('/', async (req, res) => {
 			const hubrise = await db.Hubrise.findOne({ locationId: req.body['location_id'] });
 			console.log('Hubrise Account Found:', !!hubrise);
 			if (hubrise) {
+				const user = await db.User.findById(hubrise['clientId'])
 				// check that the platform integration is enabled for that user
 				const isEnabled = hubrise['active'];
 				console.log('isEnabled:', isEnabled);
