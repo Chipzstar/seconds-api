@@ -1,11 +1,13 @@
 const axios = require('axios');
 const { JOB_STATUS, CANCELLATION_REASONS } = require('../../constants/streetStream');
 const { STATUS, MAGIC_BELL_CHANNELS } = require('../../constants');
+const { ORDER_STATUS } = require('../../constants/hubrise');
 const db = require('../../models');
 const moment = require('moment');
 const sendEmail = require('../../services/email');
 const sendSMS = require('../../services/sms');
 const sendNotification = require('../../services/notification');
+const sendHubriseStatusUpdate = require('../../services/hubrise');
 
 async function authStreetStream() {
 	const authURL = `${process.env.STREET_STREAM_ENV}/api/tokens`;
@@ -21,31 +23,31 @@ async function authStreetStream() {
 function translateStreetStreamStatus(value) {
 	switch (value) {
 		case JOB_STATUS.OFFERS_RECEIVED:
-			return STATUS.PENDING;
+			return { newStatus: STATUS.PENDING, hubriseStatus: ORDER_STATUS.RECEIVED };
 		case JOB_STATUS.JOB_AGREED:
-			return STATUS.DISPATCHING;
+			return { newStatus: STATUS.PENDING, hubriseStatus: ORDER_STATUS.ACCEPTED };
 		case JOB_STATUS.IN_PROGRESS:
-			return STATUS.DISPATCHING;
+			return { newStatus: STATUS.DISPATCHING, hubriseStatus: ORDER_STATUS.IN_PREPARATION };
 		case JOB_STATUS.ARRIVED_AT_COLLECTION:
-			return STATUS.DISPATCHING;
+			return { newStatus: STATUS.DISPATCHING, hubriseStatus: ORDER_STATUS.AWAITING_SHIPMENT };
 		case JOB_STATUS.COLLECTED:
-			return STATUS.EN_ROUTE;
+			return { newStatus: STATUS.EN_ROUTE, hubriseStatus: ORDER_STATUS.IN_DELIVERY };
 		case JOB_STATUS.ARRIVED_AT_DELIVERY:
-			return STATUS.EN_ROUTE;
+			return { newStatus: STATUS.EN_ROUTE, hubriseStatus: ORDER_STATUS.AWAITING_COLLECTION };
 		case JOB_STATUS.DELIVERED:
-			return STATUS.COMPLETED;
+			return { newStatus: STATUS.COMPLETED, hubriseStatus: null };
 		case JOB_STATUS.COMPLETED_SUCCESSFULLY:
-			return STATUS.COMPLETED;
+			return { newStatus: STATUS.COMPLETED, hubriseStatus: ORDER_STATUS.COMPLETED };
 		case JOB_STATUS.ADMIN_CANCELLED:
-			return STATUS.CANCELLED;
+			return { newStatus: STATUS.CANCELLED, hubriseStatus: ORDER_STATUS.CANCELLED };
 		case JOB_STATUS.DELIVERY_ATTEMPT_FAILED:
-			return STATUS.CANCELLED;
+			return { newStatus: STATUS.CANCELLED, hubriseStatus: ORDER_STATUS.DELIVERY_FAILED }
 		case JOB_STATUS.NOT_AS_DESCRIBED:
-			return STATUS.CANCELLED;
+			return { newStatus: STATUS.CANCELLED, hubriseStatus: ORDER_STATUS.DELIVERY_FAILED };
 		case JOB_STATUS.NO_RESPONSE:
-			return STATUS.CANCELLED;
+			return { newStatus: STATUS.CANCELLED, hubriseStatus: ORDER_STATUS.DELIVERY_FAILED };
 		default:
-			return STATUS.NEW;
+			return { newStatus: value, hubriseStatus: null }
 	}
 }
 
@@ -54,21 +56,28 @@ async function updateJob(data) {
 		console.log(data);
 		const { status: jobStatus, jobId } = data;
 		// update the status for the current job
-		const newStatus = translateStreetStreamStatus(jobStatus)
+		const { newStatus, hubriseStatus } = translateStreetStreamStatus(jobStatus);
 		let job = await db.Job.findOne({ 'jobSpecification.id': jobId });
+		// check if order is hubrise order, if so attempt to send a status update
+		if (job && job['jobSpecification'].hubriseId && hubriseStatus) {
+			const hubrise = await db.Hubrise.findOne({clientId: job.clientId})
+			sendHubriseStatusUpdate(hubriseStatus, job['jobSpecification'].hubriseId, hubrise)
+				.then(() => console.log("Hubrise status update sent!"))
+				.catch(err => console.error(err))
+		}
 		if (newStatus !== job.status) {
-			job['jobSpecification'].deliveries[0].status = newStatus
-			job.status = newStatus
+			job['jobSpecification'].deliveries[0].status = newStatus;
+			job.status = newStatus;
 			job.trackingHistory.push({
 				timestamp: moment().unix(),
 				status: newStatus
-			})
-			await job.save()
+			});
+			await job.save();
 		}
 		if (job) {
 			const user = await db.User.findOne({ _id: job.clientId });
-			let settings = await db.Settings.findOne({ clientId: job.clientId })
-			let canSend = settings ? settings.sms : false
+			let settings = await db.Settings.findOne({ clientId: job.clientId });
+			let canSend = settings ? settings.sms : false;
 			console.log('User:', !!user);
 			if (
 				jobStatus === JOB_STATUS.ADMIN_CANCELLED ||
@@ -90,14 +99,22 @@ async function updateJob(data) {
 						provider: `street stream`
 					}
 				};
-				sendNotification(user.clientId, "Delivery Cancelled", `${jobStatus} - ${CANCELLATION_REASONS[jobStatus].replace(/[-_]/g, ' ')}`, MAGIC_BELL_CHANNELS.ORDER_CANCELLED).then(() => console.log("notification sent!"))
+				sendNotification(
+					user.clientId,
+					'Delivery Cancelled',
+					`${jobStatus} - ${CANCELLATION_REASONS[jobStatus].replace(/[-_]/g, ' ')}`,
+					MAGIC_BELL_CHANNELS.ORDER_CANCELLED
+				).then(() => console.log('notification sent!'));
 				sendEmail(options).then(() => console.log('CANCELLATION EMAIL SENT!'));
 			} else if (jobStatus === JOB_STATUS.COLLECTED) {
 				const trackingMessage = `\nTrack the delivery here: ${process.env.TRACKING_BASE_URL}/${job._id}`;
 				const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`;
-				sendSMS(job['jobSpecification'].deliveries[0].dropoffLocation.phoneNumber, template, user.subscriptionItems, canSend).then(() =>
-					console.log('SMS sent successfully!')
-				);
+				sendSMS(
+					job['jobSpecification'].deliveries[0].dropoffLocation.phoneNumber,
+					template,
+					user.subscriptionItems,
+					canSend
+				).then(() => console.log('SMS sent successfully!'));
 			}
 			return job;
 		}

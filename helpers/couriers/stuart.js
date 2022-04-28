@@ -85,7 +85,7 @@ async function updateJob(data) {
 		let job = await db.Job.findOne(
 			{ 'jobSpecification.id': jobId }
 		);
-		if (job && job['jobSpecification'].hubriseId) {
+		if (job && job['jobSpecification'].hubriseId && hubriseStatus) {
 			const hubrise = await db.Hubrise.findOne({clientId: job.clientId})
 			sendHubriseStatusUpdate(hubriseStatus, job['jobSpecification'].hubriseId, hubrise)
 				.then(() => console.log("Hubrise status update sent!"))
