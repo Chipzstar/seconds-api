@@ -62,7 +62,7 @@ async function generatePayload(order, user) {
 			pickupFirstName: user.firstname,
 			pickupLastName: user.lastname,
 			pickupInstructions: '',
-			packagePickupStartTime: moment().add(5, 'minutes').format(),
+			packagePickupStartTime: moment().add(30, 'minutes').format(),
 			packagePickupEndTime: undefined,
 			packageDeliveryType: 'ON_DEMAND',
 			itemsCount: order.items.length,

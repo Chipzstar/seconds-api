@@ -108,7 +108,7 @@ async function updateJob(data) {
 					'driverInformation.transport': code,
 					'jobSpecification.pickupStartTime': moment(etaToOrigin).toISOString(),
 					'jobSpecification.deliveries.$.dropoffEndTime': moment(etaToDestination).toISOString(),
-					'jobSpecification.deliveries.$.status': translateStuartStatus(deliveryStatus)
+					'jobSpecification.deliveries.$.status': translateStuartStatus(deliveryStatus).newStatus
 				}
 			},
 			{
