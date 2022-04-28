@@ -21,7 +21,7 @@ const sendSMS = async (phone, template, { smsCommission }, smsEnabled = false, a
 				to: E164Number
 			});
 			// increment usage count for SMS on next subscription invoice
-			if (result) {
+			if (result && smsCommission) {
 				const usageRecord = await stripe.subscriptionItems.createUsageRecord(smsCommission, {
 					quantity: 1,
 					action: 'increment',
