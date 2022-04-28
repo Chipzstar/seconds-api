@@ -4,7 +4,8 @@ const axios = require('axios');
 async function sendHubriseStatusUpdate(hubriseStatus, orderId, credentials, type="Hubrise status update"){
 	try {
 		const endpoint = `/locations/${credentials.locationId}/orders/${orderId}`;
-		const URL = process.env.HUBRISE_API_URL + endpoint
+		const URL = process.env.HUBRISE_API_BASE_URL + endpoint
+		console.log("URL:", URL)
 		const config = {
 			headers: {
 				'X-ACCESS-TOKEN': credentials.accessToken
