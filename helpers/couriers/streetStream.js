@@ -118,10 +118,10 @@ async function updateJob(data) {
 			}
 			return job;
 		}
-		throw { status: 'NO_JOB_FOUND', message: `The jobId ${ID} does not exist` };
+		throw { status: 'NO_JOB_FOUND', message: `The jobId ${jobId} does not exist` };
 	} catch (err) {
 		throw err;
 	}
 }
 
-module.exports = { authStreetStream, updateJob, translateStreetStreamStatus,  }
+module.exports = { authStreetStream, updateJob }
