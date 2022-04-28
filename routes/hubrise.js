@@ -7,25 +7,25 @@ const sendEmail = require('../services/email');
 const router = express.Router();
 
 async function sumProductWeights(items, user) {
-	const all_catalogs = await db.Catalog.find({});
-	console.log('CATALOGS:', all_catalogs);
 	console.log('------------------------------------------------------------------');
 	const catalog = await db.Catalog.findOne({ clientId: user['_id'] });
 	console.log(catalog);
 	console.log('------------------------------------------------------------------');
 	let totalWeight = 0;
-	for (let item of items) {
-		console.table(item);
-		console.log('*********************************************');
-		catalog['products'].forEach(({ variants }) => {
-			variants.forEach(({ ref, weight }, index) => {
-				console.table({ index, ref, weight });
-				console.log(ref === item.sku_ref);
-				if (ref === item.sku_ref) {
-					totalWeight += weight * Number(item.quantity);
-				}
+	if (catalog) {
+		for (let item of items) {
+			console.table(item);
+			console.log('*********************************************');
+			catalog['products'].forEach(({ variants }) => {
+				variants.forEach(({ ref, weight }, index) => {
+					console.table({ index, ref, weight });
+					console.log(ref === item.sku_ref);
+					if (ref === item.sku_ref) {
+						totalWeight += weight * Number(item.quantity);
+					}
+				});
 			});
-		});
+		}
 	}
 	return totalWeight;
 }
@@ -67,7 +67,7 @@ async function generatePayload(order, user) {
 			packageDeliveryType: 'ON_DEMAND',
 			itemsCount: order.items.length,
 			vehicleType,
-			parcelWeight: order['total_weight'] / 1000,
+			parcelWeight: totalWeight,
 			drops: [
 				{
 					dropoffAddress: `${order.customer['address_1']} ${order.customer['address_2']} ${order.customer['city']} ${order.customer['postal_code']}`,
@@ -128,6 +128,8 @@ router.post('/', async (req, res) => {
 			console.log('Hubrise Account Found:', !!hubrise);
 			if (hubrise) {
 				const user = await db.User.findById(hubrise['clientId'])
+				console.log(user)
+				const settings = await db.Settings.findOne({clientId: user['_id']})
 				// check that the platform integration is enabled for that user
 				const isEnabled = hubrise['active'];
 				console.log('isEnabled:', isEnabled);
@@ -147,6 +149,7 @@ router.post('/', async (req, res) => {
 										payload,
 										ids,
 										user,
+										settings,
 										req.body['location_id']
 									).then(() => console.log('SUCCESS'));
 								})

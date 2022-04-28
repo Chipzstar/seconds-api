@@ -1,7 +1,6 @@
 const sendEmail = require('./email');
 const axios = require('axios');
 
-
 async function sendHubriseStatusUpdate(hubriseStatus, orderId, credentials, type="Hubrise status update"){
 	try {
 		const endpoint = `/locations/${credentials.locationId}/orders/${orderId}`;
