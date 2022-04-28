@@ -62,7 +62,7 @@ async function generatePayload(order, user) {
 			pickupFirstName: user.firstname,
 			pickupLastName: user.lastname,
 			pickupInstructions: '',
-			packagePickupStartTime: moment().add(45, 'minutes').format(),
+			packagePickupStartTime: moment().add(5, 'minutes').format(),
 			packagePickupEndTime: undefined,
 			packageDeliveryType: 'ON_DEMAND',
 			itemsCount: order.items.length,
@@ -89,7 +89,7 @@ async function generatePayload(order, user) {
 						: order.customer['delivery_notes']
 						? order.customer['delivery_notes']
 						: '',
-					packageDropoffEndTime: moment().add(200, 'minutes').format(),
+					packageDropoffEndTime: order['expected_time'] ? moment(order['expected_time']).format() : moment().add(200, 'minutes').format(),
 					packageDescription,
 					reference: genOrderReference()
 				}
