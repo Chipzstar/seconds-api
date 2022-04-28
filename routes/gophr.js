@@ -8,28 +8,30 @@ const confirmCharge = require('../services/payments');
 const sendSMS = require('../services/sms');
 const { sendWebhookUpdate } = require('../helpers');
 const sendNotification = require('../services/notification');
+const { ORDER_STATUS } = require('../constants/hubrise');
+const sendHubriseStatusUpdate = require('../services/hubrise');
 const router = express.Router();
 
 function translateGophrStatus(value) {
 	switch (value) {
 		case JOB_STATUS.NEW:
-			return STATUS.NEW;
+			return { newStatus: STATUS.NEW, hubriseStatus: ORDER_STATUS.NEW }
 		case JOB_STATUS.PENDING:
-			return STATUS.PENDING;
+			return { newStatus: STATUS.PENDING, hubriseStatus: ORDER_STATUS.RECEIVED }
 		case JOB_STATUS.ACCEPTED:
-			return STATUS.DISPATCHING;
+			return { newStatus: STATUS.DISPATCHING, hubriseStatus: ORDER_STATUS.IN_PREPARATION }
 		case JOB_STATUS.AT_PICKUP:
-			return STATUS.DISPATCHING;
+			return { newStatus: STATUS.DISPATCHING, hubriseStatus: ORDER_STATUS.AWAITING_SHIPMENT };
 		case JOB_STATUS.EN_ROUTE:
-			return STATUS.EN_ROUTE;
+			return { newStatus: STATUS.EN_ROUTE, hubriseStatus: ORDER_STATUS.IN_DELIVERY }
 		case JOB_STATUS.AT_DELIVERY:
-			return STATUS.EN_ROUTE;
+			return { newStatus: STATUS.EN_ROUTE, hubriseStatus: ORDER_STATUS.AWAITING_COLLECTION}
 		case JOB_STATUS.COMPLETED:
-			return STATUS.COMPLETED;
+			return { newStatus: STATUS.COMPLETED, hubriseStatus: ORDER_STATUS.COMPLETED }
 		case JOB_STATUS.CANCELLED:
-			return STATUS.CANCELLED;
+			return { newStatus: STATUS.CANCELLED, hubriseStatus: ORDER_STATUS.CANCELLED };
 		default:
-			return value;
+			return { newStatus: value, hubriseStatus: null };
 	}
 }
 
@@ -46,10 +48,14 @@ async function updateStatus(data) {
 			cancellation_reason
 		} = data;
 		// update the status for the current job
-		const newStatus = translateGophrStatus(jobStatus)
-		let job = await db.Job.findOne(
-			{ 'jobSpecification.id': JOB_ID },
-		);
+		const { newStatus, hubriseStatus } = translateGophrStatus(jobStatus);
+		let job = await db.Job.findOne({ 'jobSpecification.id': JOB_ID });
+		if (job && job['jobSpecification'].hubriseId && hubriseStatus) {
+			const hubrise = await db.Hubrise.findOne({clientId: job.clientId})
+			sendHubriseStatusUpdate(hubriseStatus, job['jobSpecification'].hubriseId, hubrise)
+				.then(() => console.log("Hubrise status update sent!"))
+				.catch(err => console.error(err))
+		}
 		if (newStatus !== job.status) {
 			job.status = newStatus
 			job.trackingHistory.push({
