@@ -79,10 +79,10 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 		if (settings && settings.autoBatch.enabled) {
 			// if defaultBatchMode = DAILY,
 			if (settings.defaultBatchMode === BATCH_OPTIONS.DAILY) {
-				const job = dailyBatchOrder(payload, settings, deliveryHours, clientRefNumber, vehicleSpecs);
+				const job = dailyBatchOrder(payload, settings, deliveryHours, clientRefNumber, vehicleSpecs, ecommerceIds);
 				return await finaliseJob(user, job, clientId, commissionCharge, null, settings, settings.sms);
 			} else {
-				const job = incrementalBatchOrder(payload, settings, deliveryHours, clientRefNumber, vehicleSpecs);
+				const job = incrementalBatchOrder(payload, settings, deliveryHours, clientRefNumber, vehicleSpecs, ecommerceIds);
 				return await finaliseJob(user, job, clientId, commissionCharge, null, settings, settings.sms);
 			}
 			// NON-AUTO-BATCHING LOGIC
@@ -109,6 +109,7 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 							id: genDeliveryId(),
 							jobReference: clientRefNumber,
 							orderNumber: orderId.generate(),
+							...ecommerceIds,
 							deliveryType: payload.packageDeliveryType,
 							pickupStartTime: payload.packagePickupStartTime,
 							pickupEndTime: payload.packagePickupEndTime,
@@ -196,6 +197,7 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 						id: genDeliveryId(),
 						jobReference: clientRefNumber,
 						orderNumber: orderId.generate(),
+						...ecommerceIds,
 						deliveryType: payload.packageDeliveryType,
 						pickupStartTime: payload.packagePickupStartTime,
 						pickupEndTime: payload.packagePickupEndTime,

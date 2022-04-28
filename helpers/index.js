@@ -2044,7 +2044,7 @@ async function finaliseJob(user, job, clientId, commissionCharge, driver = null,
 	return true;
 }
 
-function dailyBatchOrder(payload, settings, deliveryHours, jobReference, vehicleSpecs) {
+function dailyBatchOrder(payload, settings, deliveryHours, jobReference, vehicleSpecs, ecommerceIds) {
 	let job;
 	let pickupStartTime;
 	let dropoffEndTime;
@@ -2113,6 +2113,7 @@ function dailyBatchOrder(payload, settings, deliveryHours, jobReference, vehicle
 			id: genDeliveryId(),
 			jobReference: jobReference,
 			orderNumber: orderId.generate(),
+			...ecommerceIds,
 			deliveryType: payload.packageDeliveryType,
 			pickupStartTime,
 			pickupEndTime: payload.packagePickupEndTime,
@@ -2179,7 +2180,7 @@ function dailyBatchOrder(payload, settings, deliveryHours, jobReference, vehicle
 	return job;
 }
 
-function incrementalBatchOrder(payload, settings, deliveryHours, jobReference, vehicleSpecs) {
+function incrementalBatchOrder(payload, settings, deliveryHours, jobReference, vehicleSpecs, ecommerceIds) {
 	let job;
 	let pickupStartTime;
 	let dropoffEndTime;
@@ -2214,6 +2215,7 @@ function incrementalBatchOrder(payload, settings, deliveryHours, jobReference, v
 			id: genDeliveryId(),
 			jobReference: jobReference,
 			orderNumber: orderId.generate(),
+			...ecommerceIds,
 			deliveryType: payload.packageDeliveryType,
 			pickupStartTime,
 			pickupEndTime: payload.packagePickupEndTime,
