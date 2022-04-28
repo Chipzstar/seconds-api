@@ -1,9 +1,10 @@
 const express = require('express');
 const db = require('../models');
 const createEcommerceJob = require('../services/ecommerce');
-const { convertWeightToVehicleCode, geocodeAddress, genOrderReference } = require('../helpers');
+const { convertWeightToVehicleCode, geocodeAddress, genOrderReference, cancelOrder } = require('../helpers');
 const moment = require('moment');
 const sendEmail = require('../services/email');
+const { HUBRISE_STATUS } = require('@seconds-technologies/database_schemas/constants');
 const router = express.Router();
 
 async function sumProductWeights(items, user) {
@@ -90,7 +91,9 @@ async function generatePayload(order, user) {
 						: order.customer['delivery_notes']
 						? order.customer['delivery_notes']
 						: '',
-					packageDropoffEndTime: order['expected_time'] ? moment(order['expected_time']).format() : moment().add(200, 'minutes').format(),
+					packageDropoffEndTime: order['expected_time']
+						? moment(order['expected_time']).format()
+						: moment().add(200, 'minutes').format(),
 					packageDescription,
 					reference: genOrderReference()
 				}
@@ -119,7 +122,7 @@ router.post('/', async (req, res) => {
 		const agent = req.headers['user-agent'];
 		const { resource_type, event_type } = req.body;
 		console.table({ agent });
-		if (resource_type === 'order' && event_type === 'create') {
+		if (resource_type === 'order') {
 			console.log('-----------------------------');
 			console.log('ORDER ID:');
 			console.log(req.body['order_id']);
@@ -128,60 +131,86 @@ router.post('/', async (req, res) => {
 			const hubrise = await db.Hubrise.findOne({ locationId: req.body['location_id'] });
 			console.log('Hubrise Account Found:', !!hubrise);
 			if (hubrise) {
-				const user = await db.User.findById(hubrise['clientId'])
-				console.log(user)
-				const settings = await db.Settings.findOne({clientId: user['_id']})
-				// check that the platform integration is enabled for that user
-				const isEnabled = hubrise['active'];
-				console.log('isEnabled:', isEnabled);
-				if (isEnabled) {
-					// CHECK if the incoming delivery is a local delivery
-					const isLocalDelivery = req.body['new_state']['service_type'] === 'delivery';
-					const isSubscribed = !!user.subscriptionId & !!user.subscriptionPlan;
-					console.log('isLocalDelivery:', isLocalDelivery);
-					if (isLocalDelivery) {
-						if (isSubscribed) {
-							generatePayload(req.body['new_state'], user)
-								.then(payload => {
-									const ids = { hubriseId: req.body['order_id'] };
-									createEcommerceJob(
-										'Hubrise',
-										req.body['order_id'],
-										payload,
-										ids,
-										user,
-										settings,
-										req.body['location_id']
-									).then(() => console.log('SUCCESS'));
-								})
-								.catch(err => console.error(err));
-							res.status(200).json({
-								success: true,
-								status: 'DELIVERY_JOB_CREATED',
-								message: 'webhook received'
-							});
+				if (event_type === 'create') {
+					const user = await db.User.findById(hubrise['clientId']);
+					console.log(user);
+					const settings = await db.Settings.findOne({ clientId: user['_id'] });
+					// check that the platform integration is enabled for that user
+					const isEnabled = hubrise['active'];
+					console.log('isEnabled:', isEnabled);
+					if (isEnabled) {
+						// CHECK if the incoming delivery is a local delivery
+						const isLocalDelivery = req.body['new_state']['service_type'] === 'delivery';
+						const isSubscribed = !!user.subscriptionId & !!user.subscriptionPlan;
+						console.log('isLocalDelivery:', isLocalDelivery);
+						if (isLocalDelivery) {
+							if (isSubscribed) {
+								generatePayload(req.body['new_state'], user)
+									.then(payload => {
+										const ids = { hubriseId: req.body['order_id'] };
+										createEcommerceJob(
+											'Hubrise',
+											req.body['order_id'],
+											payload,
+											ids,
+											user,
+											settings,
+											req.body['location_id']
+										).then(() => console.log('SUCCESS'));
+									})
+									.catch(err => console.error(err));
+								res.status(200).json({
+									success: true,
+									status: 'DELIVERY_JOB_CREATED',
+									message: 'webhook received'
+								});
+							} else {
+								console.error('No subscription detected!');
+								return res.status(200).json({
+									success: false,
+									status: 'NO_SUBSCRIPTION',
+									message:
+										'We cannot carry out orders without a subscription. Please subscribe to one of our business plans!'
+								});
+							}
 						} else {
-							console.error('No subscription detected!');
-							return res.status(200).json({
+							res.status(200).json({
 								success: false,
-								status: 'NO_SUBSCRIPTION',
-								message:
-									'We cannot carry out orders without a subscription. Please subscribe to one of our business plans!'
+								status: 'NON_LOCAL_DELIVERY',
+								message: 'Seconds can only fulfill orders that require local delivery'
 							});
 						}
 					} else {
 						res.status(200).json({
 							success: false,
-							status: 'NON_LOCAL_DELIVERY',
-							message: 'Seconds can only fulfill orders that require local delivery'
+							status: 'INACTIVE_INTEGRATION_STATUS',
+							message: `The user has disabled this platform integration`
 						});
 					}
-				} else {
-					res.status(200).json({
-						success: false,
-						status: 'INACTIVE_INTEGRATION_STATUS',
-						message: `The user has disabled this platform integration`
-					});
+				} else if (event_type === 'update') {
+					if (
+						[HUBRISE_STATUS.CANCELLED, HUBRISE_STATUS.DELIVERY_FAILED, HUBRISE_STATUS.REJECTED].includes(
+							req.body['new_state']['status']
+						)
+					) {
+						const job = await db.Job.findOne({ 'jobSpecification.hubriseId': req.body['order_id'] });
+						if (job) {
+							let jobId = job['jobSpecification'].id;
+							let provider = job['selectedConfiguration'].providerId;
+							cancelOrder(jobId, provider, job).then(message => console.log(message));
+							res.status(200).json({
+								success: true,
+								status: 'DELIVERY_JOB_UPDATED',
+								message: 'webhook received'
+							});
+						} else {
+							res.status(200).json({
+								success: false,
+								status: 'JOB_DOES_NOT_EXIST',
+								message: `A job with hubrise orderId ${req.body['order_id']} does not exist`
+							});
+						}
+					}
 				}
 			} else {
 				res.status(200).json({
@@ -206,6 +235,5 @@ router.post('/', async (req, res) => {
 		});
 	}
 });
-
 
 module.exports = router;

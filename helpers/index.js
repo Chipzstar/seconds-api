@@ -1844,7 +1844,7 @@ async function cancelDriverJob(jobId, job, comment){
 	}
 }
 
-async function cancelOrder(jobId, provider, jobDetails, comment) {
+async function cancelOrder(jobId, provider, jobDetails, comment="") {
 	switch (provider) {
 		case PROVIDERS.STUART:
 			console.log('Cancelling STUART Job');
@@ -2300,7 +2300,6 @@ module.exports = {
 	providerCreateMultiJob,
 	sendNewJobEmails,
 	setNextDayDeliveryTime,
-	checkMultiDropPrice,
 	cancelOrder,
 	geocodeAddress,
 	convertWeightToVehicleCode,
