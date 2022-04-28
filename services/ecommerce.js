@@ -66,12 +66,10 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 		console.log('-----------------------------------------------------------------');
 		// check the payment plan and lookup the associated commission fee
 		let { fee, limit } = COMMISSION[user.subscriptionPlan.toUpperCase()];
-		console.log('--------------------------------');
 		console.log('COMMISSION FEE:', fee);
 		// check whether the client number of orders has exceeded the limit
 		const numOrders = await db.Job.where({ clientId, status: 'COMPLETED' }).countDocuments();
 		console.log('NUM COMPLETED ORDERS:', numOrders);
-		console.log('--------------------------------');
 		// if the order limit is exceeded, mark the job with a commission fee charge
 		if (numOrders >= limit) commissionCharge = true;
 		/*---------------------------------------------------------------------------------------*/
