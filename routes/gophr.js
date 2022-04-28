@@ -107,7 +107,7 @@ async function updateStatus(data) {
 					provider: `gophr`
 				}
 			};
-			sendNotification(user.clientId, "Delivery Cancelled", cancellation_reason, MAGIC_BELL_CHANNELS.ORDER_CANCELLED).then(() => console.log("notification sent!"))
+			sendNotification(user._id, "Delivery Cancelled", cancellation_reason, MAGIC_BELL_CHANNELS.ORDER_CANCELLED).then(() => console.log("notification sent!"))
 			sendEmail(options).then(() => console.log('CANCELLATION EMAIL SENT!'));
 		}
 		return job;

@@ -100,7 +100,7 @@ async function updateJob(data) {
 					}
 				};
 				sendNotification(
-					user.clientId,
+					user._id,
 					'Delivery Cancelled',
 					`${jobStatus} - ${CANCELLATION_REASONS[jobStatus].replace(/[-_]/g, ' ')}`,
 					MAGIC_BELL_CHANNELS.ORDER_CANCELLED
