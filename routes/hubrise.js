@@ -210,6 +210,12 @@ router.post('/', async (req, res) => {
 								message: `A job with hubrise orderId ${req.body['order_id']} does not exist`
 							});
 						}
+					} else {
+						res.status(200).json({
+							success: true,
+							status: 'ORDER_STATUS_NOT_HANDLED',
+							message: `${req.body['new_state']['status']} is not a status that needs to be handled`
+						});
 					}
 				}
 			} else {
