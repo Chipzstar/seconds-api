@@ -197,7 +197,7 @@ router.post('/', async (req, res) => {
 						if (job) {
 							let jobId = job['jobSpecification'].id;
 							let provider = job['selectedConfiguration'].providerId;
-							cancelOrder(jobId, provider, job).then(message => console.log(message));
+							cancelOrder(jobId, provider, job).then(message => console.log(message)).catch(err => console.error(err.message))
 							res.status(200).json({
 								success: true,
 								status: 'DELIVERY_JOB_UPDATED',
