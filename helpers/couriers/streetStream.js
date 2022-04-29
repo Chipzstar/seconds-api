@@ -7,7 +7,7 @@ const moment = require('moment');
 const sendEmail = require('../../services/email');
 const sendSMS = require('../../services/sms');
 const sendNotification = require('../../services/notification');
-const sendHubriseStatusUpdate = require('../../services/hubrise');
+const { sendHubriseStatusUpdate } = require('../../services/hubrise');
 
 async function authStreetStream() {
 	const authURL = `${process.env.STREET_STREAM_ENV}/api/tokens`;

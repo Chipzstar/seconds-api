@@ -103,6 +103,7 @@ app.post('/test/webhook', async(req, res, next) => {
 		res.status(400).json({success: false, message: err.message})
 	}
 })
+
 app.post('/test/mail', async (req, res) => {
 	try {
 		const { name, email, subject, text, html, templateId, templateData } = req.body;
@@ -130,6 +131,7 @@ app.post('/test/mail', async (req, res) => {
 		});
 	}
 });
+
 app.post('/test/sms', async (req, res) => {
 	try {
 		const { phone, template, alphaSender } = req.body;
@@ -147,6 +149,7 @@ app.post('/test/sms', async (req, res) => {
 		});
 	}
 });
+
 /*app.get('/test/stripe/report-usage', async (req, res) => {
 	try {
 		const { deliveryType, quantity } = req.query;

@@ -8,7 +8,7 @@ const sendEmail = require('../../services/email');
 const confirmCharge = require('../../services/payments');
 const sendSMS = require('../../services/sms');
 const sendNotification = require('../../services/notification');
-const sendHubriseStatusUpdate = require('../../services/hubrise');
+const { sendHubriseStatusUpdate, sendHubriseEtaUpdate } = require('../../services/hubrise');
 
 async function getStuartAuthToken() {
 	const URL = `${process.env.STUART_ENV}/oauth/token`;
@@ -277,6 +277,13 @@ async function updateDriverETA(data) {
 				returnOriginal: false
 			}
 		);
+		// check if job contains a hubrise order, if so send an eta update to hubrise
+		if (job && job['jobSpecification'].hubriseId && etaToDestination) {
+			const hubrise = await db.Hubrise.findOne({clientId: job.clientId})
+			sendHubriseEtaUpdate(etaToDestination, job['jobSpecification'].hubriseId, hubrise)
+				.then((message) => console.log(message))
+				.catch(err => console.error(err))
+		}
 		return job;
 	} catch (err) {
 		console.error(err);

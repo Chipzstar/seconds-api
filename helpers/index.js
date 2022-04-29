@@ -32,7 +32,6 @@ const {
 	VEHICLE_CODES_MAP,
 	DISPATCH_MODES
 } = require('@seconds-technologies/database_schemas/constants');
-const { Notification } = require('@magicbell/core');
 const sendNotification = require('../services/notification');
 const { MAGIC_BELL_CHANNELS } = require('../constants');
 // google maps api client

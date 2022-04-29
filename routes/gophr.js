@@ -8,8 +8,8 @@ const confirmCharge = require('../services/payments');
 const sendSMS = require('../services/sms');
 const { sendWebhookUpdate } = require('../helpers');
 const sendNotification = require('../services/notification');
+const { sendHubriseStatusUpdate, sendHubriseEtaUpdate } = require('../services/hubrise');
 const { ORDER_STATUS } = require('../constants/hubrise');
-const sendHubriseStatusUpdate = require('../services/hubrise');
 const router = express.Router();
 
 function translateGophrStatus(value) {
@@ -135,7 +135,7 @@ async function updateETA(data) {
 			{ new: true }
 		);
 	}
-	// update the status for the current job
+	// update the delivery eta for the current job
 	let job = await db.Job.findOneAndUpdate(
 		{ 'jobSpecification.id': JOB_ID },
 		{
@@ -148,6 +148,13 @@ async function updateETA(data) {
 			new: true
 		}
 	);
+	// check if job contains a hubrise order, if so send an eta update to hubrise
+	if (job && job['jobSpecification'].hubriseId && delivery_eta) {
+		const hubrise = await db.Hubrise.findOne({clientId: job.clientId})
+		sendHubriseEtaUpdate(delivery_eta, job['jobSpecification'].hubriseId, hubrise)
+			.then((message) => console.log(message))
+			.catch(err => console.error(err))
+	}
 	return job;
 }
 
