@@ -7,6 +7,7 @@ const { convertWeightToVehicleCode, geocodeAddress, genOrderReference, cancelOrd
 const moment = require('moment');
 const sendEmail = require('../services/email');
 const { HUBRISE_STATUS } = require('@seconds-technologies/database_schemas/constants');
+const { SERVICE_TYPE } = require('../constants/hubrise');
 const router = express.Router();
 
 async function sumProductWeights(items, user) {
@@ -83,7 +84,6 @@ async function generatePayload(order, user) {
 			pickupFirstName: user.firstname,
 			pickupLastName: user.lastname,
 			pickupInstructions: '',
-			//TODO - change back to 30 mins
 			packagePickupStartTime,
 			packagePickupEndTime: undefined,
 			packageDeliveryType: 'ON_DEMAND',
@@ -158,8 +158,8 @@ router.post('/', async (req, res) => {
 					console.log('isEnabled:', isEnabled);
 					if (isEnabled) {
 						// CHECK if the incoming delivery is a local delivery
-						const isLocalDelivery = req.body['new_state']['service_type'] === 'delivery';
-						const isSubscribed = !!user.subscriptionId & !!user.subscriptionPlan;
+						const isLocalDelivery = req.body['new_state']['service_type'] === SERVICE_TYPE.DELIVERY;
+						const isSubscribed = !!user['subscriptionId'] & !!user['subscriptionPlan'];
 						console.log('isLocalDelivery:', isLocalDelivery);
 						if (isLocalDelivery) {
 							if (isSubscribed) {
@@ -174,7 +174,29 @@ router.post('/', async (req, res) => {
 											user,
 											settings,
 											req.body['location_id']
-										).then(() => console.log('SUCCESS'));
+										).then(job => {
+											// send Alert to businesses when expected time can not be met
+											let order = req.body['new_state']
+											let expectedTime = req.body['new_state']['expected_time']
+											let actualTime = job['jobSpecification'].deliveries[0].dropoffEndTime
+											if (expectedTime && moment(actualTime).isAfter(moment(expectedTime))) {
+												sendEmail({
+													name: `${user.firstname} ${user.lastname}`,
+													email: user.email,
+													subject: `Delivery Alert - Order ${req.body['order_id']}`,
+													html: `<div>
+															<h3>The following order may not be delivered on time. See details below:</h3>
+															<br/>
+															<span>Hubrise Order Id: ${req.body['order_id']}</span>
+															<span>Customer: ${order.customer.first_name} ${order.customer.last_name}</span>
+															<span>Address: ${order.customer['address_1']} ${order.customer['address_2']} ${order.customer['city']} ${order.customer['postal_code']}</span>
+															<span>Expected delivery time: <strong>${moment(expectedTime).calendar()}</strong></span>
+															<span>Actual delivery time: <strong>${moment(actualTime).calendar()}</strong></span>
+															</div>`
+												}).then(() => console.log("Hubrise Alert sent!"))
+											}
+											console.log('SUCCESS')
+										});
 									})
 									.catch(err => console.error(err));
 								res.status(200).json({

@@ -11,3 +11,7 @@ exports.ORDER_STATUS = {
 	CANCELLED: 'cancelled',
 	DELIVERY_FAILED: 'delivery_failed'
 }
+
+exports.SERVICE_TYPE = {
+	DELIVERY: 'delivery'
+}

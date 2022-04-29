@@ -471,7 +471,9 @@ async function checkJobExpired(orderNumber, driver, user, settings) {
 			});
 			const title = `Job Expired!`;
 			const content = `Order ${orderNumber} was not accepted by your driver on time and is now cancelled`;
-			sendNotification(clientId, title, content, MAGIC_BELL_CHANNELS.BUSINESS_WORKFLOWS).then(() => console.log('notification sent!'));
+			sendNotification(clientId, title, content, MAGIC_BELL_CHANNELS.BUSINESS_WORKFLOWS).then(() =>
+				console.log('notification sent!')
+			);
 		}
 	} else {
 		console.log(`No job found with order number: ${orderNumber}`);
@@ -674,8 +676,8 @@ async function getStuartQuote(reference, params, vehicleSpecs) {
 	} catch (err) {
 		err.response.data.data && console.log('STUART ERROR:', err.response.data.data);
 		if (err.response.status === STUART_ERROR_CODES.UNPROCESSABLE_ENTITY) {
-			if (err.response.data.error === STUART_ERROR_CODES.PHONE_INVALID){
-				throw { status: err.response.status, message: err.response.data.message}
+			if (err.response.data.error === STUART_ERROR_CODES.PHONE_INVALID) {
+				throw { status: err.response.status, message: err.response.data.message };
 			} else if (err.response.data.error === STUART_ERROR_CODES.RECORD_INVALID) {
 				if (Object.keys(err.response.data.data).includes('deliveries')) {
 					throw { status: err.response.status, message: err.response.data.data['deliveries'][1] };
@@ -1831,19 +1833,22 @@ async function gophrCancelRequest(jobId, comment) {
 	}
 }
 
-async function cancelDriverJob(jobId, job, comment){
+async function cancelDriverJob(jobId, job, comment) {
 	try {
 		const user = await db.User.findById(job.clientId);
-		const driver = await db.Driver.findOne({clientIds: job.clientId})
-		let template = `Order ${job.jobSpecification.orderNumber} to ${job.jobSpecification.deliveries[0].dropoffLocation.fullAddress} has been cancelled by ${user.company}.`
-		driver && sendSMS(driver.phone, template, {smsCommission: user['subscriptionItems'].smsCommission}, true).then(() => console.log("sms sent successfully"))
+		const driver = await db.Driver.findOne({ clientIds: job.clientId });
+		let template = `Order ${job.jobSpecification.orderNumber} to ${job.jobSpecification.deliveries[0].dropoffLocation.fullAddress} has been cancelled by ${user.company}.`;
+		driver &&
+			sendSMS(driver.phone, template, { smsCommission: user['subscriptionItems'].smsCommission }, true).then(() =>
+				console.log('sms sent successfully')
+			);
 		return 'Order cancelled successfully';
 	} catch (err) {
 		throw err;
 	}
 }
 
-async function cancelOrder(jobId, provider, jobDetails, comment="") {
+async function cancelOrder(jobId, provider, jobDetails, comment = '') {
 	switch (provider) {
 		case PROVIDERS.STUART:
 			console.log('Cancelling STUART Job');
@@ -1853,7 +1858,7 @@ async function cancelOrder(jobId, provider, jobDetails, comment="") {
 			return await gophrCancelRequest(jobId, comment);
 		case PROVIDERS.PRIVATE:
 			console.log('Cancelling PRIVATE Job');
-			return await cancelDriverJob(jobId, jobDetails, comment)
+			return await cancelDriverJob(jobId, jobDetails, comment);
 		// default case if the provider does not support cancellation via API
 		default:
 			console.log('Sending cancellation request');
@@ -2015,32 +2020,41 @@ function calculateNextHourlyBatch(pickupDate, deliveryHours, { batchInterval }) 
 }
 
 async function finaliseJob(user, job, clientId, commissionCharge, driver = null, settings = null, smsEnabled = false) {
-	// Create the final job into the jobs database
-	const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
-	console.log(createdJob);
-	let {
-		dropoffLocation: { phoneNumber }
-	} = job.jobSpecification.deliveries[0];
-	await sendNewJobEmails(user.team, job, settings.jobAlerts.new);
-	const trackingMessage = `\n\nTrack your delivery here: ${process.env.TRACKING_BASE_URL}/${createdJob._id}`;
-	const template = `Your ${user.company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today. ${trackingMessage}`;
-	await sendSMS(phoneNumber, template, user.subscriptionItems, smsEnabled);
-	if (job.selectedConfiguration.providerId === PROVIDERS.PRIVATE && driver && settings) {
-		setTimeout(
-			() => checkJobExpired(job.jobSpecification.orderNumber, driver, user, settings),
-			settings['driverResponseTime'] * 60000
+	try {
+		// Create the final job into the jobs database
+		const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
+		console.log(createdJob);
+		let {
+			dropoffLocation: { phoneNumber }
+		} = job.jobSpecification.deliveries[0];
+		await sendNewJobEmails(user.team, job, settings.jobAlerts.new);
+		const trackingMessage = `\n\nTrack your delivery here: ${process.env.TRACKING_BASE_URL}/${createdJob._id}`;
+		const template = `Your ${user.company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today. ${trackingMessage}`;
+		await sendSMS(phoneNumber, template, user.subscriptionItems, smsEnabled);
+		if (job.selectedConfiguration.providerId === PROVIDERS.PRIVATE && driver && settings) {
+			setTimeout(
+				() => checkJobExpired(job.jobSpecification.orderNumber, driver, user, settings),
+				settings['driverResponseTime'] * 60000
+			);
+		}
+		const title = `New order!`;
+		const contentDriver = ` and assigned to your driver`;
+		const contentCourier = ` and dispatched to ${job.selectedConfiguration.providerId}`;
+		const content = `Order ${job.jobSpecification.orderNumber} has been created`.concat(
+			job.selectedConfiguration.providerId === PROVIDERS.UNASSIGNED
+				? '!'
+				: driver
+				? contentDriver
+				: contentCourier
 		);
+		console.log('************************************************');
+		console.log(content);
+		sendNotification(clientId, title, content).then(() => console.log('notification sent!'));
+		return createdJob;
+	} catch (err) {
+		console.error(err);
+		throw err
 	}
-	const title = `New order!`;
-	const contentDriver = ` and assigned to your driver`;
-	const contentCourier = ` and dispatched to ${job.selectedConfiguration.providerId}`;
-	const content = `Order ${job.jobSpecification.orderNumber} has been created`.concat(
-		job.selectedConfiguration.providerId === PROVIDERS.UNASSIGNED ? '!' : driver ? contentDriver : contentCourier
-	);
-	console.log('************************************************');
-	console.log(content);
-	sendNotification(clientId, title, content).then(() => console.log('notification sent!'));
-	return true;
 }
 
 function dailyBatchOrder(payload, settings, deliveryHours, jobReference, vehicleSpecs, ecommerceIds) {
