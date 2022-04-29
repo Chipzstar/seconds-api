@@ -1,7 +1,12 @@
 const express = require('express');
 const db = require('../models');
 const createEcommerceJob = require('../services/ecommerce');
-const { convertWeightToVehicleCode, geocodeAddress, genOrderReference, cancelOrder, checkPickupHours,
+const {
+	convertWeightToVehicleCode,
+	geocodeAddress,
+	genOrderReference,
+	cancelOrder,
+	checkPickupHours,
 	setNextDayDeliveryTime
 } = require('../helpers');
 const moment = require('moment');
@@ -54,19 +59,19 @@ async function generatePayload(order, user) {
 		console.table(formattedAddress);
 		const geolocation = user.address.geolocation.toObject();
 		// sets ON_DEMAND_TIME_WINDOW as a default
-		let packagePickupStartTime = moment().add(25, "minutes").format();
+		let packagePickupStartTime = moment().add(25, 'minutes').format();
 		let packageDropoffEndTime = moment(packagePickupStartTime).add(2, 'hours').format();
 		// check if order is scheduled with an expected time
 		if (order['expected_time']) {
-			const canDeliver = checkPickupHours(order['expected_time'], user.deliveryHours)
+			const canDeliver = checkPickupHours(order['expected_time'], user.deliveryHours);
 			if (!canDeliver) {
 				const { nextDayPickup, nextDayDropoff } = setNextDayDeliveryTime(
 					order['expected_time'],
 					user.deliveryHours
 				);
 				console.table({ nextDayPickup, nextDayDropoff });
-				packagePickupStartTime = nextDayPickup
-				packageDropoffEndTime = moment(nextDayPickup).add(2, "hours")
+				packagePickupStartTime = nextDayPickup;
+				packageDropoffEndTime = moment(nextDayPickup).add(2, 'hours');
 			}
 			// if order has an expected customer time, set as the dropoff deadline
 			packageDropoffEndTime = moment(order['expected_time']).format();
@@ -176,26 +181,32 @@ router.post('/', async (req, res) => {
 											req.body['location_id']
 										).then(job => {
 											// send Alert to businesses when expected time can not be met
-											let order = req.body['new_state']
-											let expectedTime = req.body['new_state']['expected_time']
-											let actualTime = job['jobSpecification'].deliveries[0].dropoffEndTime
+											let order = req.body['new_state'];
+											let expectedTime = req.body['new_state']['expected_time'];
+											let actualTime = job['jobSpecification'].deliveries[0].dropoffEndTime;
 											if (expectedTime && moment(actualTime).isAfter(moment(expectedTime))) {
 												sendEmail({
 													name: `${user.firstname} ${user.lastname}`,
-													email: user.email,
+													email: "chipzstar.dev@gmail.com",
 													subject: `Delivery Alert - Order ${req.body['order_id']}`,
 													html: `<div>
 															<h3>The following order may not be delivered on time. See details below:</h3>
 															<br/>
 															<span>Hubrise Order Id: ${req.body['order_id']}</span>
 															<span>Customer: ${order.customer.first_name} ${order.customer.last_name}</span>
-															<span>Address: ${order.customer['address_1']} ${order.customer['address_2']} ${order.customer['city']} ${order.customer['postal_code']}</span>
+															<span>Address: ${order.customer['address_1']} ${order.customer['address_2']} ${order.customer['city']} ${
+														order.customer['postal_code']
+													}</span>
 															<span>Expected delivery time: <strong>${moment(expectedTime).calendar()}</strong></span>
 															<span>Actual delivery time: <strong>${moment(actualTime).calendar()}</strong></span>
 															</div>`
-												}).then(() => console.log("Hubrise Alert sent!"))
+												})
+													.then(() => console.log('Hubrise Alert Sent Successfully!'))
+													.catch(err =>
+														console.log('Failed to send email alert!', err.message)
+													);
 											}
-											console.log('SUCCESS')
+											console.log('SUCCESS');
 										});
 									})
 									.catch(err => console.error(err));
