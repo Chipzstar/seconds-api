@@ -180,12 +180,12 @@ router.post('/', async (req, res) => {
 											settings,
 											req.body['location_id']
 										).then(job => {
+											console.log(job)
 											// send Alert to businesses when expected time can not be met
 											let order = req.body['new_state'];
 											let expectedTime = req.body['new_state']['expected_time'];
 											let actualTime = job['jobSpecification'].deliveries[0].dropoffEndTime;
 											console.table({expectedTime, actualTime})
-											console.log(moment(actualTime).isAfter(moment(expectedTime)))
 											if (expectedTime && moment(actualTime).isAfter(moment(expectedTime))) {
 												sendEmail({
 													name: `${user.firstname} ${user.lastname}`,
