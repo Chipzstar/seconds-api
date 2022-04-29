@@ -1,7 +1,9 @@
 const express = require('express');
 const db = require('../models');
 const createEcommerceJob = require('../services/ecommerce');
-const { convertWeightToVehicleCode, geocodeAddress, genOrderReference, cancelOrder } = require('../helpers');
+const { convertWeightToVehicleCode, geocodeAddress, genOrderReference, cancelOrder, checkPickupHours,
+	setNextDayDeliveryTime
+} = require('../helpers');
 const moment = require('moment');
 const sendEmail = require('../services/email');
 const { HUBRISE_STATUS } = require('@seconds-technologies/database_schemas/constants');
@@ -50,6 +52,24 @@ async function generatePayload(order, user) {
 		console.log(fullAddress);
 		console.table(formattedAddress);
 		const geolocation = user.address.geolocation.toObject();
+		// sets ON_DEMAND_TIME_WINDOW as a default
+		let packagePickupStartTime = moment().add(25, "minutes").format();
+		let packageDropoffEndTime = moment(packagePickupStartTime).add(2, 'hours').format();
+		// check if order is scheduled with an expected time
+		if (order.expected_time) {
+			const canDeliver = checkPickupHours(order.expected_time, user.deliveryHours)
+			if (!canDeliver) {
+				const { nextDayPickup, nextDayDropoff } = setNextDayDeliveryTime(
+					order.expected_time,
+					user.deliveryHours
+				);
+				console.table({ nextDayPickup, nextDayDropoff });
+				packagePickupStartTime = nextDayPickup
+				packageDropoffEndTime = moment(nextDayPickup).add(2, "hours")
+			}
+			// if order has an expected customer time, set as the dropoff deadline
+			packageDropoffEndTime = moment(order.expected_time).format();
+		}
 		const payload = {
 			pickupAddress: user.fullAddress,
 			pickupAddressLine1: user.address['street'],
@@ -64,7 +84,7 @@ async function generatePayload(order, user) {
 			pickupLastName: user.lastname,
 			pickupInstructions: '',
 			//TODO - change back to 30 mins
-			packagePickupStartTime: moment().add(3, 'minutes').format(),
+			packagePickupStartTime,
 			packagePickupEndTime: undefined,
 			packageDeliveryType: 'ON_DEMAND',
 			itemsCount: order.items.length,
@@ -91,9 +111,7 @@ async function generatePayload(order, user) {
 						: order.customer['delivery_notes']
 						? order.customer['delivery_notes']
 						: '',
-					packageDropoffEndTime: order['expected_time']
-						? moment(order['expected_time']).format()
-						: moment().add(200, 'minutes').format(),
+					packageDropoffEndTime,
 					packageDescription,
 					reference: genOrderReference()
 				}

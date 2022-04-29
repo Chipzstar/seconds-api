@@ -17,12 +17,17 @@ const confirmCharge = async (
 			standardCommission,
 			multiDropCommission
 		});
+		// look up the plan for the active standard monthly subscription item
+		const subscriptionItem = await stripe.subscriptionItems.retrieve(standardMonthly)
+		const isStarter = subscriptionItem ? subscriptionItem.price.lookup_key === "starter" : null
+		const amount = isStarter ? Math.round(jobInfo.deliveryFee * 100 * 1.1) : Math.round(jobInfo.deliveryFee * 100)
+		const description = isStarter ? `${jobInfo.description} (+10% commission)` : jobInfo.description
 		// Create invoice item to be added to the customer's next upcoming invoice
 		const invoiceItem = await stripe.invoiceItems.create({
 			customer: stripeCustomerId,
-			amount: Math.round(jobInfo.deliveryFee * 100),
+			amount,
 			currency: "gbp",
-			description: jobInfo.description,
+			description,
 			subscription: subscriptionId,
 			period: {
 				start: moment().unix(),

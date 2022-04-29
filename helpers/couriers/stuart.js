@@ -115,7 +115,6 @@ async function updateJob(data) {
 				returnOriginal: false
 			}
 		);
-		console.table(job.trackingHistory);
 		// add commission charge depending on payment plan
 		if (jobStatus === JOB_STATUS.COMPLETED) {
 			console.log('****************************************************************');
