@@ -184,6 +184,8 @@ router.post('/', async (req, res) => {
 											let order = req.body['new_state'];
 											let expectedTime = req.body['new_state']['expected_time'];
 											let actualTime = job['jobSpecification'].deliveries[0].dropoffEndTime;
+											console.table({expectedTime, actualTime})
+											console.log(moment(actualTime).isAfter(moment(expectedTime)))
 											if (expectedTime && moment(actualTime).isAfter(moment(expectedTime))) {
 												sendEmail({
 													name: `${user.firstname} ${user.lastname}`,
