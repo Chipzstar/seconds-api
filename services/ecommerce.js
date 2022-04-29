@@ -292,6 +292,9 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 			payload,
 			vehicleSpecs
 		);
+		console.log('************************************************');
+		console.table({pickupAt})
+		console.log('************************************************');
 		job = {
 			createdAt: moment().format(),
 			driverInformation: {

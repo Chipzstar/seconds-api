@@ -56,11 +56,11 @@ async function generatePayload(order, user) {
 		let packagePickupStartTime = moment().add(25, "minutes").format();
 		let packageDropoffEndTime = moment(packagePickupStartTime).add(2, 'hours').format();
 		// check if order is scheduled with an expected time
-		if (order.expected_time) {
-			const canDeliver = checkPickupHours(order.expected_time, user.deliveryHours)
+		if (order['expected_time']) {
+			const canDeliver = checkPickupHours(order['expected_time'], user.deliveryHours)
 			if (!canDeliver) {
 				const { nextDayPickup, nextDayDropoff } = setNextDayDeliveryTime(
-					order.expected_time,
+					order['expected_time'],
 					user.deliveryHours
 				);
 				console.table({ nextDayPickup, nextDayDropoff });
@@ -68,7 +68,7 @@ async function generatePayload(order, user) {
 				packageDropoffEndTime = moment(nextDayPickup).add(2, "hours")
 			}
 			// if order has an expected customer time, set as the dropoff deadline
-			packageDropoffEndTime = moment(order.expected_time).format();
+			packageDropoffEndTime = moment(order['expected_time']).format();
 		}
 		const payload = {
 			pickupAddress: user.fullAddress,
