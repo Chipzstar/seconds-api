@@ -14,7 +14,7 @@ async function sendHubriseStatusUpdate(hubriseStatus, orderId, credentials, type
 		}
 		const response = (await axios.patch(URL, { status: hubriseStatus }, config)).data;
 		console.log('-----------------------------------------------');
-		console.log(response)
+		console.table({ID: response.id, STATUS: response.status})
 		console.log('-----------------------------------------------');
 		return  `New order hubrise status: ${hubriseStatus}`
 	} catch (err) {
@@ -43,7 +43,7 @@ async function sendHubriseEtaUpdate(newEta, orderId, credentials, type="Hubrise 
 		}
 		const response = (await axios.patch(URL, { confirmed_time: moment(newEta).toISOString() }, config)).data;
 		console.log('-----------------------------------------------');
-		console.log(response)
+		console.table({ID: response.id, STATUS: response.status})
 		console.log('-----------------------------------------------');
 		return `Confirmed Time is now ${moment(newEta).toISOString()}`
 	} catch (err) {
