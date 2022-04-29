@@ -71,10 +71,11 @@ async function generatePayload(order, user) {
 				);
 				console.table({ nextDayPickup, nextDayDropoff });
 				packagePickupStartTime = nextDayPickup;
-				packageDropoffEndTime = moment(nextDayPickup).add(2, 'hours');
+				packageDropoffEndTime = moment(nextDayPickup).clone().add(2, 'hours');
+			} else {
+				// if order has an expected customer time, set as the dropoff deadline
+				packageDropoffEndTime = moment(order['expected_time']).format();
 			}
-			// if order has an expected customer time, set as the dropoff deadline
-			packageDropoffEndTime = moment(order['expected_time']).format();
 		}
 		const payload = {
 			pickupAddress: user.fullAddress,
@@ -180,16 +181,15 @@ router.post('/', async (req, res) => {
 											settings,
 											req.body['location_id']
 										).then(job => {
-											console.log(job)
 											// send Alert to businesses when expected time can not be met
 											let order = req.body['new_state'];
 											let expectedTime = req.body['new_state']['expected_time'];
 											let actualTime = job['jobSpecification'].deliveries[0].dropoffEndTime;
-											console.table({expectedTime, actualTime})
+											console.table({ expectedTime, actualTime });
 											if (expectedTime && moment(actualTime).isAfter(moment(expectedTime))) {
 												sendEmail({
 													name: `${user.firstname} ${user.lastname}`,
-													email: "chipzstar.dev@gmail.com",
+													email: user.email,
 													subject: `Delivery Alert - Order ${req.body['order_id']}`,
 													html: `<div>
 															<h3>The following order may not be delivered on time. See details below:</h3>
