@@ -18,17 +18,12 @@ const router = express.Router();
 async function sumProductWeights(items, user) {
 	console.log('------------------------------------------------------------------');
 	const catalog = await db.Catalog.findOne({ clientId: user['_id'] });
-	console.log(catalog);
 	console.log('------------------------------------------------------------------');
 	let totalWeight = 0;
 	if (catalog) {
 		for (let item of items) {
-			console.table(item);
-			console.log('*********************************************');
 			catalog['products'].forEach(({ variants }) => {
 				variants.forEach(({ ref, weight }, index) => {
-					console.table({ index, ref, weight });
-					console.log(ref === item.sku_ref);
 					if (ref === item.sku_ref) {
 						totalWeight += weight * Number(item.quantity);
 					}
