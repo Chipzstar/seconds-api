@@ -52,13 +52,13 @@ function translateStuartStatus(value) {
 		case DELIVERY_STATUS.WAITING_AT_DROPOFF:
 			return { newStatus: STATUS.EN_ROUTE, hubriseStatus: ORDER_STATUS.AWAITING_COLLECTION }
 		case DELIVERY_STATUS.DELIVERED:
-			return { newStatus: STATUS.EN_ROUTE, hubriseStatus: null}
+			return { newStatus: STATUS.COMPLETED, hubriseStatus: null}
 		case JOB_STATUS.COMPLETED:
-			return { newStatus: STATUS.EN_ROUTE, hubriseStatus: ORDER_STATUS.COMPLETED }
+			return { newStatus: STATUS.COMPLETED, hubriseStatus: ORDER_STATUS.COMPLETED }
 		case DELIVERY_STATUS.CANCELLED:
-			return { newStatus: STATUS.EN_ROUTE, hubriseStatus: null }
+			return { newStatus: STATUS.CANCELLED, hubriseStatus: null }
 		case JOB_STATUS.CANCELLED:
-			return { newStatus: STATUS.EN_ROUTE, hubriseStatus: ORDER_STATUS.CANCELLED }
+			return { newStatus: STATUS.CANCELLED, hubriseStatus: ORDER_STATUS.CANCELLED }
 		default:
 			return { newStatus: value, hubriseStatus: null };
 	}
@@ -161,7 +161,7 @@ async function updateDelivery(data) {
 		const { status: deliveryStatus, id, clientReference, etaToOrigin, etaToDestination } = data;
 		const { newStatus, hubriseStatus } = translateStuartStatus(deliveryStatus);
 		let job = await db.Job.findOne({ 'jobSpecification.deliveries.id': id.toString() });
-		if (job && job['jobSpecification'].hubriseId) {
+		if (job && job['jobSpecification'].hubriseId && hubriseStatus) {
 			const hubrise = await db.Hubrise.findOne({clientId: job.clientId})
 			sendHubriseStatusUpdate(hubriseStatus, job['jobSpecification'].hubriseId, hubrise)
 				.then(() => console.log("Hubrise status update sent!"))
