@@ -191,10 +191,10 @@ router.post('/', async (req, res) => {
 				if (event_type === 'create') {
 					const user = await db.User.findById(hubrise['clientId']);
 					const settings = await db.Settings.findOne({ clientId: user['_id'] });
-					// check that the platform integration is enabled for that user
-					const isEnabled = hubrise['active'];
-					console.log('isEnabled:', isEnabled);
-					if (isEnabled) {
+					// check that the platform integration is active for that user
+					const isActive = hubrise['active'];
+					console.log('isActive:', isActive);
+					if (isActive) {
 						// CHECK if the incoming delivery is a local delivery
 						// check if hubrise account has set up order triggers, check if order contains any listed service type refs / order statuses
 						const { triggers } = hubrise['options'];
