@@ -11,7 +11,7 @@ const {
 } = require('../helpers');
 const moment = require('moment');
 const sendEmail = require('../services/email');
-const { HUBRISE_STATUS } = require('@seconds-technologies/database_schemas/constants');
+const { HUBRISE_STATUS, PLATFORMS } = require('@seconds-technologies/database_schemas/constants');
 const { SERVICE_TYPE } = require('../constants/hubrise');
 const router = express.Router();
 
@@ -210,7 +210,7 @@ router.post('/', async (req, res) => {
 									.then(payload => {
 										const ids = { hubriseId: req.body['order_id'] };
 										createEcommerceJob(
-											'Hubrise',
+											PLATFORMS.HUBRISE,
 											req.body['order_id'],
 											payload,
 											ids,

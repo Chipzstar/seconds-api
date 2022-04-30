@@ -7,6 +7,7 @@ const sendEmail = require('../services/email');
 const createEcommerceJob = require('../services/ecommerce');
 const { convertWeightToVehicleCode, geocodeAddress, genOrderReference } = require('../helpers');
 const moment = require('moment');
+const { PLATFORMS } = require('@seconds-technologies/database_schemas/constants');
 const router = express.Router();
 
 async function generatePayload(order, user) {
@@ -137,7 +138,7 @@ router.post('/', async (req, res) => {
 								.then(payload => {
 									const ids = { shopifyId: null, woocommerceId: req.body['order_key'] };
 									createEcommerceJob(
-										'WooCommerce',
+										PLATFORMS.WOOCOMMERCE,
 										req.body['order_key'],
 										payload,
 										ids,

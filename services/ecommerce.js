@@ -31,7 +31,7 @@ const { finaliseJob, dailyBatchOrder, incrementalBatchOrder } = require('../help
 const sendNotification = require('./notification');
 const { MAGIC_BELL_CHANNELS } = require('../constants');
 
-async function createEcommerceJob(type, id, payload, ecommerceIds, user, settings, domain) {
+async function createEcommerceJob(platform, id, payload, ecommerceIds, user, settings, domain) {
 	try {
 		let job;
 		let commissionCharge = false;
@@ -79,10 +79,10 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 		if (settings && settings.autoBatch.enabled) {
 			// if defaultBatchMode = DAILY,
 			if (settings.defaultBatchMode === BATCH_OPTIONS.DAILY) {
-				const job = dailyBatchOrder(payload, settings, deliveryHours, clientRefNumber, vehicleSpecs, ecommerceIds);
+				const job = dailyBatchOrder(platform, payload, settings, deliveryHours, clientRefNumber, vehicleSpecs, ecommerceIds);
 				return await finaliseJob(user, job, clientId, commissionCharge, null, settings, settings.sms);
 			} else {
-				const job = incrementalBatchOrder(payload, settings, deliveryHours, clientRefNumber, vehicleSpecs, ecommerceIds);
+				const job = incrementalBatchOrder(platform, payload, settings, deliveryHours, clientRefNumber, vehicleSpecs, ecommerceIds);
 				return await finaliseJob(user, job, clientId, commissionCharge, null, settings, settings.sms);
 			}
 			// NON-AUTO-BATCHING LOGIC
@@ -168,6 +168,7 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 							providerId: PROVIDERS.PRIVATE,
 							quotes: []
 						},
+						platform,
 						dispatchMode: DISPATCH_MODES.AUTO,
 						status: STATUS.PENDING,
 						trackingHistory: [
@@ -256,6 +257,7 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 						providerId: PROVIDERS.UNASSIGNED,
 						quotes: []
 					},
+					platform,
 					dispatchMode: DISPATCH_MODES.MANUAL,
 					status: STATUS.NEW,
 					trackingHistory: [
@@ -334,6 +336,7 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 				providerId,
 				quotes: QUOTES
 			},
+			platform,
 			dispatchMode: DISPATCH_MODES.AUTO,
 			status: STATUS.NEW,
 			trackingHistory: [
@@ -370,8 +373,8 @@ async function createEcommerceJob(type, id, payload, ecommerceIds, user, setting
 		await sendEmail({
 			email: 'chipzstar.dev@gmail.com',
 			name: 'Chisom Oguibe',
-			subject: `Failed ${type} order #${id}`,
-			html: `<div><p>OrderId: ${id}</p><p>${type} E-commerce Store: ${domain}</p><p>Job could not be created. <br/>Reason: ${err.message}</p></div>`
+			subject: `Failed ${platform} order #${id}`,
+			html: `<div><p>OrderId: ${id}</p><p>${platform} account ID: ${domain}</p><p>Job could not be created. <br/>Reason: ${err.message}</p></div>`
 		})
 		const customerName = `${payload.drops[0].dropoffFirstName} ${payload.drops[0].dropoffLastName}`
 		const title = `Failed Order`

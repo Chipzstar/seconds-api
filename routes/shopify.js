@@ -11,6 +11,7 @@ const moment = require('moment');
 const { DELIVERY_METHODS } = require('../constants/shopify');
 const sendEmail = require('../services/email');
 const createEcommerceJob = require('../services/ecommerce');
+const { PLATFORMS } = require('@seconds-technologies/database_schemas/constants');
 
 function validateDeliveryDate(date, time, deliveryHours) {
 	console.table({ date, time });
@@ -179,7 +180,7 @@ router.post('/', async (req, res) => {
 							generatePayload(req.body, user)
 								.then(payload => {
 									const ids = { shopifyId: req.body.id, woocommerceId: null };
-									createEcommerceJob("Shopify", req.body.id, payload, ids, user, settings, shop).then(() => console.log("SUCCESS"));
+									createEcommerceJob(PLATFORMS.SHOPIFY, req.body.id, payload, ids, user, settings, shop).then(() => console.log("SUCCESS"));
 								})
 								.catch(err => console.error(err));
 							res.status(200).json({

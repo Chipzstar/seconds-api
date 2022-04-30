@@ -7,6 +7,7 @@ const sendEmail = require('../services/email');
 const createEcommerceJob = require('../services/ecommerce');
 const { convertWeightToVehicleCode, geocodeAddress, genOrderReference } = require('../helpers');
 const moment = require('moment');
+const { PLATFORMS } = require('@seconds-technologies/database_schemas/constants');
 const router = express.Router();
 const squarespaceAxios = axios.create();
 
@@ -180,7 +181,7 @@ router.post('/', async (req, res) => {
 							generatePayload(order, user)
 								.then(payload => {
 									const ids = { squarespaceId: data['orderId'] };
-									createEcommerceJob('Squarespace', data['orderId'], payload, ids, user, websiteId);
+									createEcommerceJob(PLATFORMS.SQUARESPACE, data['orderId'], payload, ids, user, websiteId);
 								})
 								.catch(err => console.error(err));
 							res.status(200).json({

@@ -31,7 +31,7 @@ const {
 	DISPATCH_MODES,
 	AUTHORIZATION_KEY,
 	PROVIDER_ID,
-	PROVIDER_TYPES
+	PROVIDER_TYPES, PLATFORMS
 } = require('@seconds-technologies/database_schemas/constants');
 
 const moment = require('moment');
@@ -224,6 +224,7 @@ router.post('/create', async (req, res) => {
 			);
 			let job = {
 				createdAt: moment().format(),
+				platform: PLATFORMS.SECONDS,
 				dispatchMode: DISPATCH_MODES.MANUAL,
 				driverInformation: {
 					name: 'Searching',
@@ -495,6 +496,7 @@ router.post('/assign', async (req, res) => {
 					providerId: driver ? PROVIDERS.PRIVATE : PROVIDERS.UNASSIGNED,
 					quotes: []
 				},
+				platform: PLATFORMS.SECONDS,
 				dispatchMode: DISPATCH_MODES.MANUAL,
 				status: STATUS.NEW,
 				trackingHistory: [
@@ -661,7 +663,7 @@ router.patch('/dispatch', async (req, res) => {
 		if (type === PROVIDER_TYPES.DRIVER) {
 			const driver = await db.Driver.findById(providerId);
 			if (job && driver) {
-				job.driverInformation.id = driver._id;
+				job['driverInformation'].id = driver._id;
 				job.driverInformation.name = `${driver.firstname} ${driver.lastname}`;
 				job.driverInformation.phone = driver.phone;
 				job.driverInformation.transport = driver.vehicle;
