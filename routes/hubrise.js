@@ -15,6 +15,46 @@ const { HUBRISE_STATUS } = require('@seconds-technologies/database_schemas/const
 const { SERVICE_TYPE } = require('../constants/hubrise');
 const router = express.Router();
 
+function validateOrderTriggers(triggers, order) {
+	console.log('-----------------------------------------------');
+	console.log(triggers)
+	console.log('-----------------------------------------------');
+	let isSTRValid = false;
+	let isStatusValid = false;
+	const isDelivery = order['service_type'] === SERVICE_TYPE.DELIVERY;
+	// check if both service type refs and order statuses triggers are empty, return false
+	if (!triggers.statuses.length && !triggers.serviceTypeRefs.length) {
+		return false;
+	}
+	// CHECK SERVICE TYPE REF (STR)
+	if (triggers.serviceTypeRefs.length) {
+		console.log('************************************************');
+		// get current serviceTypeRef
+		const currSTR = order['service_type_ref'];
+		console.log(currSTR);
+		// check if current order STR is listed in the triggers
+		if (triggers.serviceTypeRefs.includes(currSTR)) {
+			isSTRValid = true;
+		}
+		console.log("STR valid:", isSTRValid)
+		console.log('************************************************');
+	}
+	// CHECK ORDER STATUS
+	if (triggers.statuses.length) {
+		console.log('************************************************');
+		// get current order status
+		const currStatus = order['status'];
+		console.log(currStatus);
+		// check if current order STATUS is listed in the triggers
+		if (triggers.statuses.includes(currStatus)) {
+			isStatusValid = true;
+		}
+		console.log("Status valid:", isStatusValid)
+		console.log('************************************************');
+	}
+	return isSTRValid && isStatusValid && isDelivery;
+}
+
 async function sumProductWeights(items, user) {
 	console.log('------------------------------------------------------------------');
 	const catalog = await db.Catalog.findOne({ clientId: user['_id'] });
@@ -50,8 +90,6 @@ async function generatePayload(order, user) {
 			`${order.customer['address_1']} ${order.customer['address_2']} ${order.customer['city']} ${order.customer['postal_code']}`
 		);
 		console.log('Geocoded results');
-		console.log(fullAddress);
-		console.table(formattedAddress);
 		const geolocation = user.address.geolocation.toObject();
 		// sets ON_DEMAND_TIME_WINDOW as a default
 		let packagePickupStartTime = moment().add(25, 'minutes').format();
@@ -152,17 +190,21 @@ router.post('/', async (req, res) => {
 			if (hubrise) {
 				if (event_type === 'create') {
 					const user = await db.User.findById(hubrise['clientId']);
-					console.log(user);
 					const settings = await db.Settings.findOne({ clientId: user['_id'] });
 					// check that the platform integration is enabled for that user
 					const isEnabled = hubrise['active'];
 					console.log('isEnabled:', isEnabled);
 					if (isEnabled) {
 						// CHECK if the incoming delivery is a local delivery
-						const isLocalDelivery = req.body['new_state']['service_type'] === SERVICE_TYPE.DELIVERY;
-						const isSubscribed = !!user['subscriptionId'] & !!user['subscriptionPlan'];
-						console.log('isLocalDelivery:', isLocalDelivery);
-						if (isLocalDelivery) {
+						// check if hubrise account has set up order triggers, check if order contains any listed service type refs / order statuses
+						const { triggers } = hubrise['options'];
+						let canDeliver = true;
+						if (triggers.enabled) {
+							canDeliver = validateOrderTriggers(triggers, req.body['new_state']);
+						}
+						if (canDeliver) {
+							// check if user has an active subscription
+							const isSubscribed = !!user['subscriptionId'] & !!user['subscriptionPlan'];
 							if (isSubscribed) {
 								generatePayload(req.body['new_state'], user)
 									.then(payload => {
