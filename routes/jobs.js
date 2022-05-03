@@ -664,10 +664,10 @@ router.patch('/dispatch', async (req, res) => {
 			const driver = await db.Driver.findById(providerId);
 			if (job && driver) {
 				job['driverInformation'].id = driver._id;
-				job.driverInformation.name = `${driver.firstname} ${driver.lastname}`;
-				job.driverInformation.phone = driver.phone;
-				job.driverInformation.transport = driver.vehicle;
-				job.selectedConfiguration.providerId = PROVIDERS.PRIVATE;
+				job['driverInformation'].name = `${driver.firstname} ${driver.lastname}`;
+				job['driverInformation'].phone = driver.phone;
+				job['driverInformation'].transport = driver.vehicle;
+				job['selectedConfiguration'].providerId = PROVIDERS.PRIVATE;
 				job.createdAt = moment().format();
 				await job.save();
 				console.log(job);

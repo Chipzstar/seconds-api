@@ -207,6 +207,8 @@ async function updateDelivery(data) {
 			console.log('User:', !!user);
 			let { canceledBy, comment, reasonKey } = data.cancellation;
 			console.table(data.cancellation);
+			const settings = await db.Settings.findOne({ clientId: job.clientId })
+			let canSend = settings && settings['jobAlerts'].cancelled
 			reasonKey = reasonKey === 'pu_closed' ? 'pickup_closed' : reasonKey;
 			let reason = comment ? `${reasonKey} | ${comment}` : reasonKey;
 			let options = {
@@ -224,7 +226,7 @@ async function updateDelivery(data) {
 				}
 			};
 			sendNotification(user.clientId, "Delivery Cancelled", reason.replace(/[-_]/g, ' '), MAGIC_BELL_CHANNELS.ORDER_CANCELLED).then(() => console.log("notification sent!"))
-			sendEmail(options).then(() => console.log('CANCELLATION EMAIL SENT!'));
+			sendEmail(options, canSend).then(() => console.log('CANCELLATION EMAIL SENT!'));
 		}
 		return job;
 	} catch (err) {

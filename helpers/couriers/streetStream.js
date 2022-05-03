@@ -77,13 +77,13 @@ async function updateJob(data) {
 		if (job) {
 			const user = await db.User.findOne({ _id: job.clientId });
 			let settings = await db.Settings.findOne({ clientId: job.clientId });
-			let canSend = settings ? settings.sms : false;
 			console.log('User:', !!user);
 			if (
 				jobStatus === JOB_STATUS.ADMIN_CANCELLED ||
 				jobStatus === JOB_STATUS.NO_RESPONSE ||
 				jobStatus === JOB_STATUS.NOT_AS_DESCRIBED
 			) {
+				const canSend = settings ? settings['jobAlerts'].cancelled : false;
 				// check if order status is cancelled and send out email to clients
 				let options = {
 					name: `${user.firstname} ${user.lastname}`,
@@ -100,13 +100,14 @@ async function updateJob(data) {
 					}
 				};
 				sendNotification(
-					user._id,
+					user['_id'],
 					'Delivery Cancelled',
 					`${jobStatus} - ${CANCELLATION_REASONS[jobStatus].replace(/[-_]/g, ' ')}`,
 					MAGIC_BELL_CHANNELS.ORDER_CANCELLED
 				).then(() => console.log('notification sent!'));
-				sendEmail(options).then(() => console.log('CANCELLATION EMAIL SENT!'));
+				sendEmail(options, canSend).then(() => console.log('CANCELLATION EMAIL SENT!'));
 			} else if (jobStatus === JOB_STATUS.COLLECTED) {
+				const canSend = settings ? settings.sms : false;
 				const trackingMessage = `\nTrack the delivery here: ${process.env.TRACKING_BASE_URL}/${job._id}`;
 				const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`;
 				sendSMS(

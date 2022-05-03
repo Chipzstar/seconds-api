@@ -93,6 +93,8 @@ async function updateStatus(data) {
 		}
 		if (jobStatus === JOB_STATUS.CANCELLED) {
 			// check if order status is cancelled and send out email to clients
+			const settings = await db.Settings.findOne({ clientId: job.clientId })
+			let canSend = settings && settings['jobAlerts'].cancelled
 			let options = {
 				name: `${user.firstname} ${user.lastname}`,
 				email: `${user.email}`,
@@ -107,8 +109,8 @@ async function updateStatus(data) {
 					provider: `gophr`
 				}
 			};
-			sendNotification(user._id, "Delivery Cancelled", cancellation_reason, MAGIC_BELL_CHANNELS.ORDER_CANCELLED).then(() => console.log("notification sent!"))
-			sendEmail(options).then(() => console.log('CANCELLATION EMAIL SENT!'));
+			sendNotification(user['_id'], "Delivery Cancelled", cancellation_reason, MAGIC_BELL_CHANNELS.ORDER_CANCELLED).then(() => console.log("notification sent!"))
+			sendEmail(options, canSend).then(() => console.log('CANCELLATION EMAIL SENT!'));
 		}
 		return job;
 	} catch (err) {
