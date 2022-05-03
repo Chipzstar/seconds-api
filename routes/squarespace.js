@@ -64,7 +64,7 @@ squarespaceAxios.interceptors.response.use(
 	}
 );
 
-async function generatePayload(order, user) {
+async function generatePayload(order, user, settings) {
 	try {
 		console.log('************************************');
 		console.log(order);
@@ -98,7 +98,7 @@ async function generatePayload(order, user) {
 			pickupBusinessName: user.company,
 			pickupFirstName: user.firstname,
 			pickupLastName: user.lastname,
-			pickupInstructions: '',
+			pickupInstructions: settings.pickupInstructions ? settings.pickupInstructions : '',
 			packagePickupStartTime: moment().add(45, 'minutes').format(),
 			packagePickupEndTime: undefined,
 			packageDeliveryType: 'ON_DEMAND',
@@ -178,10 +178,11 @@ router.post('/', async (req, res) => {
 					console.log('isLocalDelivery:', isLocalDelivery);
 					if (isLocalDelivery) {
 						if (isSubscribed) {
-							generatePayload(order, user)
+							const settings = await db.Settings.findOne({clientId: user['_id']})
+							generatePayload(order, user, settings)
 								.then(payload => {
 									const ids = { squarespaceId: data['orderId'] };
-									createEcommerceJob(PLATFORMS.SQUARESPACE, data['orderId'], payload, ids, user, websiteId);
+									createEcommerceJob(PLATFORMS.SQUARESPACE, data['orderId'], payload, ids, user, settings, websiteId);
 								})
 								.catch(err => console.error(err));
 							res.status(200).json({

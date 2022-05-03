@@ -10,7 +10,7 @@ const moment = require('moment');
 const { PLATFORMS } = require('@seconds-technologies/database_schemas/constants');
 const router = express.Router();
 
-async function generatePayload(order, user) {
+async function generatePayload(order, user, settings) {
 	try {
 		console.log('************************************');
 		console.log(order);
@@ -58,7 +58,7 @@ async function generatePayload(order, user) {
 			pickupBusinessName: user.company,
 			pickupFirstName: user.firstname,
 			pickupLastName: user.lastname,
-			pickupInstructions: '',
+			pickupInstructions: settings.pickupInstructions ? settings.pickupInstructions : '',
 			packagePickupStartTime: moment().add(45, 'minutes').format(),
 			packagePickupEndTime: undefined,
 			packageDeliveryType: 'ON_DEMAND',
@@ -134,7 +134,7 @@ router.post('/', async (req, res) => {
 					if (isLocalDelivery) {
 						if (isSubscribed) {
 							const settings = await db.Settings.findOne({ clientId: user._id });
-							generatePayload(req.body, user)
+							generatePayload(req.body, user, settings)
 								.then(payload => {
 									const ids = { shopifyId: null, woocommerceId: req.body['order_key'] };
 									createEcommerceJob(

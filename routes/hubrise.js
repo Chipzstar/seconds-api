@@ -74,7 +74,7 @@ async function sumProductWeights(items, user) {
 	return totalWeight;
 }
 
-async function generatePayload(order, user) {
+async function generatePayload(order, user, settings) {
 	try {
 		console.log('************************************');
 		console.log(order);
@@ -122,7 +122,7 @@ async function generatePayload(order, user) {
 			pickupBusinessName: user.company,
 			pickupFirstName: user.firstname,
 			pickupLastName: user.lastname,
-			pickupInstructions: '',
+			pickupInstructions: settings.pickupInstructions ? settings.pickupInstructions : '',
 			packagePickupStartTime,
 			packagePickupEndTime: undefined,
 			packageDeliveryType: 'ON_DEMAND',
@@ -206,7 +206,7 @@ router.post('/', async (req, res) => {
 							// check if user has an active subscription
 							const isSubscribed = !!user['subscriptionId'] & !!user['subscriptionPlan'];
 							if (isSubscribed) {
-								generatePayload(req.body['new_state'], user)
+								generatePayload(req.body['new_state'], user, settings)
 									.then(payload => {
 										const ids = { hubriseId: req.body['order_id'] };
 										createEcommerceJob(

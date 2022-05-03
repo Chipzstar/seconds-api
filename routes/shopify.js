@@ -46,7 +46,7 @@ function validateDeliveryDate(date, time, deliveryHours) {
 	return { deliverFrom: null, deliverTo: null, isValid: false };
 }
 
-async function generatePayload(order, user) {
+async function generatePayload(order, user, settings) {
 	try {
 		console.log('************************************');
 		console.log(order);
@@ -78,7 +78,7 @@ async function generatePayload(order, user) {
 			pickupBusinessName: user.company,
 			pickupFirstName: user.firstname,
 			pickupLastName: user.lastname,
-			pickupInstructions: '',
+			pickupInstructions: settings.pickupInstructions ? settings.pickupInstructions : '',
 			packagePickupStartTime: moment().add(45, 'minutes').format(),
 			packagePickupEndTime: undefined,
 			packageDeliveryType: 'ON_DEMAND',
@@ -177,7 +177,7 @@ router.post('/', async (req, res) => {
 					console.log('isLocalDelivery:', isLocalDelivery);
 					if (isLocalDelivery) {
 						if (isSubscribed) {
-							generatePayload(req.body, user)
+							generatePayload(req.body, user, settings)
 								.then(payload => {
 									const ids = { shopifyId: req.body.id, woocommerceId: null };
 									createEcommerceJob(PLATFORMS.SHOPIFY, req.body.id, payload, ids, user, settings, shop).then(() => console.log("SUCCESS"));
