@@ -175,7 +175,7 @@ router.post('/create', async (req, res) => {
 			req.body.packagePickupStartTime = nextDayPickup;
 			req.body.drops[0].packageDropoffEndTime = nextDayDropoff;
 		}
-		const QUOTES = await getResultantQuotes(req.body, vehicleSpecs, jobDistance, settings);
+		const QUOTES = await getResultantQuotes(req.body, vehicleSpecs, jobDistance, settings, DISPATCH_MODES.MANUAL);
 		// Use selection strategy to select the winner quote
 		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
 		// checks if the fleet provider for the delivery was manually selected or not

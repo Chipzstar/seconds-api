@@ -482,7 +482,7 @@ async function checkJobExpired(orderNumber, driver, user, settings) {
 
 // QUOTE AGGREGATION
 // send delivery request to integrated providers
-async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance, settings) {
+async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance, settings, dispatchMode="AUTO") {
 	try {
 		const QUOTES = [];
 		// check if distance is less than or equal to the vehicle's max pickup to dropoff distance
@@ -503,15 +503,36 @@ async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance, settin
 			settings.activeFleetProviders.stuart
 		) {
 			let stuartQuote = await getStuartQuote(genJobReference(), requestBody, vehicleSpecs);
-			stuartQuote && QUOTES.push(stuartQuote);
+			if (stuartQuote) {
+				if (dispatchMode === DISPATCH_MODES.AUTO) {
+					const fee = stuartQuote.priceExVAT
+					fee <= settings.courierVehicles[requestBody.vehicleType].maxDispatchAmount && QUOTES.push(stuartQuote);
+				} else {
+					QUOTES.push(stuartQuote)
+				}
+			}
 		}
 		if (process.env.GOPHR_STATUS === 'active' && settings.activeFleetProviders.gophr) {
 			let gophrQuote = await getGophrQuote(requestBody, vehicleSpecs);
-			gophrQuote && QUOTES.push(gophrQuote);
+			if (gophrQuote) {
+				if (dispatchMode === DISPATCH_MODES.AUTO) {
+					const fee = gophrQuote.priceExVAT
+					fee <= settings.courierVehicles[requestBody.vehicleType].maxDispatchAmount && QUOTES.push(gophrQuote);
+				} else {
+					QUOTES.push(gophrQuote)
+				}
+			}
 		}
 		if (process.env.STREET_STREAM_STATUS === 'active' && settings.activeFleetProviders.street_stream) {
 			let streetStreamQuote = await getStreetStreamQuote(requestBody, vehicleSpecs);
-			streetStreamQuote && QUOTES.push(streetStreamQuote);
+			if (streetStreamQuote) {
+				if (dispatchMode === DISPATCH_MODES.AUTO) {
+					const fee = streetStreamQuote.priceExVAT
+					fee <= settings.courierVehicles[requestBody.vehicleType].maxDispatchAmount && QUOTES.push(streetStreamQuote);
+				} else {
+					QUOTES.push(streetStreamQuote)
+				}
+			}
 		}
 		if (
 			vehicleSpecs.ecofleetVehicle &&

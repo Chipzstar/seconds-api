@@ -9,6 +9,7 @@ const {
 } = require('../helpers');
 const moment = require('moment');
 const db = require('../models');
+const { DISPATCH_MODES } = require('@seconds-technologies/database_schemas/constants');
 const router = express.Router();
 
 /*
@@ -38,7 +39,7 @@ router.post('/', async (req, res) => {
 			req.body.packagePickupStartTime = moment().add(20, 'minutes').format();
 			req.body.drops[0].packageDropoffEndTime = moment().add(120, 'minutes').format();
 		}
-		const quotes = await getResultantQuotes(req.body, vehicleSpecs, jobDistance, settings);
+		const quotes = await getResultantQuotes(req.body, vehicleSpecs, jobDistance, settings, DISPATCH_MODES.MANUAL);
 		const bestQuote = chooseBestProvider(user['selectionStrategy'], quotes);
 		if (!bestQuote) {
 			const error = new Error('No couriers available at this time. Please try again later or enable other third party providers');
