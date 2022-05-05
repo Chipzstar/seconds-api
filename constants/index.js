@@ -1,6 +1,3 @@
-exports.AUTHORIZATION_KEY = 'X-Seconds-Api-Key'.toLowerCase();
-exports.PROVIDER_ID = 'X-Seconds-Provider-Id'.toLowerCase();
-
 exports.DELIVERY_TYPES = {
 	ON_DEMAND: {
 		name: 'ON_DEMAND',
@@ -138,19 +135,6 @@ exports.VEHICLE_CODES_MAP = {
 		maxDistance: 12 // in miles
 	},
 };
-
-exports.COMMISSION = {
-	GROWTH: {
-		name: "growth",
-		fee: 0.49,
-		limit: 20
-	},
-	ENTERPRISE: {
-		name: "enterprise",
-		fee: 0.99,
-		limit: 50
-	}
-}
 
 exports.GOOGLE_MAPS_TRAVEL_MODES = {
 	/** (default) indicates standard driving directions using the road network. */

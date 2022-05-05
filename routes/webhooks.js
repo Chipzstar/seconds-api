@@ -6,7 +6,7 @@ const moment = require('moment');
 const axios = require('axios');
 const crypto = require('crypto');
 const { URL } = require('url');
-const { AUTHORIZATION_KEY } = require('../constants');
+const { AUTHORIZATION_KEY } = require('@seconds-technologies/database_schemas/constants');
 
 function stringIsAValidUrl(s, protocols) {
 	try {

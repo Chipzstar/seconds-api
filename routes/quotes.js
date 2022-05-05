@@ -1,5 +1,5 @@
 const express = require('express');
-const { AUTHORIZATION_KEY, DELIVERY_TYPES } = require('../constants');
+const { AUTHORIZATION_KEY, DELIVERY_TYPES } = require('@seconds-technologies/database_schemas/constants');
 const {
 	getClientDetails,
 	getResultantQuotes,

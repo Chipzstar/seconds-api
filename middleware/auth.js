@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require("express")
-const { AUTHORIZATION_KEY } = require("../constants");
+const { AUTHORIZATION_KEY } = require("@seconds-technologies/database_schemas/constants");
 const db = require('../models');
 
 const validateApiKey = async (req, res, next) => {
