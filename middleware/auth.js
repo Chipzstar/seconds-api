@@ -7,7 +7,6 @@ const validateApiKey = async (req, res, next) => {
 	let isValid = false
 	try {
 		const apiKey = req.headers[AUTHORIZATION_KEY]
-		console.log({apiKey})
 		if (apiKey === undefined || apiKey === "") {
 			return res.status(401).json({
 				code: 401,
