@@ -18,6 +18,10 @@ const validateApiKey = async (req, res, next) => {
 		/**
 		 * check if the incoming request is from a fleet provider
 		 */
+		// TRACKING LINK API KEY
+		if (apiKey === process.env.TRACKING_API_KEY) {
+			isValid = true;
+		}
 		//STUART
 		if (apiKey === process.env.STUART_WEBHOOK_KEY) {
 			isValid = true
