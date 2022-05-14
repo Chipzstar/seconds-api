@@ -58,7 +58,7 @@ async function updateStatus(data) {
 		}
 		if (newStatus !== job.status) {
 			job.status = newStatus
-			job.trackingHistory.push({
+			job['trackingHistory'].push({
 				timestamp: moment().unix(),
 				status: newStatus
 			})
@@ -87,7 +87,7 @@ async function updateStatus(data) {
 			const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`;
 			let settings = await db.Settings.findOne({clientId})
 			let canSend = settings ? settings.sms : false
-			sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template, user.subscriptionItems, canSend).then(() =>
+			sendSMS(job['jobSpecification'].deliveries[0].dropoffLocation.phoneNumber, template, user.subscriptionItems, canSend).then(() =>
 				console.log('SMS sent successfully!')
 			);
 		}
@@ -153,7 +153,13 @@ async function updateETA(data) {
 	// check if job contains a hubrise order, if so send an eta update to hubrise
 	if (job && job['jobSpecification'].hubriseId && delivery_eta) {
 		const hubrise = await db.Hubrise.findOne({clientId: job.clientId})
-		sendHubriseEtaUpdate(delivery_eta, job['jobSpecification'].hubriseId, hubrise)
+		const deliveryInfo = {
+			pickupTime: moment(pickup_eta).toISOString(),
+			trackingUrl: job['jobSpecification'].deliveries[0].trackingURL,
+			driverName: job['driverInformation'].name,
+			driverPhone: ""
+		};
+		sendHubriseEtaUpdate(moment(delivery_eta).toISOString(), deliveryInfo, job['jobSpecification'].hubriseId, hubrise)
 			.then((message) => console.log(message))
 			.catch(err => console.error(err))
 	}

@@ -31,7 +31,7 @@ async function sendHubriseStatusUpdate(hubriseStatus, orderId, credentials, type
 	}
 }
 
-async function sendHubriseEtaUpdate(newEta, orderId, credentials, type="Hubrise ETA update"){
+async function sendHubriseEtaUpdate(newEta, deliveryInfo, orderId, credentials, type="Hubrise ETA update"){
 	try {
 		const endpoint = `/locations/${credentials.locationId}/orders/${orderId}`;
 		const URL = process.env.HUBRISE_API_BASE_URL + endpoint
@@ -41,7 +41,19 @@ async function sendHubriseEtaUpdate(newEta, orderId, credentials, type="Hubrise 
 				'X-ACCESS-TOKEN': credentials.accessToken
 			}
 		}
-		const response = (await axios.patch(URL, { confirmed_time: moment(newEta).toISOString() }, config)).data;
+		const response = (await axios.patch(URL, {
+			confirmed_time: moment(newEta).toISOString(),
+			custom_fields: {
+				delivery: {
+					driver_pickup_time: deliveryInfo.pickupTime,
+					tracking_url: deliveryInfo.trackingUrl,
+					driver: {
+						first_name: deliveryInfo.driverName,
+						phone: deliveryInfo.driverPhone,
+					}
+				}
+			}
+		}, config)).data;
 		console.log('-----------------------------------------------');
 		console.table({ID: response.id, STATUS: response.status})
 		console.log('-----------------------------------------------');
