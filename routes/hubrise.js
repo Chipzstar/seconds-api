@@ -11,7 +11,7 @@ const {
 } = require('../helpers');
 const moment = require('moment');
 const sendEmail = require('../services/email');
-const { HUBRISE_STATUS, PLATFORMS } = require('@seconds-technologies/database_schemas/constants');
+const { HUBRISE_STATUS, PLATFORMS, STATUS } = require('@seconds-technologies/database_schemas/constants');
 const { SERVICE_TYPE } = require('../constants/hubrise');
 const router = express.Router();
 
@@ -288,8 +288,20 @@ router.post('/', async (req, res) => {
 							let jobId = job['jobSpecification'].id;
 							let provider = job['selectedConfiguration'].providerId;
 							cancelOrder(jobId, provider, job)
-								.then(message => console.log(message))
-								.catch(err => console.error(err.message));
+								.then(message => {
+									job.status = STATUS.CANCELLED
+									job.save()
+									console.log(message)
+								})
+								.catch(err => {
+									console.error(err)
+									sendEmail({
+										email: 'chipzstar.dev@gmail.com',
+										name: 'Chisom Oguibe',
+										subject: `Hubrise order #${req.body['order_id']} could not be cancelled`,
+										html: `<div><p>Order Id: #${req.body['order_id']}</p><p>Hubrise Account: ${hubrise['accountName']} - ${hubrise['locationId']}<br/></p><p>Job could not be cancelled. <br/>Reason: ${err.message}</p></div>`
+									});
+								});
 							res.status(200).json({
 								success: true,
 								status: 'DELIVERY_JOB_UPDATED',

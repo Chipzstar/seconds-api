@@ -1868,8 +1868,6 @@ async function cancelDriverJob(jobId, job, comment) {
 		const user = await db.User.findById(job.clientId);
 		const driver = await db.Driver.findOne({ clientIds: job.clientId });
 		let template = `Order ${job.jobSpecification.orderNumber} to ${job.jobSpecification.deliveries[0].dropoffLocation.fullAddress} has been cancelled by ${user.company}.`;
-		job.status = STATUS.CANCELLED
-		await job.save()
 		driver &&
 			sendSMS(driver.phone, template, { smsCommission: user['subscriptionItems'].smsCommission }, true).then(() =>
 				console.log('sms sent successfully')
