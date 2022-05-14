@@ -482,7 +482,7 @@ async function checkJobExpired(orderNumber, driver, user, settings) {
 
 // QUOTE AGGREGATION
 // send delivery request to integrated providers
-async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance, settings, dispatchMode="AUTO") {
+async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance, settings, dispatchMode = 'AUTO') {
 	try {
 		const QUOTES = [];
 		// check if distance is less than or equal to the vehicle's max pickup to dropoff distance
@@ -505,10 +505,11 @@ async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance, settin
 			let stuartQuote = await getStuartQuote(genJobReference(), requestBody, vehicleSpecs);
 			if (stuartQuote) {
 				if (dispatchMode === DISPATCH_MODES.AUTO) {
-					const fee = stuartQuote.priceExVAT
-					fee <= settings.courierVehicles[requestBody.vehicleType].maxDispatchAmount && QUOTES.push(stuartQuote);
+					const fee = stuartQuote.priceExVAT;
+					fee <= settings.courierVehicles[requestBody.vehicleType].maxDispatchAmount &&
+						QUOTES.push(stuartQuote);
 				} else {
-					QUOTES.push(stuartQuote)
+					QUOTES.push(stuartQuote);
 				}
 			}
 		}
@@ -516,10 +517,11 @@ async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance, settin
 			let gophrQuote = await getGophrQuote(requestBody, vehicleSpecs);
 			if (gophrQuote) {
 				if (dispatchMode === DISPATCH_MODES.AUTO) {
-					const fee = gophrQuote.priceExVAT
-					fee <= settings.courierVehicles[requestBody.vehicleType].maxDispatchAmount && QUOTES.push(gophrQuote);
+					const fee = gophrQuote.priceExVAT;
+					fee <= settings.courierVehicles[requestBody.vehicleType].maxDispatchAmount &&
+						QUOTES.push(gophrQuote);
 				} else {
-					QUOTES.push(gophrQuote)
+					QUOTES.push(gophrQuote);
 				}
 			}
 		}
@@ -527,10 +529,11 @@ async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance, settin
 			let streetStreamQuote = await getStreetStreamQuote(requestBody, vehicleSpecs);
 			if (streetStreamQuote) {
 				if (dispatchMode === DISPATCH_MODES.AUTO) {
-					const fee = streetStreamQuote.priceExVAT
-					fee <= settings.courierVehicles[requestBody.vehicleType].maxDispatchAmount && QUOTES.push(streetStreamQuote);
+					const fee = streetStreamQuote.priceExVAT;
+					fee <= settings.courierVehicles[requestBody.vehicleType].maxDispatchAmount &&
+						QUOTES.push(streetStreamQuote);
 				} else {
-					QUOTES.push(streetStreamQuote)
+					QUOTES.push(streetStreamQuote);
 				}
 			}
 		}
@@ -697,7 +700,13 @@ async function getStuartQuote(reference, params, vehicleSpecs) {
 	} catch (err) {
 		err.response.data.data && console.log('STUART ERROR:', err.response.data.data);
 		if (err.response.status === STUART_ERROR_CODES.UNPROCESSABLE_ENTITY) {
-			if (err.response.data.error === STUART_ERROR_CODES.PHONE_INVALID) {
+			if (err.response.data.error === STUART_ERROR_CODES.OUT_OF_RANGE) {
+				return null;
+			} else if (err.response.data.error === STUART_ERROR_CODES.JOB_DISTANCE_NOT_ALLOWED) {
+				return null;
+			} else if (err.response.data.error === STUART_ERROR_CODES.ADDRESS_CONTACT_PHONE_REQUIRED){
+				throw { status: err.response.status, message: err.response.data.message };
+			} else if (err.response.data.error === STUART_ERROR_CODES.PHONE_INVALID) {
 				throw { status: err.response.status, message: err.response.data.message };
 			} else if (err.response.data.error === STUART_ERROR_CODES.RECORD_INVALID) {
 				if (Object.keys(err.response.data.data).includes('deliveries')) {
@@ -707,8 +716,6 @@ async function getStuartQuote(reference, params, vehicleSpecs) {
 				} else if (Object.keys(err.response.data.data).includes('pickup_at')) {
 					throw { status: err.response.status, message: err.response.data.data['pickup_at'][0] };
 				}
-			} else if (err.response.data.error === STUART_ERROR_CODES.JOB_DISTANCE_NOT_ALLOWED) {
-				return null;
 			} else {
 				throw { status: err.response.status, ...err.response.data };
 			}
@@ -1020,7 +1027,9 @@ async function stuartJobRequest(ref, params, vehicleSpecs) {
 			deliveryFee:
 				process.env.NEW_RELIC_APP_NAME === 'seconds-api' ? data['pricing']['price_tax_included'] : amount * 1.2,
 			pickupAt: data['pickup_at'] ? moment(data['pickup_at']).format() : moment(packagePickupStartTime).format(),
-			dropoffAt: data['dropoff_at'] ? moment(data['dropoff_at']).format() : moment(drops[0].packageDropoffEndTime).format(),
+			dropoffAt: data['dropoff_at']
+				? moment(data['dropoff_at']).format()
+				: moment(drops[0].packageDropoffEndTime).format(),
 			delivery
 		};
 	} catch (err) {
@@ -2074,7 +2083,7 @@ async function finaliseJob(user, job, clientId, commissionCharge, driver = null,
 		return createdJob;
 	} catch (err) {
 		console.error(err);
-		throw err
+		throw err;
 	}
 }
 
