@@ -296,13 +296,13 @@ async function updateDriverETA(data) {
 		if (job && job['jobSpecification'].hubriseId && etaToDestination) {
 			const hubrise = await db.Hubrise.findOne({ clientId: job.clientId });
 			const deliveryInfo = {
-				pickupTime: moment(etaToOrigin).toISOString(),
+				pickupTime: moment(etaToOrigin).toISOString(true),
 				trackingUrl: job['jobSpecification'].deliveries[0].trackingURL,
 				driverName: job['driverInformation'].name,
 				driverPhone: job['driverInformation'].phone
 			};
 			sendHubriseEtaUpdate(
-				moment(etaToDestination).toISOString(),
+				moment(etaToDestination).toISOString(true),
 				deliveryInfo,
 				job['jobSpecification'].hubriseId,
 				hubrise

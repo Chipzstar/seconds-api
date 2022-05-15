@@ -154,12 +154,12 @@ async function updateETA(data) {
 	if (job && job['jobSpecification'].hubriseId && delivery_eta) {
 		const hubrise = await db.Hubrise.findOne({clientId: job.clientId})
 		const deliveryInfo = {
-			pickupTime: moment(pickup_eta).toISOString(),
+			pickupTime: moment(pickup_eta).toISOString(true),
 			trackingUrl: job['jobSpecification'].deliveries[0].trackingURL,
 			driverName: job['driverInformation'].name,
 			driverPhone: ""
 		};
-		sendHubriseEtaUpdate(moment(delivery_eta).toISOString(), deliveryInfo, job['jobSpecification'].hubriseId, hubrise)
+		sendHubriseEtaUpdate(moment(delivery_eta).toISOString(true), deliveryInfo, job['jobSpecification'].hubriseId, hubrise)
 			.then((message) => console.log(message))
 			.catch(err => console.error(err))
 	}
