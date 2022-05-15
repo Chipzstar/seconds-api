@@ -42,7 +42,7 @@ async function sendHubriseEtaUpdate(newEta, deliveryInfo, orderId, credentials, 
 			}
 		}
 		const response = (await axios.patch(URL, {
-			confirmed_time: moment(newEta).toISOString(),
+			confirmed_time: newEta,
 			custom_fields: {
 				delivery: {
 					driver_pickup_time: deliveryInfo.pickupTime,
@@ -57,7 +57,7 @@ async function sendHubriseEtaUpdate(newEta, deliveryInfo, orderId, credentials, 
 		console.log('-----------------------------------------------');
 		console.table({ID: response.id, STATUS: response.status})
 		console.log('-----------------------------------------------');
-		return `Confirmed Time is now ${moment(newEta).toISOString()}`
+		return `Confirmed Time is now ${moment(newEta).format()}`
 	} catch (err) {
 		console.log('************************************************');
 		console.error(err);
