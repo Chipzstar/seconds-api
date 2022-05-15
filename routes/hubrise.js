@@ -321,8 +321,8 @@ router.post('/', async (req, res) => {
 					} else {
 						res.status(200).json({
 							success: false,
-							status: 'NON_LOCAL_DELIVERY',
-							message: 'Seconds can only fulfill orders that require local delivery'
+							status: 'NON_MATCHING_TRIGGERS',
+							message: 'The status and/or service-type-ref for this order does not match any of your trigger values'
 						});
 					}
 				} else {
