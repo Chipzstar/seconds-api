@@ -194,135 +194,135 @@ router.post('/', async (req, res) => {
 				const isActive = hubrise['active'];
 				console.log('isActive:', isActive);
 				if (isActive) {
-					// check if hubrise account has set up order triggers, check if order contains any listed service type refs / order statuses
-					const { triggers } = hubrise['options'];
-					let canDeliver = req.body['service_type'] === SERVICE_TYPE.DELIVERY;
-					if (triggers.enabled) {
-						canDeliver = validateOrderTriggers(triggers, req.body['new_state']);
-					}
-					if (canDeliver) {
-						// check if user has an active subscription
-						const isSubscribed = !!user['subscriptionId'] & !!user['subscriptionPlan'];
-						if (isSubscribed) {
-							// check to see if the hubrise orderId already exists in the system
-							const job = await db.Job.findOne({
-								'jobSpecification.hubriseId': req.body['order_id']
-							});
-							// condition for creating orders from order.create event type
-							const validCreate = event_type === 'create'
-							// condition for creating orders from order.update event type
-							const validUpdate = event_type === 'update' && triggers.enabled && validateOrderTriggers(triggers, req.body['new_state']) && !job
-							// check the event type of the order
-							if (validCreate || validUpdate) {
-								generatePayload(req.body['new_state'], user, settings)
-									.then(payload => {
-										const ids = { hubriseId: req.body['order_id'] };
-										createEcommerceJob(
-											PLATFORMS.HUBRISE,
-											req.body['order_id'],
-											payload,
-											ids,
-											user,
-											settings,
-											req.body['location_id']
-										).then(job => {
-											// send Alert to businesses when expected time can not be met
-											let order = req.body['new_state'];
-											let expectedTime = req.body['new_state']['expected_time'];
-											let actualTime = job['jobSpecification'].deliveries[0].dropoffEndTime;
-											console.table({ expectedTime, actualTime });
-											if (expectedTime && moment(actualTime).isAfter(moment(expectedTime))) {
-												sendEmail({
-													name: `${user.firstname} ${user.lastname}`,
-													email: user.email,
-													subject: `Delivery Alert - Order ${req.body['order_id']}`,
-													html: `<div>
+					// check if user has an active subscription
+					const isSubscribed = !!user['subscriptionId'] & !!user['subscriptionPlan'];
+					if (isSubscribed) {
+						// check to see if the hubrise orderId already exists in the system
+						const job = await db.Job.findOne({
+							'jobSpecification.hubriseId': req.body['order_id']
+						});
+						// check if hubrise account has set up order triggers, check if order contains any listed service type refs / order statuses
+						const { triggers } = hubrise['options'];
+						// condition for creating orders from order.create event type
+						let validCreate = event_type === 'create' && req.body['service_type'] === SERVICE_TYPE.DELIVERY;
+						if (triggers.enabled) {
+							validCreate = validateOrderTriggers(triggers, req.body['new_state']);
+						}
+						// condition for creating orders from order.update event type
+						const validUpdate =
+							event_type === 'update' &&
+							triggers.enabled &&
+							validateOrderTriggers(triggers, req.body['new_state']) &&
+							!job;
+						// check the event type of the order
+						if (validCreate || validUpdate) {
+							generatePayload(req.body['new_state'], user, settings)
+								.then(payload => {
+									const ids = { hubriseId: req.body['order_id'] };
+									createEcommerceJob(
+										PLATFORMS.HUBRISE,
+										req.body['order_id'],
+										payload,
+										ids,
+										user,
+										settings,
+										req.body['location_id']
+									).then(job => {
+										// send Alert to businesses when expected time can not be met
+										let order = req.body['new_state'];
+										let expectedTime = req.body['new_state']['expected_time'];
+										let actualTime = job['jobSpecification'].deliveries[0].dropoffEndTime;
+										console.table({ expectedTime, actualTime });
+										if (expectedTime && moment(actualTime).isAfter(moment(expectedTime))) {
+											sendEmail({
+												name: `${user.firstname} ${user.lastname}`,
+												email: user.email,
+												subject: `Delivery Alert - Order ${req.body['order_id']}`,
+												html: `<div>
 															<h3>The following order may not be delivered on time. See details below:</h3>
 															<br/>
 															<span>Hubrise Order Id: ${req.body['order_id']}</span>
 															<span>Customer: ${order.customer.first_name} ${order.customer.last_name}</span>
 															<span>Address: ${order.customer['address_1']} ${order.customer['address_2']} ${order.customer['city']} ${
-														order.customer['postal_code']
-													}</span>
+													order.customer['postal_code']
+												}</span>
 															<span>Expected delivery time: <strong>${moment(expectedTime).calendar()}</strong></span>
 															<span>Actual delivery time: <strong>${moment(actualTime).calendar()}</strong></span>
 															</div>`
-												})
-													.then(() => console.log('Hubrise Alert Sent Successfully!'))
-													.catch(err =>
-														console.log('Failed to send email alert!', err.message)
-													);
-											}
-											console.log('SUCCESS');
-										});
-									})
-									.catch(err => console.error(err));
-								res.status(200).json({
-									success: true,
-									status: 'DELIVERY_JOB_CREATED',
-									message: 'webhook received'
-								});
-							} else if (event_type === 'update') {
-								// cancel order on system if order update event is one of the 3 order cancellation statuses
-								if (
-									[
-										HUBRISE_STATUS.CANCELLED,
-										HUBRISE_STATUS.DELIVERY_FAILED,
-										HUBRISE_STATUS.REJECTED
-									].includes(req.body['new_state']['status'])
-								) {
-									if (job) {
-										let jobId = job['jobSpecification'].id;
-										let provider = job['selectedConfiguration'].providerId;
-										cancelOrder(jobId, provider, job)
-											.then(message => {
-												job.status = STATUS.CANCELLED;
-												job.save();
-												console.log(message);
 											})
-											.catch(err => {
-												console.error(err);
-												sendEmail({
-													email: 'chipzstar.dev@gmail.com',
-													name: 'Chisom Oguibe',
-													subject: `Hubrise order #${req.body['order_id']} could not be cancelled`,
-													html: `<div><p>Order Id: #${req.body['order_id']}</p><p>Hubrise Account: ${hubrise['accountName']} - ${hubrise['locationId']}<br/></p><p>Job could not be cancelled. <br/>Reason: ${err.message}</p></div>`
-												});
+												.then(() => console.log('Hubrise Alert Sent Successfully!'))
+												.catch(err => console.log('Failed to send email alert!', err.message));
+										}
+										console.log('SUCCESS');
+									});
+								})
+								.catch(err => console.error(err));
+							res.status(200).json({
+								success: true,
+								status: 'DELIVERY_JOB_CREATED',
+								message: 'webhook received'
+							});
+						} else if (event_type === 'update') {
+							// cancel order on system if order update event is one of the 3 order cancellation statuses
+							if (
+								[
+									HUBRISE_STATUS.CANCELLED,
+									HUBRISE_STATUS.DELIVERY_FAILED,
+									HUBRISE_STATUS.REJECTED
+								].includes(req.body['new_state']['status'])
+							) {
+								if (job) {
+									let jobId = job['jobSpecification'].id;
+									let provider = job['selectedConfiguration'].providerId;
+									cancelOrder(jobId, provider, job)
+										.then(message => {
+											job.status = STATUS.CANCELLED;
+											job.save();
+											console.log(message);
+										})
+										.catch(err => {
+											console.error(err);
+											sendEmail({
+												email: 'chipzstar.dev@gmail.com',
+												name: 'Chisom Oguibe',
+												subject: `Hubrise order #${req.body['order_id']} could not be cancelled`,
+												html: `<div><p>Order Id: #${req.body['order_id']}</p><p>Hubrise Account: ${hubrise['accountName']} - ${hubrise['locationId']}<br/></p><p>Job could not be cancelled. <br/>Reason: ${err.message}</p></div>`
 											});
-										res.status(200).json({
-											success: true,
-											status: 'DELIVERY_JOB_UPDATED',
-											message: 'webhook received'
 										});
-									} else {
-										res.status(200).json({
-											success: false,
-											status: 'JOB_DOES_NOT_EXIST',
-											message: `A job with hubrise orderId ${req.body['order_id']} does not exist`
-										});
-									}
-								} else {
 									res.status(200).json({
 										success: true,
-										status: 'ORDER_STATUS_NOT_HANDLED',
-										message: `${req.body['new_state']['status']} is not a status that needs to be handled`
+										status: 'DELIVERY_JOB_UPDATED',
+										message: 'webhook received'
+									});
+								} else {
+									res.status(200).json({
+										success: false,
+										status: 'JOB_DOES_NOT_EXIST',
+										message: `A job with hubrise orderId ${req.body['order_id']} does not exist`
 									});
 								}
+							} else {
+								res.status(200).json({
+									success: true,
+									status: 'ORDER_STATUS_NOT_HANDLED',
+									message: `${req.body['new_state']['status']} is not a status that needs to be handled`
+								});
 							}
 						} else {
-							console.error('No subscription detected!');
-							return res.status(200).json({
+							res.status(200).json({
 								success: false,
-								status: 'NO_SUBSCRIPTION',
+								status: 'NON_MATCHING_TRIGGERS',
 								message:
-									'We cannot carry out orders without a subscription. Please subscribe to one of our business plans!'
+									'The status and/or service-type-ref for this order does not match any of your trigger values'
 							});
 						}
 					} else {
-						res.status(200).json({
+						console.error('No subscription detected!');
+						return res.status(200).json({
 							success: false,
-							status: 'NON_MATCHING_TRIGGERS',
-							message: 'The status and/or service-type-ref for this order does not match any of your trigger values'
+							status: 'NO_SUBSCRIPTION',
+							message:
+								'We cannot carry out orders without a subscription. Please subscribe to one of our business plans!'
 						});
 					}
 				} else {
