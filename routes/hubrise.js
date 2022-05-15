@@ -17,7 +17,7 @@ const router = express.Router();
 
 function validateOrderTriggers(triggers, order) {
 	console.log('-----------------------------------------------');
-	console.log(triggers)
+	console.log(triggers);
 	console.log('-----------------------------------------------');
 	let isSTRValid = false;
 	let isStatusValid = false;
@@ -36,7 +36,7 @@ function validateOrderTriggers(triggers, order) {
 		if (triggers.serviceTypeRefs.includes(currSTR)) {
 			isSTRValid = true;
 		}
-		console.log("STR valid:", isSTRValid)
+		console.log('STR valid:', isSTRValid);
 		console.log('************************************************');
 	}
 	// CHECK ORDER STATUS
@@ -49,7 +49,7 @@ function validateOrderTriggers(triggers, order) {
 		if (triggers.statuses.includes(currStatus)) {
 			isStatusValid = true;
 		}
-		console.log("Status valid:", isStatusValid)
+		console.log('Status valid:', isStatusValid);
 		console.log('************************************************');
 	}
 	return isSTRValid && isStatusValid && isDelivery;
@@ -188,24 +188,32 @@ router.post('/', async (req, res) => {
 			const hubrise = await db.Hubrise.findOne({ locationId: req.body['location_id'] });
 			console.log('Hubrise Account Found:', !!hubrise);
 			if (hubrise) {
-				if (event_type === 'create') {
-					const user = await db.User.findById(hubrise['clientId']);
-					const settings = await db.Settings.findOne({ clientId: user['_id'] });
-					// check that the platform integration is active for that user
-					const isActive = hubrise['active'];
-					console.log('isActive:', isActive);
-					if (isActive) {
-						// CHECK if the incoming delivery is a local delivery
-						// check if hubrise account has set up order triggers, check if order contains any listed service type refs / order statuses
-						const { triggers } = hubrise['options'];
-						let canDeliver = true;
-						if (triggers.enabled) {
-							canDeliver = validateOrderTriggers(triggers, req.body['new_state']);
-						}
-						if (canDeliver) {
-							// check if user has an active subscription
-							const isSubscribed = !!user['subscriptionId'] & !!user['subscriptionPlan'];
-							if (isSubscribed) {
+				const user = await db.User.findById(hubrise['clientId']);
+				const settings = await db.Settings.findOne({ clientId: user['_id'] });
+				// check that the platform integration is active for that user
+				const isActive = hubrise['active'];
+				console.log('isActive:', isActive);
+				if (isActive) {
+					// check if hubrise account has set up order triggers, check if order contains any listed service type refs / order statuses
+					const { triggers } = hubrise['options'];
+					let canDeliver = req.body['service_type'] === SERVICE_TYPE.DELIVERY;
+					if (triggers.enabled) {
+						canDeliver = validateOrderTriggers(triggers, req.body['new_state']);
+					}
+					if (canDeliver) {
+						// check if user has an active subscription
+						const isSubscribed = !!user['subscriptionId'] & !!user['subscriptionPlan'];
+						if (isSubscribed) {
+							// check to see if the hubrise orderId already exists in the system
+							const job = await db.Job.findOne({
+								'jobSpecification.hubriseId': req.body['order_id']
+							});
+							// condition for creating orders from order.create event type
+							const validCreate = event_type === 'create'
+							// condition for creating orders from order.update event type
+							const validUpdate = event_type === 'update' && triggers.enabled && validateOrderTriggers(triggers, req.body['new_state']) && !job
+							// check the event type of the order
+							if (validCreate || validUpdate) {
 								generatePayload(req.body['new_state'], user, settings)
 									.then(payload => {
 										const ids = { hubriseId: req.body['order_id'] };
@@ -254,73 +262,75 @@ router.post('/', async (req, res) => {
 									status: 'DELIVERY_JOB_CREATED',
 									message: 'webhook received'
 								});
-							} else {
-								console.error('No subscription detected!');
-								return res.status(200).json({
-									success: false,
-									status: 'NO_SUBSCRIPTION',
-									message:
-										'We cannot carry out orders without a subscription. Please subscribe to one of our business plans!'
-								});
+							} else if (event_type === 'update') {
+								// cancel order on system if order update event is one of the 3 order cancellation statuses
+								if (
+									[
+										HUBRISE_STATUS.CANCELLED,
+										HUBRISE_STATUS.DELIVERY_FAILED,
+										HUBRISE_STATUS.REJECTED
+									].includes(req.body['new_state']['status'])
+								) {
+									if (job) {
+										let jobId = job['jobSpecification'].id;
+										let provider = job['selectedConfiguration'].providerId;
+										cancelOrder(jobId, provider, job)
+											.then(message => {
+												job.status = STATUS.CANCELLED;
+												job.save();
+												console.log(message);
+											})
+											.catch(err => {
+												console.error(err);
+												sendEmail({
+													email: 'chipzstar.dev@gmail.com',
+													name: 'Chisom Oguibe',
+													subject: `Hubrise order #${req.body['order_id']} could not be cancelled`,
+													html: `<div><p>Order Id: #${req.body['order_id']}</p><p>Hubrise Account: ${hubrise['accountName']} - ${hubrise['locationId']}<br/></p><p>Job could not be cancelled. <br/>Reason: ${err.message}</p></div>`
+												});
+											});
+										res.status(200).json({
+											success: true,
+											status: 'DELIVERY_JOB_UPDATED',
+											message: 'webhook received'
+										});
+									} else {
+										res.status(200).json({
+											success: false,
+											status: 'JOB_DOES_NOT_EXIST',
+											message: `A job with hubrise orderId ${req.body['order_id']} does not exist`
+										});
+									}
+								} else {
+									res.status(200).json({
+										success: true,
+										status: 'ORDER_STATUS_NOT_HANDLED',
+										message: `${req.body['new_state']['status']} is not a status that needs to be handled`
+									});
+								}
 							}
 						} else {
-							res.status(200).json({
+							console.error('No subscription detected!');
+							return res.status(200).json({
 								success: false,
-								status: 'NON_LOCAL_DELIVERY',
-								message: 'Seconds can only fulfill orders that require local delivery'
+								status: 'NO_SUBSCRIPTION',
+								message:
+									'We cannot carry out orders without a subscription. Please subscribe to one of our business plans!'
 							});
 						}
 					} else {
 						res.status(200).json({
 							success: false,
-							status: 'INACTIVE_INTEGRATION_STATUS',
-							message: `The user has disabled this platform integration`
+							status: 'NON_LOCAL_DELIVERY',
+							message: 'Seconds can only fulfill orders that require local delivery'
 						});
 					}
-				} else if (event_type === 'update') {
-					if (
-						[HUBRISE_STATUS.CANCELLED, HUBRISE_STATUS.DELIVERY_FAILED, HUBRISE_STATUS.REJECTED].includes(
-							req.body['new_state']['status']
-						)
-					) {
-						const job = await db.Job.findOne({ 'jobSpecification.hubriseId': req.body['order_id'] });
-						if (job) {
-							let jobId = job['jobSpecification'].id;
-							let provider = job['selectedConfiguration'].providerId;
-							cancelOrder(jobId, provider, job)
-								.then(message => {
-									job.status = STATUS.CANCELLED
-									job.save()
-									console.log(message)
-								})
-								.catch(err => {
-									console.error(err)
-									sendEmail({
-										email: 'chipzstar.dev@gmail.com',
-										name: 'Chisom Oguibe',
-										subject: `Hubrise order #${req.body['order_id']} could not be cancelled`,
-										html: `<div><p>Order Id: #${req.body['order_id']}</p><p>Hubrise Account: ${hubrise['accountName']} - ${hubrise['locationId']}<br/></p><p>Job could not be cancelled. <br/>Reason: ${err.message}</p></div>`
-									});
-								});
-							res.status(200).json({
-								success: true,
-								status: 'DELIVERY_JOB_UPDATED',
-								message: 'webhook received'
-							});
-						} else {
-							res.status(200).json({
-								success: false,
-								status: 'JOB_DOES_NOT_EXIST',
-								message: `A job with hubrise orderId ${req.body['order_id']} does not exist`
-							});
-						}
-					} else {
-						res.status(200).json({
-							success: true,
-							status: 'ORDER_STATUS_NOT_HANDLED',
-							message: `${req.body['new_state']['status']} is not a status that needs to be handled`
-						});
-					}
+				} else {
+					res.status(200).json({
+						success: false,
+						status: 'INACTIVE_INTEGRATION_STATUS',
+						message: `The user has disabled this platform integration`
+					});
 				}
 			} else {
 				res.status(200).json({
