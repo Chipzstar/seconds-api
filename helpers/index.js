@@ -12,6 +12,8 @@ const moment = require('moment-timezone');
 const { nanoid } = require('nanoid');
 const orderId = require('order-id')(process.env.UID_SECRET_KEY);
 const { quoteSchema, jobRequestSchema } = require('../schemas');
+const PNF = require('google-libphonenumber').PhoneNumberFormat
+const phoneUtil = require('google-libphonenumber').PhoneNumberUtil.getInstance()
 // CONSTANTS
 const { STRATEGIES } = require('../constants/streetStream');
 const { ERROR_CODES: STUART_ERROR_CODES, ERROR_MESSAGES } = require('../constants/stuart');
@@ -478,6 +480,20 @@ async function checkJobExpired(orderNumber, driver, user, settings) {
 	} else {
 		console.log(`No job found with order number: ${orderNumber}`);
 	}
+}
+
+function validatePhoneNumbers(phoneNumbers){
+	return phoneNumbers.map(phone => {
+		console.log("PHONE", phone)
+		const number = phoneUtil.parseAndKeepRawInput(phone, 'GB');
+		if (phoneUtil.getRegionCodeForNumber(number) === 'GB') {
+			const E164Number = phoneUtil.format(number, PNF.E164);
+			console.log("E164Number:", E164Number)
+			return E164Number
+		} else {
+			return String(process.env.SECONDS_SUPPORT_NUMBER)
+		}
+	})
 }
 
 // QUOTE AGGREGATION
@@ -2338,6 +2354,7 @@ module.exports = {
 	checkAlternativeVehicles,
 	checkJobExpired,
 	chooseBestProvider,
+	validatePhoneNumbers,
 	checkPickupHours,
 	findAvailableDriver,
 	getResultantQuotes,

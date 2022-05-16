@@ -19,7 +19,7 @@ const {
 	geocodeAddress,
 	genDeliveryId,
 	checkJobExpired,
-	createJobRequestPayload
+	createJobRequestPayload, validatePhoneNumbers
 } = require('../helpers');
 
 const {
@@ -175,6 +175,10 @@ router.post('/create', async (req, res) => {
 			req.body.packagePickupStartTime = nextDayPickup;
 			req.body.drops[0].packageDropoffEndTime = nextDayDropoff;
 		}
+		// VALIDATE PICKUP + DROPOFF PHONE NUMBERS ARE VALID UK NUMBERS
+		const [pickupPhoneNumber, dropoffPhoneNumber] = validatePhoneNumbers([req.body.pickupPhoneNumber, req.body.drops[0].dropoffPhoneNumber])
+		req.body.pickupPhoneNumber = pickupPhoneNumber
+		req.body.drops[0].dropoffPhoneNumber = dropoffPhoneNumber
 		const QUOTES = await getResultantQuotes(req.body, vehicleSpecs, jobDistance, settings, DISPATCH_MODES.MANUAL);
 		// Use selection strategy to select the winner quote
 		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
@@ -410,6 +414,10 @@ router.post('/assign', async (req, res) => {
 			req.body.packagePickupStartTime = nextDayPickup;
 			req.body.drops[0].packageDropoffEndTime = nextDayDropoff;
 		}
+		// VALIDATE PICKUP + DROPOFF PHONE NUMBERS ARE VALID UK NUMBERS
+		const [pickupPhoneNumber, dropoffPhoneNumber] = validatePhoneNumbers([req.body.pickupPhoneNumber, req.body.drops[0].dropoffPhoneNumber])
+		req.body.pickupPhoneNumber = pickupPhoneNumber
+		req.body.drops[0].dropoffPhoneNumber = dropoffPhoneNumber
 		// check if user has a subscription active
 		console.log('SUBSCRIPTION ID:', !!subscriptionId);
 		if (subscriptionId && subscriptionPlan) {
@@ -512,7 +520,7 @@ router.post('/assign', async (req, res) => {
 			console.log('======================================================================================');
 			// Append the selected provider job to the jobs database
 			const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
-			newJobAlerts && sendNewJobEmails(team, job, settings.jobAlerts.new).then(res => console.log(res));
+			newJobAlerts && sendNewJobEmails(team, job, settings['jobAlerts'].new).then(res => console.log(res));
 			const template = `Your ${company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today. Track your delivery here: ${process.env.TRACKING_BASE_URL}/${createdJob._id}`;
 			sendSMS(req.body.drops[0].dropoffPhoneNumber, template, subscriptionItems, smsEnabled).then(() =>
 				console.log('SMS sent successfully!')

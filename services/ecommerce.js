@@ -8,7 +8,7 @@ const {
 	genDeliveryId,
 	getResultantQuotes,
 	chooseBestProvider,
-	providerCreatesJob
+	providerCreatesJob, validatePhoneNumbers
 } = require('../helpers');
 
 const {
@@ -273,6 +273,10 @@ async function createEcommerceJob(platform, id, payload, ecommerceIds, user, set
 		}
 		// if the default dispatcher = COURIER, attempt to send the job to a third party courier
 		// This is the default option for new users who have not set up their business workflow
+		// VALIDATE PICKUP + DROPOFF PHONE NUMBERS ARE VALID UK NUMBERS
+		const [pickupPhoneNumber, dropoffPhoneNumber] = validatePhoneNumbers([payload.pickupPhoneNumber, payload.drops[0].dropoffPhoneNumber])
+		payload.pickupPhoneNumber = pickupPhoneNumber
+		payload.drops[0].dropoffPhoneNumber = dropoffPhoneNumber
 		const QUOTES = await getResultantQuotes(payload, vehicleSpecs, jobDistance, settings);
 		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
 		if (!bestQuote) {
