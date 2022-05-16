@@ -19,8 +19,8 @@ function validateOrderTriggers(triggers, order) {
 	console.log('-----------------------------------------------');
 	console.log(triggers);
 	console.log('-----------------------------------------------');
-	let isSTRValid = false;
-	let isStatusValid = false;
+	let isSTRValid = true;
+	let isStatusValid = true;
 	const isDelivery = order['service_type'] === SERVICE_TYPE.DELIVERY;
 	// check if both service type refs and order statuses triggers are empty, return false
 	if (!triggers.statuses.length && !triggers.serviceTypeRefs.length) {
@@ -28,6 +28,7 @@ function validateOrderTriggers(triggers, order) {
 	}
 	// CHECK SERVICE TYPE REF (STR)
 	if (triggers.serviceTypeRefs.length) {
+		isSTRValid = false;
 		console.log('************************************************');
 		// get current serviceTypeRef
 		const currSTR = order['service_type_ref'];
@@ -41,6 +42,7 @@ function validateOrderTriggers(triggers, order) {
 	}
 	// CHECK ORDER STATUS
 	if (triggers.statuses.length) {
+		isStatusValid = false;
 		console.log('************************************************');
 		// get current order status
 		const currStatus = order['status'];
