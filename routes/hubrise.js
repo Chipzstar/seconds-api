@@ -76,9 +76,6 @@ async function sumProductWeights(items, user) {
 
 async function generatePayload(order, user, settings) {
 	try {
-		console.log('************************************');
-		console.log(order);
-		console.log('************************************');
 		const packageDescription = order.items.map(item => item['product_name']).join('\n');
 		const totalWeight = await sumProductWeights(order.items, user);
 		const vehicleType = convertWeightToVehicleCode(totalWeight).vehicleCode;
@@ -178,7 +175,9 @@ router.post('/', async (req, res) => {
 		// filter the request topic and shop domain
 		const agent = req.headers['user-agent'];
 		const { resource_type, event_type } = req.body;
-		console.table({ agent });
+		console.log('************************************');
+		console.log(req.body);
+		console.log('************************************');
 		if (resource_type === 'order') {
 			console.log('-----------------------------');
 			console.log('ORDER ID:');
@@ -214,6 +213,7 @@ router.post('/', async (req, res) => {
 							triggers.enabled &&
 							validateOrderTriggers(triggers, req.body['new_state']) &&
 							!job;
+						console.table({validCreate, validUpdate})
 						// check the event type of the order
 						if (validCreate || validUpdate) {
 							generatePayload(req.body['new_state'], user, settings)
