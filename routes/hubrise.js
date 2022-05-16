@@ -203,10 +203,11 @@ router.post('/', async (req, res) => {
 						// check if hubrise account has set up order triggers, check if order contains any listed service type refs / order statuses
 						const { triggers } = hubrise['options'];
 						// condition for creating orders from order.create event type
-						let validCreate = event_type === 'create' && req.body['service_type'] === SERVICE_TYPE.DELIVERY;
+						let validCreate = event_type === 'create' && req.body['new_state']['service_type'] === SERVICE_TYPE.DELIVERY;
 						if (triggers.enabled) {
 							validCreate = validateOrderTriggers(triggers, req.body['new_state']);
 						}
+						console.log(!!job)
 						// condition for creating orders from order.update event type
 						const validUpdate =
 							event_type === 'update' &&
