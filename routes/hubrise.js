@@ -76,7 +76,7 @@ async function sumProductWeights(items, user) {
 	return totalWeight;
 }
 
-async function generatePayload(order, user, settings) {
+async function generatePayload(order, user, settings, hubrise) {
 	try {
 		const packageDescription = order.items.map(item => item['product_name']).join('\n');
 		const totalWeight = await sumProductWeights(order.items, user);
@@ -161,12 +161,22 @@ async function generatePayload(order, user, settings) {
 		console.log('-----------------------------------------------------------------');
 		return payload;
 	} catch (err) {
-		await sendEmail({
-			email: 'chipzstar.dev@gmail.com',
-			name: 'Chisom Oguibe',
-			subject: `Failed Hubrise order #${order['order_id']}`,
-			html: `<div><p>Order Id: #${order['order_id']}</p><p>Hubrise Account: ${user.hubrise.accountName} - ${user.hubrise.locationId}<br/></p><p>Job could not be created. <br/>Reason: ${err.message}</p></div>`
-		});
+		await Promise.all(
+			[
+				{ email: 'chipzstar.dev@gmail.com', name: 'Chisom Oguibe' },
+				{
+					email: user.email,
+					name: user.firstname
+				}
+			].map(({ email, name }) => {
+				sendEmail({
+					email: email,
+					name: name,
+					subject: `Failed Hubrise order #${order['order_id']}`,
+					html: `<div><p>Order Id: #${order['order_id']}</p><p>Hubrise Account: ${hubrise.accountName} - ${hubrise.locationId}<br/></p><p>Job could not be created. <br/>Reason: ${err.message}</p></div>`
+				});
+			})
+		);
 		console.error(err);
 		return err;
 	}
@@ -205,21 +215,22 @@ router.post('/', async (req, res) => {
 						// check if hubrise account has set up order triggers, check if order contains any listed service type refs / order statuses
 						const { triggers } = hubrise['options'];
 						// condition for creating orders from order.create event type
-						let validCreate = event_type === 'create' && req.body['new_state']['service_type'] === SERVICE_TYPE.DELIVERY;
+						let validCreate =
+							event_type === 'create' && req.body['new_state']['service_type'] === SERVICE_TYPE.DELIVERY;
 						if (triggers.enabled) {
 							validCreate = validateOrderTriggers(triggers, req.body['new_state']);
 						}
-						console.log(!!job)
+						console.log(!!job);
 						// condition for creating orders from order.update event type
 						const validUpdate =
 							event_type === 'update' &&
 							triggers.enabled &&
 							validateOrderTriggers(triggers, req.body['new_state']) &&
 							!job;
-						console.table({validCreate, validUpdate})
+						console.table({ validCreate, validUpdate });
 						// check the event type of the order
 						if (validCreate || validUpdate) {
-							generatePayload(req.body['new_state'], user, settings)
+							generatePayload(req.body['new_state'], user, settings, hubrise)
 								.then(payload => {
 									const ids = { hubriseId: req.body['order_id'] };
 									createEcommerceJob(
