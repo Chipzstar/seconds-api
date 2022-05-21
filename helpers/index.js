@@ -473,7 +473,7 @@ async function checkJobExpired(orderNumber, driver, user, settings) {
 			});
 			const title = `Job Expired!`;
 			const content = `Order ${orderNumber} was not accepted by your driver on time and is now cancelled`;
-			sendNotification(clientId, title, content, MAGIC_BELL_CHANNELS.BUSINESS_WORKFLOWS).then(() =>
+			sendNotification(user._id, title, content, MAGIC_BELL_CHANNELS.BUSINESS_WORKFLOWS).then(() =>
 				console.log('notification sent!')
 			);
 		}
