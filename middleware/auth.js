@@ -1,5 +1,4 @@
 require('dotenv').config();
-const express = require("express")
 const { AUTHORIZATION_KEY } = require("@seconds-technologies/database_schemas/constants");
 const db = require('../models');
 

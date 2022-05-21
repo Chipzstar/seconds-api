@@ -19,7 +19,8 @@ const {
 	geocodeAddress,
 	genDeliveryId,
 	checkJobExpired,
-	createJobRequestPayload, validatePhoneNumbers
+	createJobRequestPayload,
+	validatePhoneNumbers
 } = require('../helpers');
 
 const {
@@ -31,7 +32,8 @@ const {
 	DISPATCH_MODES,
 	AUTHORIZATION_KEY,
 	PROVIDER_ID,
-	PROVIDER_TYPES, PLATFORMS
+	PROVIDER_TYPES,
+	PLATFORMS
 } = require('@seconds-technologies/database_schemas/constants');
 
 const moment = require('moment');
@@ -43,6 +45,7 @@ const sendSMS = require('../services/sms');
 const sendNotification = require('../services/notification');
 const { nanoid } = require('nanoid');
 const { MAGIC_BELL_CHANNELS } = require('../constants');
+const { validateJobId } = require('../middleware/jobs');
 
 /**
  * List Jobs - The API endpoint for listing all jobs currently belonging to a user
@@ -176,9 +179,12 @@ router.post('/create', async (req, res) => {
 			req.body.drops[0].packageDropoffEndTime = nextDayDropoff;
 		}
 		// VALIDATE PICKUP + DROPOFF PHONE NUMBERS ARE VALID UK NUMBERS
-		const [pickupPhoneNumber, dropoffPhoneNumber] = validatePhoneNumbers([req.body.pickupPhoneNumber, req.body.drops[0].dropoffPhoneNumber])
-		req.body.pickupPhoneNumber = pickupPhoneNumber
-		req.body.drops[0].dropoffPhoneNumber = dropoffPhoneNumber
+		const [pickupPhoneNumber, dropoffPhoneNumber] = validatePhoneNumbers([
+			req.body.pickupPhoneNumber,
+			req.body.drops[0].dropoffPhoneNumber
+		]);
+		req.body.pickupPhoneNumber = pickupPhoneNumber;
+		req.body.drops[0].dropoffPhoneNumber = dropoffPhoneNumber;
 		const QUOTES = await getResultantQuotes(req.body, vehicleSpecs, jobDistance, settings, DISPATCH_MODES.MANUAL);
 		// Use selection strategy to select the winner quote
 		const bestQuote = chooseBestProvider(selectionStrategy, QUOTES);
@@ -415,9 +421,12 @@ router.post('/assign', async (req, res) => {
 			req.body.drops[0].packageDropoffEndTime = nextDayDropoff;
 		}
 		// VALIDATE PICKUP + DROPOFF PHONE NUMBERS ARE VALID UK NUMBERS
-		const [pickupPhoneNumber, dropoffPhoneNumber] = validatePhoneNumbers([req.body.pickupPhoneNumber, req.body.drops[0].dropoffPhoneNumber])
-		req.body.pickupPhoneNumber = pickupPhoneNumber
-		req.body.drops[0].dropoffPhoneNumber = dropoffPhoneNumber
+		const [pickupPhoneNumber, dropoffPhoneNumber] = validatePhoneNumbers([
+			req.body.pickupPhoneNumber,
+			req.body.drops[0].dropoffPhoneNumber
+		]);
+		req.body.pickupPhoneNumber = pickupPhoneNumber;
+		req.body.drops[0].dropoffPhoneNumber = dropoffPhoneNumber;
 		// check if user has a subscription active
 		console.log('SUBSCRIPTION ID:', !!subscriptionId);
 		if (subscriptionId && subscriptionPlan) {
@@ -728,7 +737,10 @@ router.patch('/dispatch', async (req, res) => {
 				// if ON-DEMAND, the difference between pickup and dropoff time should be max. 2 hours
 			} else if (job.jobSpecification.deliveryType === DELIVERY_TYPES.ON_DEMAND.name) {
 				job.jobSpecification.pickupStartTime = moment().add(20, 'minutes').format();
-				job.jobSpecification.deliveries[0].dropoffEndTime = moment().add(2, 'hours').add(20, 'minutes').format();
+				job.jobSpecification.deliveries[0].dropoffEndTime = moment()
+					.add(2, 'hours')
+					.add(20, 'minutes')
+					.format();
 			}
 			// check if user has a subscription active
 			console.log('SUBSCRIPTION ID:', !!subscriptionId);
@@ -960,7 +972,7 @@ router.post('/multi-drop', async (req, res) => {
  * @param res - response object
  * @returns {Promise<*>}
  */
-router.get('/:job_id', async (req, res) => {
+router.get('/:job_id', validateJobId, async (req, res) => {
 	try {
 		const { job_id } = req.params;
 		let foundJob = await db.Job.findOne({ _id: job_id });
@@ -991,7 +1003,7 @@ router.get('/:job_id', async (req, res) => {
  * @param res - response object
  * @returns {Promise<*>}
  */
-router.patch('/:job_id', async (req, res) => {
+router.patch('/:job_id', validateJobId, async (req, res) => {
 	if (!Object.keys(req.body).length) {
 		return res.status(400).json({
 			code: 400,
@@ -1029,14 +1041,17 @@ router.patch('/:job_id', async (req, res) => {
 				if (pickupStartTime) job['jobSpecification'].pickupStartTime = pickupStartTime;
 				if (dropoffStartTime) job['jobSpecification'].deliveries[0].dropoffStartTime = dropoffStartTime;
 				if (dropoffEndTime) job['jobSpecification'].deliveries[0].dropoffEndTime = dropoffEndTime;
-				if (firstname) job.jobSpecification.deliveries[0].dropoffLocation.firstName = firstname
-				if (lastname) job.jobSpecification.deliveries[0].dropoffLocation.lastName = lastname
-				if (email) job.jobSpecification.deliveries[0].dropoffLocation.email = email
-				if (phone) job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber = phone
-				if (addressLine1) job.jobSpecification.deliveries[0].dropoffLocation.streetAddress = addressLine2 ? addressLine1 + addressLine2 : addressLine1
-				if (city) job.jobSpecification.deliveries[0].dropoffLocation.city = city
-				if (postcode) job.jobSpecification.deliveries[0].dropoffLocation.postcode = postcode
-				if (fullAddress) job.jobSpecification.deliveries[0].dropoffLocation.fullAddress = fullAddress
+				if (firstname) job.jobSpecification.deliveries[0].dropoffLocation.firstName = firstname;
+				if (lastname) job.jobSpecification.deliveries[0].dropoffLocation.lastName = lastname;
+				if (email) job.jobSpecification.deliveries[0].dropoffLocation.email = email;
+				if (phone) job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber = phone;
+				if (addressLine1)
+					job.jobSpecification.deliveries[0].dropoffLocation.streetAddress = addressLine2
+						? addressLine1 + addressLine2
+						: addressLine1;
+				if (city) job.jobSpecification.deliveries[0].dropoffLocation.city = city;
+				if (postcode) job.jobSpecification.deliveries[0].dropoffLocation.postcode = postcode;
+				if (fullAddress) job.jobSpecification.deliveries[0].dropoffLocation.fullAddress = fullAddress;
 				await job.save();
 				res.status(200).json({
 					jobId: job._id,
@@ -1076,15 +1091,23 @@ router.delete('/:job_id', async (req, res) => {
 		const { comment } = req.query;
 		const id = req.params['job_id'];
 		console.table(id, comment);
-		let foundJob = await db.Job.findByIdAndUpdate(id, { status: STATUS.CANCELLED }, { new: true });
+		let foundJob = mongoose.Types.ObjectId.isValid(id)
+			? await db.Job.findByIdAndUpdate(id,{ status: STATUS.CANCELLED }, { new: true })
+			: await db.Job.findOneAndUpdate(
+					{ 'jobSpecification.orderNumber': id },
+					{ status: STATUS.CANCELLED },
+					{ new: true }
+			  );
 		if (foundJob) {
 			let jobId = foundJob.jobSpecification.id;
 			let provider = foundJob.selectedConfiguration.providerId;
 			let message = await cancelOrder(jobId, provider, foundJob, comment);
 			console.log(message);
 			const title = `Delivery Cancelled!`;
-			const content = `Order ${foundJob.jobSpecification.orderNumber} has been cancelled by the client`
-			sendNotification(foundJob.clientId, title, content, MAGIC_BELL_CHANNELS.ORDER_CANCELLED).then(() => console.log("notification sent!"))
+			const content = `Order ${foundJob.jobSpecification.orderNumber} has been cancelled by the client`;
+			sendNotification(foundJob.clientId, title, content, MAGIC_BELL_CHANNELS.ORDER_CANCELLED).then(() =>
+				console.log('notification sent!')
+			);
 			return res.status(200).json({
 				message,
 				jobId,
@@ -1099,14 +1122,14 @@ router.delete('/:job_id', async (req, res) => {
 		}
 	} catch (err) {
 		err.response ? console.error('RESPONSE ERROR:', err.response.data) : console.log('GENERAL ERROR:', err);
-		if (err.response.data) {
+		if (err.response && err.response.data) {
 			return res.status(err.response.status).json({
 				error: err.response.data
 			});
 		}
 		return res.status(500).json({
 			code: 500,
-			message: 'Unknown error occurred!'
+			message: err.message ? err.message : 'Unknown error occurred!'
 		});
 	}
 });
