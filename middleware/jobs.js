@@ -3,6 +3,7 @@ const ObjectId = require('mongoose').Types.ObjectId;
 
 const validateJobId = async (req, res, next) => {
 	try {
+		const id = req.params['job_id'];
 		if (ObjectId.isValid(id)) {
 			if (String(new ObjectId(id)) === id) return next();
 			return res.status(400).json({
