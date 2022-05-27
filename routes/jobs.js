@@ -814,7 +814,7 @@ router.patch('/dispatch', async (req, res) => {
  */
 router.post('/multi-drop', async (req, res) => {
 	try {
-		let { pickupAddress, packageDeliveryType, packagePickupStartTime, vehicleType, drops } = req.body;
+		let { pickupAddress, packageDeliveryType, packagePickupStartTime, vehicleType, drops, windowStartTime, windowEndTime } = req.body;
 		//generate client reference number
 		const jobReference = genJobReference();
 		let commissionCharge = false;
@@ -887,7 +887,7 @@ router.post('/multi-drop', async (req, res) => {
 				deliveries,
 				providerId
 			} = await providerCreateMultiJob(
-				PROVIDERS.STREET_STREAM,
+				PROVIDERS.STUART,
 				jobReference,
 				selectionStrategy,
 				req.body,
@@ -937,7 +937,7 @@ router.post('/multi-drop', async (req, res) => {
 			console.log('======================================================================================');
 			// Append the selected provider job to the jobs database
 			const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
-			newJobAlerts && sendNewJobEmails(team, job, settings['jobAlerts'].new).then(res => console.log(res));
+			newJobAlerts && sendNewJobEmails(team, job, settings.jobAlerts.new).then(res => console.log(res));
 			return res.status(200).json({
 				jobId: createdJob._id,
 				...job
@@ -1041,20 +1041,20 @@ router.patch('/:job_id', validateJobId, async (req, res) => {
 				if (pickupStartTime) job['jobSpecification'].pickupStartTime = pickupStartTime;
 				if (dropoffStartTime) job['jobSpecification'].deliveries[0].dropoffStartTime = dropoffStartTime;
 				if (dropoffEndTime) job['jobSpecification'].deliveries[0].dropoffEndTime = dropoffEndTime;
-				if (firstname) job.jobSpecification.deliveries[0].dropoffLocation.firstName = firstname;
-				if (lastname) job.jobSpecification.deliveries[0].dropoffLocation.lastName = lastname;
-				if (email) job.jobSpecification.deliveries[0].dropoffLocation.email = email;
-				if (phone) job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber = phone;
+				if (firstname) job['jobSpecification'].deliveries[0].dropoffLocation.firstName = firstname;
+				if (lastname) job['jobSpecification'].deliveries[0].dropoffLocation.lastName = lastname;
+				if (email) job['jobSpecification'].deliveries[0].dropoffLocation.email = email;
+				if (phone) job['jobSpecification'].deliveries[0].dropoffLocation.phoneNumber = phone;
 				if (addressLine1)
-					job.jobSpecification.deliveries[0].dropoffLocation.streetAddress = addressLine2
+					job['jobSpecification'].deliveries[0].dropoffLocation.streetAddress = addressLine2
 						? addressLine1 + addressLine2
 						: addressLine1;
-				if (city) job.jobSpecification.deliveries[0].dropoffLocation.city = city;
-				if (postcode) job.jobSpecification.deliveries[0].dropoffLocation.postcode = postcode;
-				if (fullAddress) job.jobSpecification.deliveries[0].dropoffLocation.fullAddress = fullAddress;
+				if (city) job['jobSpecification'].deliveries[0].dropoffLocation.city = city;
+				if (postcode) job['jobSpecification'].deliveries[0].dropoffLocation.postcode = postcode;
+				if (fullAddress) job['jobSpecification'].deliveries[0].dropoffLocation.fullAddress = fullAddress;
 				await job.save();
 				res.status(200).json({
-					jobId: job._id,
+					jobId: job['_id'],
 					message: 'Job updated successfully',
 					...job.toObject()
 				});
