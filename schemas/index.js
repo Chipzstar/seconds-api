@@ -41,3 +41,31 @@ exports.jobRequestSchema = {
 	itemsCount: null,
 	vehicleType: ''
 };
+
+exports.deliverySchema = {
+	id: "",
+	orderNumber: "",
+	orderReference: "",
+	description: "",
+	dropoffStartTime: "",
+	dropoffEndTime: "",
+	transport: "",
+	dropoffLocation: {
+		fullAddress: "",
+		streetAddress: "",
+		city: "",
+		postcode: "",
+		latitude: "",
+		longitude: "",
+		country: 'UK',
+		phoneNumber: "",
+		email: "",
+		firstName: "",
+		lastName: "",
+		businessName: "",
+		instructions: "",
+	},
+	trackingHistory: [],
+	trackingURL: "",
+	status: ""
+}

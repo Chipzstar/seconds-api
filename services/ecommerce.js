@@ -23,6 +23,7 @@ const {
 } = require('@seconds-technologies/database_schemas/constants');
 const orderId = require('order-id')(process.env.UID_SECRET_KEY);
 
+const { v4: uuidv4 } = require('uuid');
 const db = require('../models');
 const moment = require('moment');
 const sendSMS = require('./sms');
@@ -30,6 +31,7 @@ const sendEmail = require('./email');
 const { finaliseJob, dailyBatchOrder, incrementalBatchOrder } = require('../helpers');
 const sendNotification = require('./notification');
 const { MAGIC_BELL_CHANNELS } = require('../constants');
+const { deliverySchema } = require('../schemas');
 
 async function createEcommerceJob(platform, id, payload, ecommerceIds, user, settings, domain) {
 	try {
@@ -106,7 +108,7 @@ async function createEcommerceJob(platform, id, payload, ecommerceIds, user, set
 							transport: VEHICLE_CODES_MAP[driver.vehicle].name
 						},
 						jobSpecification: {
-							id: genDeliveryId(),
+							id: uuidv4(),
 							jobReference: clientRefNumber,
 							orderNumber: orderId.generate(),
 							...ecommerceIds,
@@ -130,7 +132,9 @@ async function createEcommerceJob(platform, id, payload, ecommerceIds, user, set
 							},
 							deliveries: [
 								{
+									...deliverySchema,
 									id: genDeliveryId(),
+									orderNumber: orderId.generate(),
 									orderReference: payload.drops[0]['reference'],
 									description: payload.drops[0]['packageDescription'],
 									dropoffStartTime: payload.drops[0].packageDropoffStartTime,
@@ -156,6 +160,12 @@ async function createEcommerceJob(platform, id, payload, ecommerceIds, user, set
 											? payload.drops[0].dropoffInstructions
 											: ''
 									},
+									trackingHistory: [
+										{
+											timestamp: moment().unix(),
+											status: STATUS.NEW
+										}
+									],
 									trackingURL: '',
 									status: STATUS.PENDING
 								}
@@ -171,12 +181,6 @@ async function createEcommerceJob(platform, id, payload, ecommerceIds, user, set
 						platform,
 						dispatchMode: DISPATCH_MODES.AUTO,
 						status: STATUS.PENDING,
-						trackingHistory: [
-							{
-								timestamp: moment().unix(),
-								status: STATUS.NEW
-							}
-						],
 						vehicleType: payload.vehicleType
 					};
 					return await finaliseJob(user, job, clientId, commissionCharge, driver, settings, settings.sms);
@@ -195,7 +199,7 @@ async function createEcommerceJob(platform, id, payload, ecommerceIds, user, set
 						transport: ''
 					},
 					jobSpecification: {
-						id: genDeliveryId(),
+						id: uuidv4(),
 						jobReference: clientRefNumber,
 						orderNumber: orderId.generate(),
 						...ecommerceIds,
@@ -219,7 +223,9 @@ async function createEcommerceJob(platform, id, payload, ecommerceIds, user, set
 						},
 						deliveries: [
 							{
+								...deliverySchema,
 								id: genDeliveryId(),
+								orderNumber: orderId.generate(),
 								orderReference: payload.drops[0]['reference'],
 								description: payload.drops[0]['packageDescription'],
 								dropoffStartTime: payload.drops[0].packageDropoffStartTime,
@@ -245,6 +251,12 @@ async function createEcommerceJob(platform, id, payload, ecommerceIds, user, set
 										? payload.drops[0].dropoffInstructions
 										: ''
 								},
+								trackingHistory: [
+									{
+										timestamp: moment().unix(),
+										status: STATUS.NEW
+									}
+								],
 								trackingURL: '',
 								status: STATUS.NEW
 							}
@@ -260,12 +272,6 @@ async function createEcommerceJob(platform, id, payload, ecommerceIds, user, set
 					platform,
 					dispatchMode: DISPATCH_MODES.MANUAL,
 					status: STATUS.NEW,
-					trackingHistory: [
-						{
-							timestamp: moment().unix(),
-							status: STATUS.NEW
-						}
-					],
 					vehicleType: payload.vehicleType
 				};
 				return await finaliseJob(user, job, clientId, commissionCharge, null, settings, settings.sms);
@@ -343,12 +349,6 @@ async function createEcommerceJob(platform, id, payload, ecommerceIds, user, set
 			platform,
 			dispatchMode: DISPATCH_MODES.AUTO,
 			status: STATUS.NEW,
-			trackingHistory: [
-				{
-					timestamp: moment().unix(),
-					status: STATUS.NEW
-				}
-			],
 			vehicleType: payload.vehicleType
 		};
 		if (settings && deliveryFee.toFixed(2) > settings.courierPriceThreshold) {
@@ -359,7 +359,7 @@ async function createEcommerceJob(platform, id, payload, ecommerceIds, user, set
 			const title = `Price threshold reached!`;
 			const content = `The price for one of your orders has exceeded your courier price range of £${
 				settings.courierPriceThreshold}.\nDelivery Fee: £${deliveryFee.toFixed(2)}\nOrder Number: ${job.jobSpecification.orderNumber}`
-			sendNotification(clientId, title, content, MAGIC_BELL_CHANNELS.BUSINESS_WORKFLOWS).then(() => console.log("notification sent!"))
+			sendNotification(user._id, title, content, MAGIC_BELL_CHANNELS.BUSINESS_WORKFLOWS).then(() => console.log("notification sent!"))
 		}
 		return await finaliseJob(
 			user,

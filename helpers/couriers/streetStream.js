@@ -46,6 +46,8 @@ function translateStreetStreamStatus(value) {
 			return { newStatus: STATUS.CANCELLED, hubriseStatus: ORDER_STATUS.DELIVERY_FAILED };
 		case JOB_STATUS.NO_RESPONSE:
 			return { newStatus: STATUS.CANCELLED, hubriseStatus: ORDER_STATUS.DELIVERY_FAILED };
+		case JOB_STATUS.EXPIRED_WITHOUT_ACCEPTANCE:
+			return { newStatus: STATUS.CANCELLED, hubriseStatus: ORDER_STATUS.REJECTED };
 		default:
 			return { newStatus: value, hubriseStatus: null }
 	}

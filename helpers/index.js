@@ -36,6 +36,7 @@ const {
 } = require('@seconds-technologies/database_schemas/constants');
 const sendNotification = require('../services/notification');
 const { MAGIC_BELL_CHANNELS } = require('../constants');
+const { deliverySchema } = require('../schemas')
 // google maps api client
 const GMapsClient = new Client();
 // setup axios instances
@@ -274,19 +275,6 @@ async function calculateJobDistance(origin, destination, mode) {
 		return distance;
 	} catch (err) {
 		throw err;
-	}
-}
-
-function checkMultiDropPrice(numDrops) {
-	switch (numDrops) {
-		case numDrops >= 5 && numDrops <= 9:
-			return 7;
-		case numDrops >= 10 && numDrops <= 19:
-			return 6;
-		case numDrops >= 20 && numDrops <= 30:
-			return 5;
-		default:
-			return 7;
 	}
 }
 
@@ -1012,7 +1000,9 @@ async function stuartJobRequest(ref, params, vehicleSpecs) {
 		console.log(deliveryInfo);
 		console.log('----------------------------');
 		const delivery = {
+			...deliverySchema,
 			id: deliveryInfo.id,
+			orderNumber: orderId.generate(),
 			orderReference: deliveryInfo['client_reference'],
 			description: deliveryInfo['package_description'],
 			dropoffStartTime: data['dropoff_at']
@@ -1035,6 +1025,12 @@ async function stuartJobRequest(ref, params, vehicleSpecs) {
 				businessName: deliveryInfo['dropoff']['contact']['business_name'],
 				instructions: deliveryInfo['dropoff']['comment']
 			},
+			trackingHistory: [
+				{
+					timestamp: moment().unix(),
+					status: STATUS.NEW
+				}
+			],
 			trackingURL: deliveryInfo['tracking_url'],
 			status: STATUS.PENDING
 		};
@@ -1127,6 +1123,7 @@ async function stuartMultiJobRequest(ref, params, vehicleSpecs) {
 		console.log('----------------------------');
 		let deliveries = data['deliveries'].map(delivery => ({
 			id: delivery.id,
+			orderNumber: orderId.generate(),
 			orderReference: delivery.client_reference,
 			description: delivery.package_description,
 			dropoffStartTime: delivery.eta['dropoff'] ? moment(delivery.eta['dropoff']).format() : data['dropoff_at'],
@@ -1147,6 +1144,12 @@ async function stuartMultiJobRequest(ref, params, vehicleSpecs) {
 				businessName: delivery['dropoff']['contact']['business_name'],
 				instructions: delivery['dropoff']['comment']
 			},
+			trackingHistory: [
+				{
+					timestamp: moment().unix(),
+					status: STATUS.NEW
+				}
+			],
 			trackingURL: delivery['tracking_url'],
 			status: STATUS.PENDING
 		}));
@@ -1250,6 +1253,7 @@ async function gophrJobRequest(ref, params, vehicleSpecs) {
 			const { job_id, public_tracker_url, pickup_eta, delivery_eta, price_gross } = response.data;
 			let delivery = {
 				id: genDeliveryId(),
+				orderNumber: orderId.generate(),
 				orderReference: drops[0].reference,
 				description: packageDescription ? packageDescription : '',
 				dropoffStartTime: delivery_eta ? moment(delivery_eta).format() : drops[0].packageDropoffStartTime,
@@ -1270,6 +1274,12 @@ async function gophrJobRequest(ref, params, vehicleSpecs) {
 					businessName: dropoffBusinessName ? dropoffBusinessName : '',
 					instructions: dropoffInstructions ? dropoffInstructions : ''
 				},
+				trackingHistory: [
+					{
+						timestamp: moment().unix(),
+						status: STATUS.NEW
+					}
+				],
 				trackingURL: public_tracker_url,
 				status: STATUS.PENDING
 			};
@@ -1380,7 +1390,9 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 		const data = (await streetStreamAxios.post(createJobURL, payload)).data;
 		console.log(data);
 		const delivery = {
+			...deliverySchema,
 			id: data['dropOff'].id,
+			orderNumber: orderId.generate(),
 			orderReference: data['dropOff'].clientTag,
 			description: data['dropOff']['dropOffNotes'],
 			dropoffStartTime: data['dropOff']['dropOffFrom']
@@ -1405,6 +1417,12 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 				businessName: drops[0].dropoffBusinessName ? drops[0].dropoffBusinessName : '',
 				instructions: drops[0].dropoffInstructions ? drops[0].dropoffInstructions : ''
 			},
+			trackingHistory: [
+				{
+					timestamp: moment().unix(),
+					status: STATUS.NEW
+				}
+			],
 			trackingURL: '',
 			status: STATUS.PENDING
 		};
@@ -1491,6 +1509,7 @@ async function streetStreamMultiJobRequest(ref, strategy, params, vehicleSpecs) 
 			let { data } = response;
 			let deliveries = data['drops'].map((delivery, index) => ({
 				id: delivery.id,
+				orderNumber: orderId.generate(),
 				orderReference: delivery.clientTag,
 				description: delivery['deliveryNotes'],
 				dropoffStartTime: delivery['dropOffFrom']
@@ -1515,6 +1534,12 @@ async function streetStreamMultiJobRequest(ref, strategy, params, vehicleSpecs) 
 					businessName: drops[index].dropoffBusinessName ? drops[index].dropoffBusinessName : '',
 					instructions: drops[index].dropoffInstructions ? drops[index].dropoffInstructions : ''
 				},
+				trackingHistory: [
+					{
+						timestamp: moment().unix(),
+						status: STATUS.NEW
+					}
+				],
 				trackingURL: '',
 				status: STATUS.PENDING
 			}));
@@ -1614,7 +1639,9 @@ async function ecofleetJobRequest(refNumber, params, vehicleSpecs) {
 		const data = (await axios.post(createJobURL, payload, config)).data;
 		console.log(data);
 		let delivery = {
+			...deliverySchema,
 			id: data.id,
+			orderNumber: orderId.generate(),
 			orderReference: drops[0].reference,
 			description: packageDescription ? packageDescription : '',
 			dropoffStartTime: drops[0].packageDropoffStartTime,
@@ -1635,6 +1662,12 @@ async function ecofleetJobRequest(refNumber, params, vehicleSpecs) {
 				businessName: dropoffBusinessName ? dropoffBusinessName : '',
 				instructions: dropoffInstructions ? dropoffInstructions : ''
 			},
+			trackingHistory: [
+				{
+					timestamp: moment().unix(),
+					status: STATUS.NEW
+				}
+			],
 			trackingURL: data.tasks[0]['tracking_link'],
 			status: STATUS.PENDING
 		};
@@ -1714,7 +1747,9 @@ async function ecofleetMultiJobRequest(refNumber, params, vehicleSpecs) {
 		console.log(data);
 		data.tasks.shift();
 		let deliveries = data.tasks.map((task, index) => ({
+			...deliverySchema,
 			id: task.id,
+			orderNumber: orderId.generate(),
 			orderReference: drops[index].reference,
 			description: drops[index].packageDescription ? drops[index].packageDescription : '',
 			dropoffStartTime: drops[index].packageDropoffStartTime,
@@ -1735,6 +1770,12 @@ async function ecofleetMultiJobRequest(refNumber, params, vehicleSpecs) {
 				businessName: drops[index].dropoffBusinessName ? drops[index].dropoffBusinessName : '',
 				instructions: task.comment ? task.comment : ''
 			},
+			trackingHistory: [
+				{
+					timestamp: moment().unix(),
+					status: STATUS.NEW
+				}
+			],
 			trackingURL: task['tracking_link'],
 			status: STATUS.PENDING
 		}));
@@ -2169,7 +2210,7 @@ function dailyBatchOrder(platform, payload, settings, deliveryHours, jobReferenc
 			transport: ''
 		},
 		jobSpecification: {
-			id: genDeliveryId(),
+			id: uuidv4(),
 			jobReference: jobReference,
 			orderNumber: orderId.generate(),
 			...ecommerceIds,
@@ -2193,7 +2234,9 @@ function dailyBatchOrder(platform, payload, settings, deliveryHours, jobReferenc
 			},
 			deliveries: [
 				{
+					...deliverySchema,
 					id: genDeliveryId(),
+					orderNumber: orderId.generate(),
 					orderReference: payload.drops[0]['reference'],
 					description: payload.drops[0]['packageDescription'],
 					dropoffEndTime,
@@ -2213,6 +2256,12 @@ function dailyBatchOrder(platform, payload, settings, deliveryHours, jobReferenc
 						businessName: payload.drops[0].dropoffBusinessName ? payload.drops[0].dropoffBusinessName : '',
 						instructions: payload.drops[0].dropoffInstructions ? payload.drops[0].dropoffInstructions : ''
 					},
+					trackingHistory: [
+						{
+							timestamp: moment().unix(),
+							status: STATUS.NEW
+						}
+					],
 					trackingURL: '',
 					status: STATUS.NEW
 				}
@@ -2228,12 +2277,6 @@ function dailyBatchOrder(platform, payload, settings, deliveryHours, jobReferenc
 		dispatchMode: DISPATCH_MODES.AUTO,
 		platform,
 		status: STATUS.NEW,
-		trackingHistory: [
-			{
-				timestamp: moment().unix(),
-				status: STATUS.NEW
-			}
-		],
 		vehicleType: payload.vehicleType
 	};
 	console.log(job);
@@ -2272,7 +2315,7 @@ function incrementalBatchOrder(platform, payload, settings, deliveryHours, jobRe
 			transport: ''
 		},
 		jobSpecification: {
-			id: genDeliveryId(),
+			id: uuidv4(),
 			jobReference: jobReference,
 			orderNumber: orderId.generate(),
 			...ecommerceIds,
@@ -2296,7 +2339,9 @@ function incrementalBatchOrder(platform, payload, settings, deliveryHours, jobRe
 			},
 			deliveries: [
 				{
+					...deliverySchema,
 					id: genDeliveryId(),
+					orderNumber: orderId.generate(),
 					orderReference: payload.drops[0]['reference'],
 					description: payload.drops[0]['packageDescription'],
 					dropoffEndTime,
@@ -2316,6 +2361,12 @@ function incrementalBatchOrder(platform, payload, settings, deliveryHours, jobRe
 						businessName: payload.drops[0].dropoffBusinessName ? payload.drops[0].dropoffBusinessName : '',
 						instructions: payload.drops[0].dropoffInstructions ? payload.drops[0].dropoffInstructions : ''
 					},
+					trackingHistory: [
+						{
+							timestamp: moment().unix(),
+							status: STATUS.NEW
+						}
+					],
 					trackingURL: '',
 					status: STATUS.NEW
 				}
@@ -2331,12 +2382,6 @@ function incrementalBatchOrder(platform, payload, settings, deliveryHours, jobRe
 		dispatchMode: DISPATCH_MODES.AUTO,
 		platform,
 		status: STATUS.NEW,
-		trackingHistory: [
-			{
-				timestamp: moment().unix(),
-				status: STATUS.NEW
-			}
-		],
 		vehicleType: payload.vehicleType
 	};
 	console.log(job);

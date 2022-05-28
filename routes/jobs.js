@@ -46,6 +46,7 @@ const sendNotification = require('../services/notification');
 const { nanoid } = require('nanoid');
 const { MAGIC_BELL_CHANNELS } = require('../constants');
 const { validateJobId } = require('../middleware/jobs');
+const { deliverySchema } = require('../schemas');
 
 /**
  * List Jobs - The API endpoint for listing all jobs currently belonging to a user
@@ -62,7 +63,7 @@ router.get('/', async (req, res) => {
 			const user = await db.User.findOne({ email: email });
 			if (user) {
 				const clientId = user._id;
-				const jobs = await db.Job.find({ clientId: clientId });
+				const jobs = await db.Job.find({ clientId });
 				return res.status(200).json(jobs);
 			} else {
 				res.status(404).json({
@@ -475,7 +476,9 @@ router.post('/assign', async (req, res) => {
 					},
 					deliveries: [
 						{
+							...deliverySchema,
 							id: genDeliveryId(),
+							orderNumber: orderId.generate(),
 							orderReference: req.body.drops[0]['reference'],
 							description: req.body.drops[0]['packageDescription'],
 							dropoffStartTime: req.body.drops[0].packageDropoffStartTime,
@@ -501,6 +504,12 @@ router.post('/assign', async (req, res) => {
 									? req.body.drops[0].dropoffInstructions
 									: ''
 							},
+							trackingHistory: [
+								{
+									timestamp: moment().unix(),
+									status: STATUS.NEW
+								}
+							],
 							trackingURL: '',
 							status: STATUS.PENDING
 						}
@@ -516,12 +525,6 @@ router.post('/assign', async (req, res) => {
 				platform: PLATFORMS.SECONDS,
 				dispatchMode: DISPATCH_MODES.MANUAL,
 				status: STATUS.NEW,
-				trackingHistory: [
-					{
-						timestamp: moment().unix(),
-						status: STATUS.NEW
-					}
-				],
 				vehicleType: vehicleType
 			};
 			console.log('======================================================================================');
@@ -815,6 +818,7 @@ router.patch('/dispatch', async (req, res) => {
 router.post('/multi-drop', async (req, res) => {
 	try {
 		let { pickupAddress, packageDeliveryType, packagePickupStartTime, vehicleType, drops, windowStartTime, windowEndTime } = req.body;
+		console.log(packagePickupStartTime)
 		//generate client reference number
 		const jobReference = genJobReference();
 		let commissionCharge = false;
@@ -836,6 +840,8 @@ router.post('/multi-drop', async (req, res) => {
 		console.table(vehicleSpecs);
 		// do job distance calculation
 		for (let drop of drops) {
+			console.table(drop)
+			console.log('-----------------------------------------------');
 			const index = drops.indexOf(drop);
 			const jobDistance = await calculateJobDistance(pickupAddress, drop.dropoffAddress, vehicleSpecs.travelMode);
 			// check if distance is less than or equal to the vehicle's max pickup to dropoff distance
@@ -855,7 +861,7 @@ router.post('/multi-drop', async (req, res) => {
 		}
 		//TODO - Test multi drop with dashboard -> use packageDropoffEndTime instead of packageDropoffStartTime to base dropoff windows (see line 336)
 		// CHECK DELIVERY HOURS
-		let canDeliver = checkPickupHours(req.body.packagePickupStartTime, deliveryHours);
+		/*let canDeliver = checkPickupHours(req.body.packagePickupStartTime, deliveryHours);
 		if (!canDeliver) {
 			const { nextDayPickup, nextDayDropoff } = setNextDayDeliveryTime(
 				req.body.packagePickupStartTime,
@@ -867,7 +873,7 @@ router.post('/multi-drop', async (req, res) => {
 			drops.forEach(
 				(drop, index) => (req.body.drops[index].packageDropoffEndTime = moment(nextDayDropoff).format())
 			);
-		}
+		}*/
 		// check if user has a subscription active
 		console.log('SUBSCRIPTION ID:', !!subscriptionId);
 		if (subscriptionId && subscriptionPlan) {
@@ -930,14 +936,17 @@ router.post('/multi-drop', async (req, res) => {
 					providerId,
 					quotes: []
 				},
-				status: STATUS.NEW
+				platform: PLATFORMS.SECONDS,
+				dispatchMode: DISPATCH_MODES.MANUAL,
+				status: STATUS.NEW,
+				vehicleType
 			};
 			console.log('======================================================================================');
 			console.log('JOB', job);
 			console.log('======================================================================================');
 			// Append the selected provider job to the jobs database
 			const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
-			newJobAlerts && sendNewJobEmails(team, job, settings.jobAlerts.new).then(res => console.log(res));
+			newJobAlerts && sendNewJobEmails(team, job, settings['jobAlerts'].new).then(res => console.log(res));
 			return res.status(200).json({
 				jobId: createdJob._id,
 				...job
@@ -952,6 +961,13 @@ router.post('/multi-drop', async (req, res) => {
 			});
 		}
 	} catch (err) {
+		await sendEmail({
+			email: 'chipzstar.dev@gmail.com',
+			name: 'Chisom Oguibe',
+			subject: `Failed Order: ${req.headers[AUTHORIZATION_KEY]}`,
+			text: `Job could not be created. Reason: ${err.message}`,
+			html: `<p>Job could not be created. Reason: ${err.message}</p>`
+		});
 		err.response ? console.error('ERROR:', err.response.data) : console.log('ERROR:', err);
 		if (err.message) {
 			return res.status(err.status).json({
@@ -959,8 +975,10 @@ router.post('/multi-drop', async (req, res) => {
 			});
 		}
 		return res.status(500).json({
-			code: 500,
-			message: 'Unknown error occurred!'
+			error: {
+				code: 500,
+				message: 'Unknown error occurred!'
+			}
 		});
 	}
 });
@@ -1038,9 +1056,9 @@ router.patch('/:job_id', validateJobId, async (req, res) => {
 				if (pickupInstructions) job['jobSpecification'].pickupLocation.instructions = pickupInstructions;
 				if (dropoffInstructions)
 					job['jobSpecification'].deliveries[0].dropoffLocation.instructions = dropoffInstructions;
-				if (pickupStartTime) job['jobSpecification'].pickupStartTime = pickupStartTime;
-				if (dropoffStartTime) job['jobSpecification'].deliveries[0].dropoffStartTime = dropoffStartTime;
-				if (dropoffEndTime) job['jobSpecification'].deliveries[0].dropoffEndTime = dropoffEndTime;
+				if (pickupStartTime) job['jobSpecification'].pickupStartTime = moment(pickupStartTime).format();
+				if (dropoffStartTime) job['jobSpecification'].deliveries[0].dropoffStartTime = moment(dropoffStartTime).format();
+				if (dropoffEndTime) job['jobSpecification'].deliveries[0].dropoffEndTime = moment(dropoffEndTime).format();
 				if (firstname) job['jobSpecification'].deliveries[0].dropoffLocation.firstName = firstname;
 				if (lastname) job['jobSpecification'].deliveries[0].dropoffLocation.lastName = lastname;
 				if (email) job['jobSpecification'].deliveries[0].dropoffLocation.email = email;
@@ -1056,7 +1074,7 @@ router.patch('/:job_id', validateJobId, async (req, res) => {
 				res.status(200).json({
 					jobId: job['_id'],
 					message: 'Job updated successfully',
-					...job.toObject()
+					job: job.toObject()
 				});
 			} else {
 				res.status(404).json({
