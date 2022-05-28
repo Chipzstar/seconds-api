@@ -1161,7 +1161,31 @@ async function stuartMultiJobRequest(ref, params, vehicleSpecs) {
 			providerId: PROVIDERS.STUART
 		};
 	} catch (err) {
-		throw err;
+		if (err.response.status === STUART_ERROR_CODES.UNPROCESSABLE_ENTITY) {
+			if (err.response.data.error === STUART_ERROR_CODES.OUT_OF_RANGE) {
+				return null;
+			} else if (err.response.data.error === STUART_ERROR_CODES.JOB_DISTANCE_NOT_ALLOWED) {
+				return null;
+			} else if (err.response.data.error === STUART_ERROR_CODES.ADDRESS_CONTACT_PHONE_REQUIRED){
+				throw { status: err.response.status, message: err.response.data.message };
+			} else if (err.response.data.error === STUART_ERROR_CODES.PHONE_INVALID) {
+				throw { status: err.response.status, message: err.response.data.message };
+			} else if (err.response.data.error === STUART_ERROR_CODES.RECORD_INVALID) {
+				if (Object.keys(err.response.data.data).includes('deliveries')) {
+					throw { status: err.response.status, message: err.response.data.data['deliveries'][1] };
+				} else if (Object.keys(err.response.data.data).includes('job.pickup_at')) {
+					throw { status: err.response.status, message: err.response.data.data['job.pickup_at'][0] };
+				} else if (Object.keys(err.response.data.data).includes('pickup_at')) {
+					throw { status: err.response.status, message: err.response.data.data['pickup_at'][0] };
+				}
+			} else {
+				throw { status: err.response.status, ...err.response.data };
+			}
+		} else if (err.response.status === STUART_ERROR_CODES.INVALID_GRANT) {
+			throw { status: err.response.status, ...err.response.data };
+		} else {
+			throw err;
+		}
 	}
 }
 

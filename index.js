@@ -30,9 +30,6 @@ const { validateApiKey } = require('./middleware/auth');
 
 // defining the Express index
 const app = express();
-const db = require('./models/index');
-const sendEmail = require('./services/email');
-const sendSMS = require('./services/sms');
 
 app.set('port', process.env.PORT || port);
 
