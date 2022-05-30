@@ -98,7 +98,6 @@ async function updateJob(data) {
 				newStatus !== job['jobSpecification'].deliveries[index].status
 			) {
 				job.status = newStatus;
-				job['jobSpecification'].deliveries[index].status = newStatus;
 				job['jobSpecification'].deliveries[index].trackingHistory.push({
 					timestamp: moment().unix(),
 					status: newStatus
