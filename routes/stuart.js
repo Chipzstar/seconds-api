@@ -3,7 +3,7 @@ const { updateJob, updateDelivery, updateDriverETA, getStuartAuthToken } = requi
 const { sendWebhookUpdate } = require('../helpers');
 const router = express.Router();
 
-router.post('/delivery-update', async (req, res) => {
+router.post('/', async (req, res) => {
 	try {
 		//if event is a delivery update
 		const { event, type, data } = req.body;

@@ -12,8 +12,8 @@ const moment = require('moment-timezone');
 const { nanoid } = require('nanoid');
 const orderId = require('order-id')(process.env.UID_SECRET_KEY);
 const { quoteSchema, jobRequestSchema } = require('../schemas');
-const PNF = require('google-libphonenumber').PhoneNumberFormat
-const phoneUtil = require('google-libphonenumber').PhoneNumberUtil.getInstance()
+const PNF = require('google-libphonenumber').PhoneNumberFormat;
+const phoneUtil = require('google-libphonenumber').PhoneNumberUtil.getInstance();
 // CONSTANTS
 const { STRATEGIES } = require('../constants/streetStream');
 const { ERROR_CODES: STUART_ERROR_CODES, ERROR_MESSAGES } = require('../constants/stuart');
@@ -32,11 +32,11 @@ const {
 	VEHICLE_CODES,
 	STATUS,
 	VEHICLE_CODES_MAP,
-	DISPATCH_MODES
+	DISPATCH_MODES, GOOGLE_MAPS_PLACE_TYPES
 } = require('@seconds-technologies/database_schemas/constants');
 const sendNotification = require('../services/notification');
 const { MAGIC_BELL_CHANNELS } = require('../constants');
-const { deliverySchema } = require('../schemas')
+const { deliverySchema } = require('../schemas');
 // google maps api client
 const GMapsClient = new Client();
 // setup axios instances
@@ -470,18 +470,18 @@ async function checkJobExpired(orderNumber, driver, user, settings) {
 	}
 }
 
-function validatePhoneNumbers(phoneNumbers){
+function validatePhoneNumbers(phoneNumbers) {
 	return phoneNumbers.map(phone => {
-		console.log("PHONE", phone)
+		console.log('PHONE', phone);
 		const number = phoneUtil.parseAndKeepRawInput(phone, 'GB');
 		if (phoneUtil.getRegionCodeForNumber(number) === 'GB') {
 			const E164Number = phoneUtil.format(number, PNF.E164);
-			console.log("E164Number:", E164Number)
-			return E164Number
+			console.log('E164Number:', E164Number);
+			return E164Number;
 		} else {
-			return String(process.env.SECONDS_SUPPORT_NUMBER)
+			return String(process.env.SECONDS_SUPPORT_NUMBER);
 		}
-	})
+	});
 }
 
 // QUOTE AGGREGATION
@@ -708,7 +708,7 @@ async function getStuartQuote(reference, params, vehicleSpecs) {
 				return null;
 			} else if (err.response.data.error === STUART_ERROR_CODES.JOB_DISTANCE_NOT_ALLOWED) {
 				return null;
-			} else if (err.response.data.error === STUART_ERROR_CODES.ADDRESS_CONTACT_PHONE_REQUIRED){
+			} else if (err.response.data.error === STUART_ERROR_CODES.ADDRESS_CONTACT_PHONE_REQUIRED) {
 				throw { status: err.response.status, message: err.response.data.message };
 			} else if (err.response.data.error === STUART_ERROR_CODES.PHONE_INVALID) {
 				throw { status: err.response.status, message: err.response.data.message };
@@ -1166,7 +1166,7 @@ async function stuartMultiJobRequest(ref, params, vehicleSpecs) {
 				return null;
 			} else if (err.response.data.error === STUART_ERROR_CODES.JOB_DISTANCE_NOT_ALLOWED) {
 				return null;
-			} else if (err.response.data.error === STUART_ERROR_CODES.ADDRESS_CONTACT_PHONE_REQUIRED){
+			} else if (err.response.data.error === STUART_ERROR_CODES.ADDRESS_CONTACT_PHONE_REQUIRED) {
 				throw { status: err.response.status, message: err.response.data.message };
 			} else if (err.response.data.error === STUART_ERROR_CODES.PHONE_INVALID) {
 				throw { status: err.response.status, message: err.response.data.message };
@@ -2036,16 +2036,32 @@ async function geocodeAddress(address) {
 			console.log(components);
 			components.forEach(({ long_name, types }) => {
 				switch (types[0]) {
-					case 'street_number':
-						formattedAddress.street = formattedAddress.street + long_name;
+					case GOOGLE_MAPS_PLACE_TYPES.ESTABLISHMENT:
+						formattedAddress.street = formattedAddress.street + long_name + ' ';
 						break;
-					case 'route':
-						formattedAddress.street = formattedAddress.street + ' ' + long_name;
+					case GOOGLE_MAPS_PLACE_TYPES.STREET_NUMBER:
+						formattedAddress.street = formattedAddress.street + long_name + ' ';
 						break;
-					case 'postal_town':
+					case GOOGLE_MAPS_PLACE_TYPES.STREET_ADDRESS:
+						formattedAddress.street = formattedAddress.street + long_name + ' ';
+						break;
+					case GOOGLE_MAPS_PLACE_TYPES.SUB_PREMISE:
+						formattedAddress.street = formattedAddress.street + long_name + ' ';
+						break;
+					case GOOGLE_MAPS_PLACE_TYPES.PREMISE:
+						formattedAddress.street = formattedAddress.street + long_name + ' ';
+						break;
+					case GOOGLE_MAPS_PLACE_TYPES.INTERSECTION:
+						formattedAddress.street = formattedAddress.street + long_name + ' ';
+						break;
+					case GOOGLE_MAPS_PLACE_TYPES.CITY:
 						formattedAddress.city = long_name;
 						break;
-					case 'postal_code':
+					case GOOGLE_MAPS_PLACE_TYPES.POSTCODE:
+						formattedAddress.postcode = long_name;
+						break;
+					case GOOGLE_MAPS_PLACE_TYPES.POSTCODE_PREFIX:
+						// make postcode property empty since the real value is not a full postcode
 						formattedAddress.postcode = long_name;
 						break;
 					default:
