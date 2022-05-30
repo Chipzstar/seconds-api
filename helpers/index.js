@@ -1677,11 +1677,12 @@ async function finaliseJob(user, job, clientId, commissionCharge, driver = null,
 		// Create the final job into the jobs database
 		const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
 		console.log(createdJob);
+		const orderNumber = job.jobSpecification.deliveries[0].orderNumber
 		let {
 			dropoffLocation: { phoneNumber }
 		} = job.jobSpecification.deliveries[0];
 		await sendNewJobEmails(user.team, job, settings.jobAlerts.new);
-		const trackingMessage = `\n\nTrack your delivery here: ${process.env.TRACKING_BASE_URL}/${createdJob._id}`;
+		const trackingMessage = `\n\nTrack your delivery here: ${process.env.TRACKING_BASE_URL}/${createdJob._id}/${orderNumber}`;
 		const template = `Your ${user.company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today. ${trackingMessage}`;
 		await sendSMS(phoneNumber, template, user.subscriptionItems, smsEnabled);
 		if (job.selectedConfiguration.providerId === PROVIDERS.PRIVATE && driver && settings) {
@@ -1693,7 +1694,7 @@ async function finaliseJob(user, job, clientId, commissionCharge, driver = null,
 		const title = `New order!`;
 		const contentDriver = ` and assigned to your driver`;
 		const contentCourier = ` and dispatched to ${job.selectedConfiguration.providerId}`;
-		const content = `Order ${job.jobSpecification.deliveries[0].orderNumber} has been created`.concat(
+		const content = `Order ${orderNumber} has been created`.concat(
 			job.selectedConfiguration.providerId === PROVIDERS.UNASSIGNED
 				? '!'
 				: driver

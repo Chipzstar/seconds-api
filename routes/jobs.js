@@ -288,7 +288,7 @@ router.post('/create', async (req, res) => {
 			// Append the selected provider job to the jobs database
 			const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
 			newJobAlerts && sendNewJobEmails(team, job, settings['jobAlerts'].new).then(res => console.log(res));
-			const trackingMessage = `Track your delivery here: ${process.env.TRACKING_BASE_URL}/${createdJob._id}`;
+			const trackingMessage = `Track your delivery here: ${process.env.TRACKING_BASE_URL}/${createdJob._id}/${job.jobSpecification.deliveries[0].orderNumber}`;
 			const template = `Your ${company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today. ${trackingMessage}`;
 			sendSMS(delivery.dropoffLocation.phoneNumber, template, subscriptionItems, smsEnabled).then(message =>
 				console.log(message)
@@ -532,12 +532,12 @@ router.post('/assign', async (req, res) => {
 			// Append the selected provider job to the jobs database
 			const createdJob = await db.Job.create({ ...job, clientId, commissionCharge });
 			newJobAlerts && sendNewJobEmails(team, job, settings['jobAlerts'].new).then(res => console.log(res));
-			const template = `Your ${company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today. Track your delivery here: ${process.env.TRACKING_BASE_URL}/${createdJob._id}`;
+			const template = `Your ${company} order has been created and accepted. The driver will pick it up shortly and delivery will be attempted today. Track your delivery here: ${process.env.TRACKING_BASE_URL}/${createdJob._id}/${orderNumber}`;
 			sendSMS(req.body.drops[0].dropoffPhoneNumber, template, subscriptionItems, smsEnabled).then(() =>
 				console.log('SMS sent successfully!')
 			);
 			const title = `New order!`;
-			const content = `Order ${job.jobSpecification.orderNumber} has been created ${
+			const content = `Order ${orderNumber} has been created ${
 				driver && 'and dispatched to your driver'
 			}`;
 			sendNotification(clientId, title, content, MAGIC_BELL_CHANNELS.ORDER_CREATED).then(() =>
@@ -1105,7 +1105,7 @@ router.delete('/:job_id', async (req, res) => {
 		const id = req.params['job_id'];
 		console.table(id, comment);
 		let foundJob;
-		const isJobId = mongoose.Types.ObjectId.isValid(id)
+		const isJobId = mongoose.Types.ObjectId.isValid(id);
 		if (isJobId) {
 			foundJob = await db.Job.findByIdAndUpdate(
 				id,
@@ -1131,12 +1131,14 @@ router.delete('/:job_id', async (req, res) => {
 		}
 		if (foundJob) {
 			let jobId = foundJob['jobSpecification'].id;
-			let deliveryId = isJobId ? foundJob['jobSpecification'].deliveries[0].id : getDeliveryId(id,foundJob);
+			let deliveryId = isJobId ? foundJob['jobSpecification'].deliveries[0].id : getDeliveryId(id, foundJob);
 			let provider = foundJob['selectedConfiguration'].providerId;
 			let message = await cancelOrder(jobId, deliveryId, provider, foundJob, comment);
 			console.log(message);
 			const title = `Delivery Cancelled!`;
-			const content = `Order ${isJobId ? foundJob['jobSpecification']['deliveries'][0].orderNumber : id} has been cancelled by the client`;
+			const content = `Order ${
+				isJobId ? foundJob['jobSpecification']['deliveries'][0].orderNumber : id
+			} has been cancelled by the client`;
 			sendNotification(foundJob['clientId'], title, content, MAGIC_BELL_CHANNELS.ORDER_CANCELLED).then(() =>
 				console.log('notification sent!')
 			);
