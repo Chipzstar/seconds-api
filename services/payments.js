@@ -42,20 +42,11 @@ const confirmCharge = async (
 		console.log(invoiceItem);
 		console.log('----------------------------------------------');
 		if (standardCommission && jobInfo.commissionCharge) {
-			let usageRecord;
-			if (jobInfo.deliveryType === DELIVERY_TYPES.MULTI_DROP.name) {
-				usageRecord = await stripe.subscriptionItems.createUsageRecord(multiDropCommission, {
-					quantity,
-					action: 'increment',
-					timestamp: Math.ceil(Date.now() / 1000)
-				});
-			} else {
-				usageRecord = await stripe.subscriptionItems.createUsageRecord(standardCommission, {
-					quantity,
-					action: 'increment',
-					timestamp: Math.ceil(Date.now() / 1000)
-				});
-			}
+			let usageRecord = await stripe.subscriptionItems.createUsageRecord(standardCommission, {
+				quantity,
+				action: 'increment',
+				timestamp: Math.ceil(Date.now() / 1000)
+			});
 			console.log('------------------------------');
 			console.log('USAGE RECORD');
 			console.table(usageRecord);
