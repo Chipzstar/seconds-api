@@ -71,7 +71,7 @@ function translateStuartStatus(value) {
  */
 async function updateJob(data) {
 	try {
-		console.table(data)
+		console.log(data)
 		const jobStatus = data.status;
 		const jobId = data.id.toString();
 		const { id, status: deliveryStatus, etaToOrigin, etaToDestination, driver } = data.currentDelivery;
@@ -173,7 +173,7 @@ async function updateJob(data) {
  */
 async function updateDelivery(data) {
 	try {
-		console.table(data)
+		console.log(data)
 		const { status: deliveryStatus, id, clientReference, etaToOrigin, etaToDestination } = data;
 		const { newStatus, hubriseStatus } = translateStuartStatus(deliveryStatus);
 		const deliveryId = id.toString()
