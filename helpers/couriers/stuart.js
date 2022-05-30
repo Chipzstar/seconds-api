@@ -1,7 +1,7 @@
 const db = require('../../models');
 const moment = require('moment');
 const { STATUS, MAGIC_BELL_CHANNELS } = require('../../constants');
-const { JOB_STATUS, DELIVERY_STATUS } = require('../../constants/stuart');
+const { JOB_STATUS, DELIVERY_STATUS, ERROR_MESSAGES } = require('../../constants/stuart');
 const { ORDER_STATUS } = require('../../constants/hubrise');
 const axios = require('axios');
 const sendEmail = require('../../services/email');
@@ -221,7 +221,7 @@ async function updateDelivery(data) {
 			let canSend = settings ? settings.sms : false;
 			// check if the delivery status is "en-route"
 			if (deliveryStatus === DELIVERY_STATUS.DELIVERING) {
-				const trackingMessage = `\nTrack the delivery here: ${process.env.TRACKING_BASE_URL}/${job._id}`;
+				const trackingMessage = `\nTrack the delivery here: ${process.env.TRACKING_BASE_URL}/${job._id}/${clientReference}`;
 				const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`;
 				sendSMS(
 					job['jobSpecification'].deliveries[0].dropoffLocation.phoneNumber,
@@ -285,7 +285,7 @@ async function updateDriverETA(data) {
 		const deliveryId = id.toString();
 		if (driver.latitude && driver.longitude) {
 			await db.Job.findOneAndUpdate(
-				{ 'jobSpecification.id': deliveryId },
+				{ 'jobSpecification.deliveries.id': deliveryId },
 				{
 					$set: {
 						'driverInformation.location': {

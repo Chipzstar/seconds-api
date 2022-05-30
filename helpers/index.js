@@ -1,6 +1,4 @@
-const express = require('express');
 const axios = require('axios');
-const axiosRetry = require('axios-retry');
 const { Client } = require('@googlemaps/google-maps-services-js');
 const { pickupSchema, dropoffSchema } = require('../schemas/stuart/CreateJob');
 const qs = require('qs');
@@ -14,14 +12,12 @@ const orderId = require('order-id')(process.env.UID_SECRET_KEY);
 const { quoteSchema, jobRequestSchema } = require('../schemas');
 const PNF = require('google-libphonenumber').PhoneNumberFormat;
 const phoneUtil = require('google-libphonenumber').PhoneNumberUtil.getInstance();
+const queryString = require('query-string');
 // CONSTANTS
 const { STRATEGIES } = require('../constants/streetStream');
 const { ERROR_CODES: STUART_ERROR_CODES, ERROR_MESSAGES } = require('../constants/stuart');
 const { ERROR_CODES: GOPHR_ERROR_CODES } = require('../constants/gophr');
-// HELPERS
-const { updateHerokuConfigVars } = require('./heroku');
-const { getStuartAuthToken } = require('./couriers/stuart');
-const { authStreetStream } = require('./couriers/streetStream');
+
 // SERVICES
 const sendEmail = require('../services/email');
 const sendSMS = require('../services/sms');
@@ -37,105 +33,9 @@ const {
 const sendNotification = require('../services/notification');
 const { MAGIC_BELL_CHANNELS } = require('../constants');
 const { deliverySchema } = require('../schemas');
+const { stuartAxios, streetStreamAxios } = require('../utils/axios');
 // google maps api client
 const GMapsClient = new Client();
-// setup axios instances
-const stuartAxios = axios.create();
-const streetStreamAxios = axios.create();
-const webhookAxios = axios.create();
-stuartAxios.defaults.headers.common['Authorization'] = `Bearer ${process.env.STUART_API_KEY}`;
-streetStreamAxios.defaults.headers.common['Authorization'] = `Bearer ${process.env.STREET_STREAM_API_KEY}`;
-// if fails, retry request with exponential backoff
-axiosRetry(webhookAxios, { retries: 3, retryDelay: axiosRetry.exponentialDelay, retryCondition: _error => true });
-// set GLOBAL config-vars object for updating multiple heroku env variables
-let CONFIG_VARS = {};
-let stuartTimeout;
-let streetStreamTimeout;
-
-stuartAxios.interceptors.response.use(
-	response => {
-		return response;
-	},
-	error => {
-		if (
-			error.response &&
-			error.response.status === 401 &&
-			error.response.data.message === ERROR_MESSAGES.ACCESS_TOKEN_REVOKED
-		) {
-			return getStuartAuthToken()
-				.then(token => {
-					// clear any ongoing timeouts
-					stuartTimeout && clearTimeout(stuartTimeout);
-					streetStreamTimeout && clearTimeout(streetStreamTimeout);
-					// update config vars
-					CONFIG_VARS = { ...CONFIG_VARS, STUART_API_KEY: token };
-					// set the timeout to update config vars after 20s
-					stuartTimeout =
-						process.env.NODE_ENV === 'production'
-							? setTimeout(() => {
-									updateHerokuConfigVars(CONFIG_VARS).then(() => {
-										// set the timeout variable to be null
-										stuartTimeout = null;
-										// remove old config vars from the global cache object
-										CONFIG_VARS = {};
-									});
-							  }, 20000)
-							: null;
-					error.config.headers['Authorization'] = `Bearer ${token}`;
-					return stuartAxios.request(error.config);
-				})
-				.catch(err => Promise.reject(err));
-		}
-		return Promise.reject(error);
-	}
-);
-
-streetStreamAxios.interceptors.response.use(
-	response => response,
-	error => {
-		console.error(error.response);
-		if (error.response && error.response.status === 403) {
-			return authStreetStream()
-				.then(token => {
-					// clear any ongoing timeouts
-					stuartTimeout && clearTimeout(stuartTimeout);
-					streetStreamTimeout && clearTimeout(streetStreamTimeout);
-					// update config-vars
-					CONFIG_VARS = { ...CONFIG_VARS, STREET_STREAM_API_KEY: token };
-					// set the timeout to update config vars after 20s
-					streetStreamTimeout =
-						process.env.NODE_ENV === 'production'
-							? setTimeout(() => {
-									updateHerokuConfigVars(CONFIG_VARS).then(() => {
-										// set the timeout variable to be null
-										stuartTimeout = null;
-										// remove old config vars from the global cache object
-										CONFIG_VARS = {};
-									});
-							  }, 20000)
-							: null;
-					error.config.headers['Authorization'] = `Bearer ${token}`;
-					return streetStreamAxios.request(error.config);
-				})
-				.catch(err => Promise.reject(err));
-		}
-		return Promise.reject(error);
-	}
-);
-
-function genOrderReference() {
-	const rand = crypto.randomBytes(16);
-	let chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.repeat(2);
-
-	let str = 'SECONDS-Order#';
-
-	for (let i = 0; i < rand.length; i++) {
-		let index = rand[i] % chars.length;
-		str += chars[index];
-	}
-	console.log('Generated ORDER Reference:', str);
-	return str;
-}
 
 function genJobReference() {
 	const rand = crypto.randomBytes(12);
@@ -199,7 +99,7 @@ function createJobRequestPayload({ jobSpecification, vehicleType }) {
 			dropoffInstructions: dropoffLocation.instructions,
 			packageDropoffEndTime: dropoffEndTime,
 			packageDescription: description,
-			reference: genOrderReference()
+			reference: orderId.generate()
 		})),
 		packageDeliveryType: jobSpecification.deliveryType,
 		vehicleType
@@ -372,7 +272,7 @@ function setNextDayDeliveryTime(pickupTime, deliveryHours) {
 				}).add(interval, 'days'),
 				'minutes'
 			) > 0
-		) {
+			) {
 			nextDay === max ? (nextDay = 0) : (nextDay = nextDay + 1);
 			console.log('Next Day:', nextDay);
 			console.log('CAN DELIVER:', deliveryHours[nextDay].canDeliver);
@@ -443,8 +343,8 @@ async function findAvailableDriver(user, { autoDispatch }) {
 	}
 }
 
-async function checkJobExpired(orderNumber, driver, user, settings) {
-	let futureJob = await db.Job.findOne({ 'jobSpecification.orderNumber': orderNumber });
+async function checkJobExpired(jobId, driver, user, settings) {
+	let futureJob = await db.Job.findById(jobId);
 	if (futureJob && [STATUS.NEW, STATUS.PENDING].includes(futureJob.status)) {
 		futureJob.status = STATUS.CANCELLED;
 		await futureJob.save();
@@ -511,7 +411,7 @@ async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance, settin
 				if (dispatchMode === DISPATCH_MODES.AUTO) {
 					const fee = stuartQuote.priceExVAT;
 					fee <= settings.courierVehicles[requestBody.vehicleType].maxDispatchAmount &&
-						QUOTES.push(stuartQuote);
+					QUOTES.push(stuartQuote);
 				} else {
 					QUOTES.push(stuartQuote);
 				}
@@ -523,7 +423,7 @@ async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance, settin
 				if (dispatchMode === DISPATCH_MODES.AUTO) {
 					const fee = gophrQuote.priceExVAT;
 					fee <= settings.courierVehicles[requestBody.vehicleType].maxDispatchAmount &&
-						QUOTES.push(gophrQuote);
+					QUOTES.push(gophrQuote);
 				} else {
 					QUOTES.push(gophrQuote);
 				}
@@ -535,7 +435,7 @@ async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance, settin
 				if (dispatchMode === DISPATCH_MODES.AUTO) {
 					const fee = streetStreamQuote.priceExVAT;
 					fee <= settings.courierVehicles[requestBody.vehicleType].maxDispatchAmount &&
-						QUOTES.push(streetStreamQuote);
+					QUOTES.push(streetStreamQuote);
 				} else {
 					QUOTES.push(streetStreamQuote);
 				}
@@ -584,23 +484,6 @@ async function providerCreatesJob(provider, ref, strategy, request, vehicleSpecs
 		default:
 			console.log('Creating a STUART Job');
 			return await stuartJobRequest(ref, request);
-	}
-}
-
-async function providerCreateMultiJob(provider, ref, strategy, request, vehicleSpecs) {
-	switch (provider) {
-		case PROVIDERS.STUART:
-			console.log('Creating STUART Job');
-			return await stuartMultiJobRequest(ref, request, vehicleSpecs);
-		case PROVIDERS.STREET_STREAM:
-			console.log('Creating STREET-STREAM Job');
-			return await streetStreamMultiJobRequest(ref, strategy, request, vehicleSpecs);
-		case PROVIDERS.ECOFLEET:
-			console.log('Creating ECOFLEET Job');
-			return await ecofleetMultiJobRequest(ref, request, vehicleSpecs);
-		default:
-			console.log('Creating STUART Job');
-			return await stuartMultiJobRequest(ref, request, vehicleSpecs);
 	}
 }
 
@@ -659,7 +542,7 @@ async function getStuartQuote(reference, params, vehicleSpecs) {
 					{
 						...dropoffSchema,
 						package_type: vehicleSpecs.stuart.packageType,
-						client_reference: genOrderReference(),
+						client_reference: orderId.generate(),
 						address: dropoffAddress,
 						comment: dropoffInstructions,
 						contact: {
@@ -944,6 +827,7 @@ async function stuartJobRequest(ref, params, vehicleSpecs) {
 		packagePickupStartTime,
 		drops
 	} = params;
+	const orderNumber = orderId.generate();
 	console.table(params.drops[0]);
 	try {
 		const payload = {
@@ -969,7 +853,7 @@ async function stuartJobRequest(ref, params, vehicleSpecs) {
 						...dropoffSchema,
 						package_type: vehicleSpecs.stuart.packageType,
 						package_description: drops[0].packageDescription,
-						client_reference: drops[0].reference,
+						client_reference: orderNumber,
 						address: drops[0].dropoffAddress,
 						comment: drops[0].dropoffInstructions,
 						contact: {
@@ -1002,8 +886,7 @@ async function stuartJobRequest(ref, params, vehicleSpecs) {
 		const delivery = {
 			...deliverySchema,
 			id: deliveryInfo.id,
-			orderNumber: orderId.generate(),
-			orderReference: deliveryInfo['client_reference'],
+			orderNumber: deliveryInfo['client_reference'],
 			description: deliveryInfo['package_description'],
 			dropoffStartTime: data['dropoff_at']
 				? moment(data['dropoff_at']).format()
@@ -1046,146 +929,6 @@ async function stuartJobRequest(ref, params, vehicleSpecs) {
 		};
 	} catch (err) {
 		throw err;
-	}
-}
-
-async function stuartMultiJobRequest(ref, params, vehicleSpecs) {
-	const {
-		pickupAddress,
-		pickupPhoneNumber,
-		pickupEmailAddress,
-		pickupBusinessName,
-		pickupFirstName,
-		pickupLastName,
-		pickupInstructions,
-		packagePickupStartTime,
-		drops
-	} = params;
-	const dropoffs = drops.map(
-		({
-			dropoffAddress,
-			dropoffPhoneNumber,
-			dropoffEmailAddress,
-			dropoffBusinessName,
-			dropoffFirstName,
-			dropoffLastName,
-			dropoffInstructions,
-			packageDropoffStartTime,
-			packageDropoffEndTime,
-			packageDescription,
-			reference
-		}) => {
-			return {
-				...dropoffSchema,
-				package_type: vehicleSpecs.stuart.packageType,
-				package_description: packageDescription,
-				client_reference: reference,
-				address: dropoffAddress,
-				comment: dropoffInstructions,
-				contact: {
-					firstname: dropoffFirstName,
-					lastname: dropoffLastName,
-					phone: dropoffPhoneNumber,
-					email: dropoffEmailAddress,
-					company: dropoffBusinessName
-				},
-				...(packageDropoffStartTime && { end_customer_time_window_start: packageDropoffStartTime }),
-				...(packageDropoffEndTime && { end_customer_time_window_end: packageDropoffEndTime })
-			};
-		}
-	);
-	try {
-		const payload = {
-			job: {
-				...(packagePickupStartTime && { pickup_at: moment(packagePickupStartTime).format() }),
-				assignment_code: ref,
-				pickups: [
-					{
-						...pickupSchema,
-						address: pickupAddress,
-						comment: pickupInstructions,
-						contact: {
-							firstname: pickupFirstName,
-							lastname: pickupLastName,
-							phone: pickupPhoneNumber,
-							email: pickupEmailAddress,
-							company: pickupBusinessName
-						}
-					}
-				],
-				dropoffs
-			}
-		};
-		const URL = `${process.env.STUART_ENV}/v2/jobs`;
-		let data = (await stuartAxios.post(URL, payload)).data;
-		console.log('----------------------------');
-		console.log(data);
-		console.log('----------------------------');
-		let deliveries = data['deliveries'].map(delivery => ({
-			id: delivery.id,
-			orderNumber: orderId.generate(),
-			orderReference: delivery.client_reference,
-			description: delivery.package_description,
-			dropoffStartTime: delivery.eta['dropoff'] ? moment(delivery.eta['dropoff']).format() : data['dropoff_at'],
-			dropoffEndTime: delivery.eta['dropoff'] ? moment(delivery.eta['dropoff']).format() : data['dropoff_at'],
-			transport: vehicleSpecs.name,
-			dropoffLocation: {
-				fullAddress: `${delivery['dropoff']['address']['street']} ${delivery['dropoff']['address']['city']} ${delivery['dropoff']['address']['postcode']}`,
-				streetAddress: delivery['dropoff']['address']['street'],
-				city: delivery['dropoff']['address']['city'],
-				postcode: delivery['dropoff']['address']['postcode'],
-				latitude: delivery['dropoff']['latitude'],
-				longitude: delivery['dropoff']['longitude'],
-				country: 'UK',
-				phoneNumber: delivery['dropoff']['contact']['phone'],
-				email: delivery['dropoff']['contact']['email'],
-				firstName: delivery['dropoff']['contact']['firstname'],
-				lastName: delivery['dropoff']['contact']['lastname'],
-				businessName: delivery['dropoff']['contact']['business_name'],
-				instructions: delivery['dropoff']['comment']
-			},
-			trackingHistory: [
-				{
-					timestamp: moment().unix(),
-					status: STATUS.NEW
-				}
-			],
-			trackingURL: delivery['tracking_url'],
-			status: STATUS.PENDING
-		}));
-		return {
-			id: String(data.id),
-			deliveryFee: data['pricing']['price_tax_included'],
-			pickupAt: data['pickup_at'],
-			deliveries,
-			providerId: PROVIDERS.STUART
-		};
-	} catch (err) {
-		if (err.response.status === STUART_ERROR_CODES.UNPROCESSABLE_ENTITY) {
-			if (err.response.data.error === STUART_ERROR_CODES.OUT_OF_RANGE) {
-				return null;
-			} else if (err.response.data.error === STUART_ERROR_CODES.JOB_DISTANCE_NOT_ALLOWED) {
-				return null;
-			} else if (err.response.data.error === STUART_ERROR_CODES.ADDRESS_CONTACT_PHONE_REQUIRED) {
-				throw { status: err.response.status, message: err.response.data.message };
-			} else if (err.response.data.error === STUART_ERROR_CODES.PHONE_INVALID) {
-				throw { status: err.response.status, message: err.response.data.message };
-			} else if (err.response.data.error === STUART_ERROR_CODES.RECORD_INVALID) {
-				if (Object.keys(err.response.data.data).includes('deliveries')) {
-					throw { status: err.response.status, message: err.response.data.data['deliveries'][1] };
-				} else if (Object.keys(err.response.data.data).includes('job.pickup_at')) {
-					throw { status: err.response.status, message: err.response.data.data['job.pickup_at'][0] };
-				} else if (Object.keys(err.response.data.data).includes('pickup_at')) {
-					throw { status: err.response.status, message: err.response.data.data['pickup_at'][0] };
-				}
-			} else {
-				throw { status: err.response.status, ...err.response.data };
-			}
-		} else if (err.response.status === STUART_ERROR_CODES.INVALID_GRANT) {
-			throw { status: err.response.status, ...err.response.data };
-		} else {
-			throw err;
-		}
 	}
 }
 
@@ -1277,8 +1020,7 @@ async function gophrJobRequest(ref, params, vehicleSpecs) {
 			const { job_id, public_tracker_url, pickup_eta, delivery_eta, price_gross } = response.data;
 			let delivery = {
 				id: genDeliveryId(),
-				orderNumber: orderId.generate(),
-				orderReference: drops[0].reference,
+				orderNumber: drops[0].reference,
 				description: packageDescription ? packageDescription : '',
 				dropoffStartTime: delivery_eta ? moment(delivery_eta).format() : drops[0].packageDropoffStartTime,
 				dropoffEndTime: delivery_eta ? moment(delivery_eta).format() : drops[0].packageDropoffEndTime,
@@ -1402,7 +1144,7 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 					? moment(packageDropoffStartTime).add(30, 'minutes').toISOString(true)
 					: moment(packagePickupStartTime).add(30, 'minutes').toISOString(true),
 				dropOffTo: moment(packageDropoffEndTime).add(30, 'minutes').toISOString(true),
-				clientTag: reference,
+				clientTag: orderId.generate(),
 				deliveryNotes: dropoffInstructions
 			}
 		};
@@ -1416,8 +1158,7 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 		const delivery = {
 			...deliverySchema,
 			id: data['dropOff'].id,
-			orderNumber: orderId.generate(),
-			orderReference: data['dropOff'].clientTag,
+			orderNumber: data['dropOff'].clientTag,
 			description: data['dropOff']['dropOffNotes'],
 			dropoffStartTime: data['dropOff']['dropOffFrom']
 				? moment(data['dropOff']['dropOffFrom']).format()
@@ -1465,124 +1206,6 @@ async function streetStreamJobRequest(ref, strategy, params, vehicleSpecs) {
 	}
 }
 
-async function streetStreamMultiJobRequest(ref, strategy, params, vehicleSpecs) {
-	const {
-		pickupAddressLine1,
-		pickupAddressLine2,
-		pickupCity,
-		pickupPostcode,
-		pickupPhoneNumber,
-		pickupFirstName,
-		pickupLastName,
-		pickupInstructions,
-		packagePickupStartTime,
-		packagePickupEndTime,
-		drops
-	} = params;
-
-	let lastDropoffTime = moment().toISOString(true);
-	const dropoffs = drops.map(drop => {
-		if (moment(drop.packageDropoffEndTime).diff(lastDropoffTime) > 0)
-			lastDropoffTime = moment(drop.packageDropoffEndTime).add(30, 'minutes').toISOString(true);
-		return {
-			contactNumber: drop.dropoffPhoneNumber,
-			contactName: `${drop.dropoffFirstName} ${drop.dropoffLastName}`,
-			addressOne: drop.dropoffAddressLine1,
-			...(drop['dropoffAddressLine2'] && { addressTwo: drop['dropoffAddressLine2'] }),
-			city: drop.dropoffCity,
-			postcode: drop.dropoffPostcode,
-			clientTag: drop.reference,
-			deliveryNotes: drop.dropoffInstructions
-		};
-	});
-	console.log('LAST Dropoff Time:', lastDropoffTime);
-	try {
-		const payload = {
-			offerAcceptanceStrategy:
-				strategy === SELECTION_STRATEGIES.RATING
-					? STRATEGIES.AUTO_HIGHEST_RATED_COURIER
-					: STRATEGIES.AUTO_CLOSEST_COURIER_TO_ME,
-			courierTransportType: vehicleSpecs.streetVehicleType,
-			jobLabel: ref,
-			insuranceCover: 'PERSONAL',
-			submitForQuotesImmediately: true,
-			optimiseRoute: true,
-			deliveryFrom: moment(packagePickupStartTime).toISOString(true),
-			deliveryTo: lastDropoffTime,
-			pickUp: {
-				contactNumber: pickupPhoneNumber,
-				contactName: `${pickupFirstName} ${pickupLastName}`,
-				addressOne: pickupAddressLine1 + pickupAddressLine2,
-				city: pickupCity,
-				postcode: pickupPostcode,
-				pickUpNotes: pickupInstructions,
-				pickUpFrom: moment(packagePickupStartTime).add(30, 'minutes').toISOString(true),
-				pickUpTo: packagePickupEndTime
-					? moment(packagePickupEndTime).add(30, 'minutes').toISOString(true)
-					: moment(packagePickupStartTime).add(40, 'minutes').toISOString(true)
-			},
-			drops: dropoffs
-		};
-		console.log('---------------------------------------');
-		console.log('PAYLOAD');
-		console.log(payload);
-		console.log('---------------------------------------');
-		const multiJobURL = `${process.env.STREET_STREAM_ENV}/api/job/multidrop`;
-		const response = await streetStreamAxios.post(multiJobURL, payload);
-		if (response.data) {
-			let { data } = response;
-			let deliveries = data['drops'].map((delivery, index) => ({
-				id: delivery.id,
-				orderNumber: orderId.generate(),
-				orderReference: delivery.clientTag,
-				description: delivery['deliveryNotes'],
-				dropoffStartTime: delivery['dropOffFrom']
-					? moment(delivery['dropOffFrom']).format()
-					: drops[index].packageDropoffStartTime,
-				dropoffEndTime: delivery['dropOffTo']
-					? moment(delivery['dropOffTo']).format()
-					: drops[index].packageDropoffEndTime,
-				transport: vehicleSpecs.name,
-				dropoffLocation: {
-					fullAddress: drops[index].dropoffAddress,
-					streetAddress: delivery['addressOne'] + delivery['addressTwo'] ? delivery['addressTwo'] : '',
-					city: delivery['city'],
-					postcode: delivery['postcode'],
-					country: 'UK',
-					latitude: delivery['latitude'],
-					longitude: delivery['longitude'],
-					phoneNumber: delivery['contactNumber'],
-					email: drops[index].dropoffEmailAddress ? drops[index].dropoffEmailAddress : '',
-					firstName: drops[index].dropoffFirstName,
-					lastName: drops[index].dropoffLastName,
-					businessName: drops[index].dropoffBusinessName ? drops[index].dropoffBusinessName : '',
-					instructions: drops[index].dropoffInstructions ? drops[index].dropoffInstructions : ''
-				},
-				trackingHistory: [
-					{
-						timestamp: moment().unix(),
-						status: STATUS.NEW
-					}
-				],
-				trackingURL: '',
-				status: STATUS.PENDING
-			}));
-			return {
-				id: data.id,
-				deliveryFee: data['jobCharge']['totalPayableWithVat'],
-				pickupAt: data['pickUp']['pickUpFrom'] ? data['pickUp']['pickUpFrom'] : packagePickupStartTime,
-				deliveries,
-				providerId: PROVIDERS.STREET_STREAM
-			};
-		} else {
-			throw new Error('There was an issue creating your multi drop with street stream');
-		}
-	} catch (err) {
-		console.error(err);
-		throw err;
-	}
-}
-
 async function ecofleetJobRequest(refNumber, params, vehicleSpecs) {
 	const {
 		pickupAddressLine1,
@@ -1603,6 +1226,7 @@ async function ecofleetJobRequest(refNumber, params, vehicleSpecs) {
 	} = params;
 
 	const {
+		reference,
 		dropoffAddress,
 		dropoffAddressLine1,
 		dropoffAddressLine2,
@@ -1665,8 +1289,7 @@ async function ecofleetJobRequest(refNumber, params, vehicleSpecs) {
 		let delivery = {
 			...deliverySchema,
 			id: data.id,
-			orderNumber: orderId.generate(),
-			orderReference: drops[0].reference,
+			orderNumber: reference,
 			description: packageDescription ? packageDescription : '',
 			dropoffStartTime: drops[0].packageDropoffStartTime,
 			dropoffEndTime: drops[0].packageDropoffEndTime,
@@ -1701,114 +1324,6 @@ async function ecofleetJobRequest(refNumber, params, vehicleSpecs) {
 			deliveryFee: data['amount'],
 			pickupAt: packagePickupStartTime ? moment(packagePickupStartTime).format() : undefined,
 			delivery
-		};
-	} catch (err) {
-		throw err;
-	}
-}
-
-async function ecofleetMultiJobRequest(refNumber, params, vehicleSpecs) {
-	const {
-		pickupAddressLine1,
-		pickupAddressLine2,
-		pickupCity,
-		pickupPostcode,
-		pickupPhoneNumber,
-		pickupEmailAddress,
-		pickupBusinessName,
-		pickupFirstName,
-		pickupLastName,
-		pickupInstructions,
-		packageDeliveryType,
-		packagePickupStartTime,
-		packageDescription,
-		vehicleType,
-		drops
-	} = params;
-
-	const dropoffs = drops.map(drop => ({
-		name: `${drop.dropoffFirstName} ${drop.dropoffLastName}`,
-		company_name: drop.dropoffBusinessName,
-		address_line1: drop.dropoffAddressLine1,
-		...(drop['dropoffAddressLine2'] && { address_line2: drop['dropoffAddressLine2'] }),
-		city: drop.dropoffCity,
-		postal: drop.dropoffPostcode,
-		country: 'England',
-		phone: drop.dropoffPhoneNumber,
-		email: drop.dropoffEmailAddress,
-		comment: drop.dropoffInstructions
-	}));
-
-	const payload = {
-		pickup: {
-			name: `${pickupFirstName} ${pickupLastName}`,
-			company_name: pickupBusinessName,
-			address_line1: pickupAddressLine1,
-			...(pickupAddressLine2 && { address_line2: pickupAddressLine2 }),
-			city: pickupCity,
-			postal: pickupPostcode,
-			country: 'England',
-			phone: pickupPhoneNumber,
-			email: pickupEmailAddress,
-			comment: pickupInstructions
-		},
-		drops: dropoffs,
-		parcel: {
-			weight: VEHICLE_CODES_MAP[vehicleType].weight,
-			type: packageDescription ? packageDescription : ''
-		},
-		schedule: {
-			type: DELIVERY_TYPES[packageDeliveryType].ecofleet,
-			...(packagePickupStartTime && { pickupWindow: moment(packagePickupStartTime).unix() })
-			// ...(drops[0].packageDropoffStartTime && { dropoffWindow: moment(drops[0].packageDropoffStartTime).unix() })
-		}
-	};
-	console.log(payload);
-	try {
-		const config = { headers: { Authorization: `Bearer ${process.env.ECOFLEET_API_KEY}` } };
-		const createJobURL = `${process.env.ECOFLEET_ENV}/api/v1/order`;
-		const data = (await axios.post(createJobURL, payload, config)).data;
-		console.log(data);
-		data.tasks.shift();
-		let deliveries = data.tasks.map((task, index) => ({
-			...deliverySchema,
-			id: task.id,
-			orderNumber: orderId.generate(),
-			orderReference: drops[index].reference,
-			description: drops[index].packageDescription ? drops[index].packageDescription : '',
-			dropoffStartTime: drops[index].packageDropoffStartTime,
-			dropoffEndTime: drops[index].packageDropoffEndTime,
-			transport: vehicleSpecs.name,
-			dropoffLocation: {
-				fullAddress: drops[index].dropoffAddress,
-				streetAddress: task.address,
-				city: task.city,
-				postcode: task.postal,
-				country: 'UK',
-				latitude: drops[index].dropoffLatitude,
-				longitude: drops[index].dropoffLongitude,
-				phoneNumber: task.phone,
-				email: task.email ? task.email : '',
-				firstName: drops[index].dropoffFirstName,
-				lastName: drops[index].dropoffLastName,
-				businessName: drops[index].dropoffBusinessName ? drops[index].dropoffBusinessName : '',
-				instructions: task.comment ? task.comment : ''
-			},
-			trackingHistory: [
-				{
-					timestamp: moment().unix(),
-					status: STATUS.NEW
-				}
-			],
-			trackingURL: task['tracking_link'],
-			status: STATUS.PENDING
-		}));
-		return {
-			id: data.id,
-			deliveryFee: data['amount'],
-			pickupAt: packagePickupStartTime ? moment(packagePickupStartTime).format() : undefined,
-			deliveries,
-			providerId: PROVIDERS.ECOFLEET
 		};
 	} catch (err) {
 		throw err;
@@ -1895,7 +1410,7 @@ async function sendCancellationRequest(jobId, provider, job, comment) {
 			email: `chipzstar.dev@gmail.com`,
 			templateId: 'd-90f8f075032e4d4b90fc595ad084d2a6',
 			templateData: {
-				client_reference: `${job.jobSpecification.deliveries[0].orderReference}`,
+				client_reference: `${job.jobSpecification.deliveries[0].orderNumber}`,
 				customer: `${job.jobSpecification.deliveries[0].dropoffLocation.firstName} ${job.jobSpecification.deliveries[0].dropoffLocation.lastName}`,
 				pickup: `${job.jobSpecification.pickupLocation.fullAddress}`,
 				dropoff: `${job.jobSpecification.deliveries[0].dropoffLocation.fullAddress}`,
@@ -1911,15 +1426,19 @@ async function sendCancellationRequest(jobId, provider, job, comment) {
 	}
 }
 
-async function stuartCancelRequest(jobId, comment) {
+async function stuartCancelRequest(jobId="", deliveryId="", comment) {
 	try {
-		const URL = `${process.env.STUART_ENV}/v2/jobs/${jobId}/cancel`;
+		const BASE_URL = `${process.env.STUART_ENV}/v2/deliveries/${deliveryId}/cancel`;
 		const payload = {
 			public_reason_key: 'customer_cancellation_requested',
 			comment
 		};
-		const res = (await stuartAxios.post(URL, payload)).data;
-		return 'Your job has been cancelled by Stuart!';
+		const querystring = queryString.stringify(payload);
+		const URL = BASE_URL + querystring;
+		console.log(querystring)
+		console.log(URL)
+		const res = (await stuartAxios.post(URL)).data;
+		return 'Your delivery has been cancelled by Stuart!';
 	} catch (err) {
 		throw err;
 	}
@@ -1948,22 +1467,28 @@ async function cancelDriverJob(jobId, job, comment) {
 	try {
 		const user = await db.User.findById(job.clientId);
 		const driver = await db.Driver.findOne({ clientIds: job.clientId });
-		let template = `Order ${job.jobSpecification.orderNumber} to ${job.jobSpecification.deliveries[0].dropoffLocation.fullAddress} has been cancelled by ${user.company}.`;
+		let template = `Order ${job.jobSpecification.deliveries[0].orderNumber} to ${job.jobSpecification.deliveries[0].dropoffLocation.fullAddress} has been cancelled by ${user.company}.`;
 		driver &&
-			sendSMS(driver.phone, template, { smsCommission: user['subscriptionItems'].smsCommission }, true).then(() =>
-				console.log('sms sent successfully')
-			);
+		sendSMS(driver.phone, template, { smsCommission: user['subscriptionItems'].smsCommission }, true).then(() =>
+			console.log('sms sent successfully')
+		);
 		return 'Order cancelled successfully';
 	} catch (err) {
 		throw err;
 	}
 }
 
-async function cancelOrder(jobId, provider, jobDetails, comment = '') {
+function getDeliveryId(orderNumber, job){
+	const delivery = job['jobSpecification'].deliveries.find(item => item.orderNumber === orderNumber)
+	console.log(delivery)
+	return delivery.id
+}
+
+async function cancelOrder(jobId, deliveryId, provider, jobDetails, comment = '') {
 	switch (provider) {
 		case PROVIDERS.STUART:
 			console.log('Cancelling STUART Job');
-			return await stuartCancelRequest(jobId, comment);
+			return await stuartCancelRequest(jobId, deliveryId, comment);
 		case PROVIDERS.GOPHR:
 			console.log('Cancelling GOPHR Job');
 			return await gophrCancelRequest(jobId, comment);
@@ -2161,19 +1686,19 @@ async function finaliseJob(user, job, clientId, commissionCharge, driver = null,
 		await sendSMS(phoneNumber, template, user.subscriptionItems, smsEnabled);
 		if (job.selectedConfiguration.providerId === PROVIDERS.PRIVATE && driver && settings) {
 			setTimeout(
-				() => checkJobExpired(job.jobSpecification.orderNumber, driver, user, settings),
+				() => checkJobExpired(job._id, driver, user, settings),
 				settings['driverResponseTime'] * 60000
 			);
 		}
 		const title = `New order!`;
 		const contentDriver = ` and assigned to your driver`;
 		const contentCourier = ` and dispatched to ${job.selectedConfiguration.providerId}`;
-		const content = `Order ${job.jobSpecification.orderNumber} has been created`.concat(
+		const content = `Order ${job.jobSpecification.deliveries[0].orderNumber} has been created`.concat(
 			job.selectedConfiguration.providerId === PROVIDERS.UNASSIGNED
 				? '!'
 				: driver
-				? contentDriver
-				: contentCourier
+					? contentDriver
+					: contentCourier
 		);
 		console.log('************************************************');
 		console.log(content);
@@ -2278,7 +1803,6 @@ function dailyBatchOrder(platform, payload, settings, deliveryHours, jobReferenc
 					...deliverySchema,
 					id: genDeliveryId(),
 					orderNumber: orderId.generate(),
-					orderReference: payload.drops[0]['reference'],
 					description: payload.drops[0]['packageDescription'],
 					dropoffEndTime,
 					transport: vehicleSpecs.name,
@@ -2383,7 +1907,6 @@ function incrementalBatchOrder(platform, payload, settings, deliveryHours, jobRe
 					...deliverySchema,
 					id: genDeliveryId(),
 					orderNumber: orderId.generate(),
-					orderReference: payload.drops[0]['reference'],
 					description: payload.drops[0]['packageDescription'],
 					dropoffEndTime,
 					transport: vehicleSpecs.name,
@@ -2431,8 +1954,8 @@ function incrementalBatchOrder(platform, payload, settings, deliveryHours, jobRe
 
 module.exports = {
 	genJobReference,
-	genOrderReference,
 	genDeliveryId,
+	getDeliveryId,
 	createJobRequestPayload,
 	getClientDetails,
 	getVehicleSpecs,
@@ -2445,7 +1968,6 @@ module.exports = {
 	findAvailableDriver,
 	getResultantQuotes,
 	providerCreatesJob,
-	providerCreateMultiJob,
 	sendNewJobEmails,
 	setNextDayDeliveryTime,
 	cancelOrder,

@@ -36,6 +36,7 @@
     "nanoid": "^3.1.25",
     "newrelic": "^8.5.0",
     "order-id": "^2.1.1",
+    "query-string": "^7.1.1",
     "retry-axios": "^2.6.0",
     "stripe": "^8.176.0",
     "twilio": "^3.73.0",

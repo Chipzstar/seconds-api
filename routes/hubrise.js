@@ -4,7 +4,6 @@ const createEcommerceJob = require('../services/ecommerce');
 const {
 	convertWeightToVehicleCode,
 	geocodeAddress,
-	genOrderReference,
 	cancelOrder,
 	checkPickupHours,
 	setNextDayDeliveryTime
@@ -13,6 +12,7 @@ const moment = require('moment');
 const sendEmail = require('../services/email');
 const { HUBRISE_STATUS, PLATFORMS, STATUS } = require('@seconds-technologies/database_schemas/constants');
 const { SERVICE_TYPE } = require('../constants/hubrise');
+const orderId = require('order-id')(process.env.UID_SECRET_KEY);
 const router = express.Router();
 
 function validateOrderTriggers(triggers, order) {
@@ -151,7 +151,7 @@ async function generatePayload(order, user, settings, hubrise) {
 						: '',
 					packageDropoffEndTime,
 					packageDescription,
-					reference: genOrderReference()
+					reference: orderId.generate()
 				}
 			]
 		};
@@ -287,8 +287,9 @@ router.post('/', async (req, res) => {
 							) {
 								if (job) {
 									let jobId = job['jobSpecification'].id;
+									let deliveryId = job['jobSpecification'].deliveries[0].id;
 									let provider = job['selectedConfiguration'].providerId;
-									cancelOrder(jobId, provider, job)
+									cancelOrder(jobId, deliveryId, provider, job)
 										.then(message => {
 											job.status = STATUS.CANCELLED;
 											job.save();

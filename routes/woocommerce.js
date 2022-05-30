@@ -5,9 +5,10 @@ const { DELIVERY_METHODS } = require('../constants/shopify');
 const axios = require('axios');
 const sendEmail = require('../services/email');
 const createEcommerceJob = require('../services/ecommerce');
-const { convertWeightToVehicleCode, geocodeAddress, genOrderReference } = require('../helpers');
+const { convertWeightToVehicleCode, geocodeAddress } = require('../helpers');
 const moment = require('moment');
 const { PLATFORMS } = require('@seconds-technologies/database_schemas/constants');
+const orderId = require('order-id')(process.env.UID_SECRET_KEY);
 const router = express.Router();
 
 async function generatePayload(order, user, settings) {
@@ -85,7 +86,7 @@ async function generatePayload(order, user, settings) {
 					dropoffInstructions: order['customer_note'] ? order['customer_note'] : '',
 					packageDropoffEndTime: moment().add(200, 'minutes').format(),
 					packageDescription,
-					reference: genOrderReference()
+					reference: orderId.generate()
 				}
 			]
 		};

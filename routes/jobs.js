@@ -12,16 +12,16 @@ const {
 	checkAlternativeVehicles,
 	checkPickupHours,
 	setNextDayDeliveryTime,
-	genOrderReference,
-	providerCreateMultiJob,
 	sendNewJobEmails,
 	cancelOrder,
 	geocodeAddress,
 	genDeliveryId,
 	checkJobExpired,
 	createJobRequestPayload,
-	validatePhoneNumbers
+	validatePhoneNumbers,
+	getDeliveryId
 } = require('../helpers');
+const { providerCreateMultiJob } = require('../helpers/multidrop');
 
 const {
 	STATUS,
@@ -113,7 +113,7 @@ router.post('/create', async (req, res) => {
 		console.table(req.body);
 		console.table(req.body.drops[0]);
 		let { pickupAddress, packageDeliveryType, vehicleType } = req.body;
-		req.body.drops[0]['reference'] = genOrderReference();
+		req.body.drops[0]['reference'] = orderId.generate();
 		//generate client reference number
 		let commissionCharge = false;
 		const jobReference = genJobReference();
@@ -349,7 +349,7 @@ router.post('/assign', async (req, res) => {
 		console.table(req.body);
 		console.table(req.body.drops[0]);
 		let { pickupAddress, packageDeliveryType, vehicleType } = req.body;
-		req.body.drops[0]['reference'] = genOrderReference();
+		req.body.drops[0]['reference'] = orderId.generate();
 		//generate client reference number
 		let commissionCharge = false;
 		const jobReference = genJobReference();
@@ -428,7 +428,7 @@ router.post('/assign', async (req, res) => {
 		]);
 		req.body.pickupPhoneNumber = pickupPhoneNumber;
 		req.body.drops[0].dropoffPhoneNumber = dropoffPhoneNumber;
-		// check if user has a subscription active
+		// check if user has an active subscription
 		console.log('SUBSCRIPTION ID:', !!subscriptionId);
 		if (subscriptionId && subscriptionPlan) {
 			// check the payment plan and lookup the associated commission fee
@@ -478,8 +478,7 @@ router.post('/assign', async (req, res) => {
 						{
 							...deliverySchema,
 							id: genDeliveryId(),
-							orderNumber: orderId.generate(),
-							orderReference: req.body.drops[0]['reference'],
+							orderNumber,
 							description: req.body.drops[0]['packageDescription'],
 							dropoffStartTime: req.body.drops[0].packageDropoffStartTime,
 							dropoffEndTime: req.body.drops[0].packageDropoffEndTime,
@@ -511,7 +510,7 @@ router.post('/assign', async (req, res) => {
 								}
 							],
 							trackingURL: '',
-							status: STATUS.PENDING
+							status: STATUS.NEW
 						}
 					]
 				},
@@ -550,7 +549,7 @@ router.post('/assign', async (req, res) => {
 				setTimeout(
 					() =>
 						checkJobExpired(
-							orderNumber,
+							job._id,
 							driver,
 							{
 								email,
@@ -617,7 +616,7 @@ router.patch('/optimise', async (req, res) => {
 			console.table({ routeId });
 			for (let stop of route) {
 				if (stop.type === 'order') {
-					job = await db.Job.findOne({ 'jobSpecification.orderNumber': stop.id });
+					job = await db.Job.findOne({ 'jobSpecification.deliveries[0].orderNumber': stop.id });
 					job.selectedConfiguration.providerId = PROVIDERS.PRIVATE;
 					job.driverInformation.id = driverId;
 					job.driverInformation.name = `${driver.firstname} ${driver.lastname}`;
@@ -677,7 +676,7 @@ router.patch('/dispatch', async (req, res) => {
 			selectionStrategy
 		} = await getClientDetails(apiKey);
 		const { type, providerId, orderNumber } = req.body;
-		const job = await db.Job.findOne({ 'jobSpecification.orderNumber': orderNumber });
+		const job = await db.Job.findOne({ 'jobSpecification.deliveries[0].orderNumber': orderNumber });
 		console.log(job);
 		// TODO - add middleware to validate request params + handle errors
 		if (type === PROVIDER_TYPES.DRIVER) {
@@ -697,7 +696,7 @@ router.patch('/dispatch', async (req, res) => {
 					setTimeout(
 						() =>
 							checkJobExpired(
-								orderNumber,
+								job._id,
 								driver,
 								{
 									email,
@@ -817,13 +816,7 @@ router.patch('/dispatch', async (req, res) => {
  */
 router.post('/multi-drop', async (req, res) => {
 	try {
-		let {
-			pickupAddress,
-			packageDeliveryType,
-			packagePickupStartTime,
-			vehicleType,
-			drops,
-		} = req.body;
+		let { pickupAddress, packageDeliveryType, packagePickupStartTime, vehicleType, drops } = req.body;
 		console.log(packagePickupStartTime);
 		//generate client reference number
 		const jobReference = genJobReference();
@@ -859,7 +852,7 @@ router.post('/multi-drop', async (req, res) => {
 					vehicleSpecs
 				);
 			}*/
-			req.body.drops[index]['reference'] = genOrderReference();
+			req.body.drops[index]['reference'] = orderId.generate();
 		}
 		// Check if a pickupStartTime was passed through, if not set it to 45 minutes ahead of current time
 		if (!packagePickupStartTime) {
@@ -968,10 +961,10 @@ router.post('/multi-drop', async (req, res) => {
 			subject: `Failed Order: ${req.headers[AUTHORIZATION_KEY]}`,
 			text: `Job could not be created. Reason: ${err.message}`,
 			html: `<p>Job could not be created. Reason: ${err.message}</p>`
-		}).then(() => console.log("Failure alert sent!"));
+		}).then(() => console.log('Failure alert sent!'));
 		err.response ? console.error('ERROR WITH DATA:', err.response.data) : console.log('ERROR:', err);
 		if (err.message) {
-			const status = err.status ? err.status : err.response.status ? err.response.status : 500
+			const status = err.status ? err.status : err.response.status ? err.response.status : 500;
 			return res.status(status).json({
 				error: err
 			});
@@ -1111,21 +1104,40 @@ router.delete('/:job_id', async (req, res) => {
 		const { comment } = req.query;
 		const id = req.params['job_id'];
 		console.table(id, comment);
-		let foundJob = mongoose.Types.ObjectId.isValid(id)
-			? await db.Job.findByIdAndUpdate(id, { status: STATUS.CANCELLED }, { new: true })
-			: await db.Job.findOneAndUpdate(
-					{ 'jobSpecification.orderNumber': id },
-					{ status: STATUS.CANCELLED },
-					{ new: true }
-			  );
+		let foundJob;
+		const isJobId = mongoose.Types.ObjectId.isValid(id)
+		if (isJobId) {
+			foundJob = await db.Job.findByIdAndUpdate(
+				id,
+				{
+					$set: {
+						status: STATUS.CANCELLED,
+						'jobSpecification.deliveries.$[].status': STATUS.CANCELLED
+					}
+				},
+				{ returnOriginal: false }
+			);
+		} else {
+			foundJob = await db.Job.findOneAndUpdate(
+				{ 'jobSpecification.deliveries.orderNumber': id },
+				{
+					$set: {
+						status: STATUS.CANCELLED,
+						'jobSpecification.deliveries.$.status': STATUS.CANCELLED
+					}
+				},
+				{ returnOriginal: false }
+			);
+		}
 		if (foundJob) {
-			let jobId = foundJob.jobSpecification.id;
-			let provider = foundJob.selectedConfiguration.providerId;
-			let message = await cancelOrder(jobId, provider, foundJob, comment);
+			let jobId = foundJob['jobSpecification'].id;
+			let deliveryId = isJobId ? foundJob['jobSpecification'].deliveries[0].id : getDeliveryId(id,foundJob);
+			let provider = foundJob['selectedConfiguration'].providerId;
+			let message = await cancelOrder(jobId, deliveryId, provider, foundJob, comment);
 			console.log(message);
 			const title = `Delivery Cancelled!`;
-			const content = `Order ${foundJob.jobSpecification.orderNumber} has been cancelled by the client`;
-			sendNotification(foundJob.clientId, title, content, MAGIC_BELL_CHANNELS.ORDER_CANCELLED).then(() =>
+			const content = `Order ${isJobId ? foundJob['jobSpecification']['deliveries'][0].orderNumber : id} has been cancelled by the client`;
+			sendNotification(foundJob['clientId'], title, content, MAGIC_BELL_CHANNELS.ORDER_CANCELLED).then(() =>
 				console.log('notification sent!')
 			);
 			return res.status(200).json({

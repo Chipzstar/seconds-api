@@ -58,6 +58,7 @@ async function updateStatus(data) {
 		}
 		if (newStatus !== job.status) {
 			job.status = newStatus
+			job['jobSpecification']['deliveries'][0]['status'] = newStatus;
 			job['jobSpecification']['deliveries'][0]['trackingHistory'].push({
 				timestamp: moment().unix(),
 				status: newStatus

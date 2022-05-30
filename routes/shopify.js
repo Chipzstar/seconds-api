@@ -3,7 +3,6 @@ const express = require('express');
 const db = require('../models');
 const router = express.Router();
 const {
-	genOrderReference,
 	geocodeAddress,
 	convertWeightToVehicleCode,
 } = require('../helpers');
@@ -12,6 +11,7 @@ const { DELIVERY_METHODS } = require('../constants/shopify');
 const sendEmail = require('../services/email');
 const createEcommerceJob = require('../services/ecommerce');
 const { PLATFORMS } = require('@seconds-technologies/database_schemas/constants');
+const orderId = require('order-id')(process.env.UID_SECRET_KEY);
 
 function validateDeliveryDate(date, time, deliveryHours) {
 	console.table({ date, time });
@@ -106,7 +106,7 @@ async function generatePayload(order, user, settings) {
 					dropoffInstructions: order['note'] ? order['note'] : order.customer['note'] ? order.customer['note'] : '',
 					packageDropoffEndTime: moment().add(3, 'hours').format(),
 					packageDescription,
-					reference: genOrderReference()
+					reference: orderId.generate()
 				}
 			]
 		};

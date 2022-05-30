@@ -68,8 +68,8 @@ async function updateJob(data) {
 				.catch(err => console.error(err))
 		}
 		if (newStatus !== job.status) {
-			job['jobSpecification'].deliveries[0].status = newStatus;
 			job.status = newStatus;
+			job['jobSpecification']['deliveries'][0]['status'] = newStatus;
 			job['jobSpecification']['deliveries'][0]['trackingHistory'].push({
 				timestamp: moment().unix(),
 				status: newStatus
@@ -109,8 +109,9 @@ async function updateJob(data) {
 				).then(() => console.log('notification sent!'));
 				sendEmail(options, canSend).then(() => console.log('CANCELLATION EMAIL SENT!'));
 			} else if (jobStatus === JOB_STATUS.COLLECTED) {
+				const orderNumber = job['jobSpecification'].deliveries[0].orderNumber
 				const canSend = settings ? settings.sms : false;
-				const trackingMessage = `\nTrack the delivery here: ${process.env.TRACKING_BASE_URL}/${job._id}`;
+				const trackingMessage = `\nTrack the delivery here: ${process.env.TRACKING_BASE_URL}/${job['_id']}/${orderNumber}`;
 				const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`;
 				sendSMS(
 					job['jobSpecification'].deliveries[0].dropoffLocation.phoneNumber,
