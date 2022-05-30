@@ -233,8 +233,7 @@ async function streetStreamMultiJobRequest(ref, strategy, params, vehicleSpecs) 
 			let { data } = response;
 			let deliveries = data['drops'].map((delivery, index) => ({
 				id: delivery.id,
-				orderNumber: orderId.generate(),
-				orderReference: delivery.clientTag,
+				orderNumber: delivery.clientTag,
 				description: delivery['deliveryNotes'],
 				dropoffStartTime: delivery['dropOffFrom']
 					? moment(delivery['dropOffFrom']).format()
@@ -349,8 +348,7 @@ async function ecofleetMultiJobRequest(refNumber, params, vehicleSpecs) {
 		let deliveries = data.tasks.map((task, index) => ({
 			...deliverySchema,
 			id: task.id,
-			orderNumber: orderId.generate(),
-			orderReference: drops[index].reference,
+			orderNumber: drops[index].reference,
 			description: drops[index].packageDescription ? drops[index].packageDescription : '',
 			dropoffStartTime: drops[index].packageDropoffStartTime,
 			dropoffEndTime: drops[index].packageDropoffEndTime,
