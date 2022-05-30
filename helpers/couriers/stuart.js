@@ -126,8 +126,7 @@ async function updateJob(data) {
 				console.log('STUART JOB COMPLETEEEEEEE!');
 				console.log('****************************************************************');
 				let { company, stripeCustomerId, subscriptionId, subscriptionItems } = await db.User.findOne(
-					{ _id: job.clientId },
-					{}
+					{ _id: job.clientId }
 				);
 				let settings = await db.Settings.findOne({ clientId: job.clientId });
 				let canSend = settings ? settings['sms'] : false;
@@ -153,7 +152,7 @@ async function updateJob(data) {
 				).then(message => console.log(message));
 				const title = `Delivery Finished!`;
 				const content = `Order ${job['jobSpecification'].orderNumber} has been delivered to the customer`;
-				sendNotification(job.clientId, title, content, MAGIC_BELL_CHANNELS.ORDER_CREATED).then(() =>
+				sendNotification(job['clientId'], title, content, MAGIC_BELL_CHANNELS.ORDER_CREATED).then(() =>
 					console.log('notification sent!')
 				);
 			}
@@ -175,83 +174,94 @@ async function updateDelivery(data) {
 	try {
 		const { status: deliveryStatus, id, clientReference, etaToOrigin, etaToDestination } = data;
 		const { newStatus, hubriseStatus } = translateStuartStatus(deliveryStatus);
-		let job = await db.Job.findOne({ 'jobSpecification.deliveries.id': id.toString() });
-		if (job && job['jobSpecification'].hubriseId && hubriseStatus) {
-			const hubrise = await db.Hubrise.findOne({ clientId: job.clientId });
-			sendHubriseStatusUpdate(hubriseStatus, job['jobSpecification'].hubriseId, hubrise)
-				.then(() => console.log('Hubrise status update sent!'))
-				.catch(err => console.error(err));
-		}
-		if (newStatus !== job.status) {
-			job.trackingHistory.push({
-				timestamp: moment().unix(),
-				status: newStatus
-			});
-			await job.save();
-		}
-		job = await db.Job.findOneAndUpdate(
-			{ 'jobSpecification.deliveries.id': id.toString() },
-			{
-				$set: {
-					status: newStatus,
-					'jobSpecification.pickupStartTime': moment(etaToOrigin).toISOString(),
-					'jobSpecification.deliveries.$.dropoffEndTime': moment(etaToDestination).toISOString(),
-					'jobSpecification.deliveries.$.status': newStatus
-				}
-			},
-			{
-				returnOriginal: false
+		const deliveryId = id.toString()
+		let job = await db.Job.findOne({ 'jobSpecification.deliveries.id': deliveryId });
+		// send delivery status updates to hubrise if order was created from HubRise
+		if (job) {
+			if (job['jobSpecification'].hubriseId && hubriseStatus) {
+				const hubrise = await db.Hubrise.findOne({ clientId: job['clientId'] });
+				sendHubriseStatusUpdate(hubriseStatus, job['jobSpecification'].hubriseId, hubrise)
+					.then(() => console.log('Hubrise status update sent!'))
+					.catch(err => console.error(err));
 			}
-		);
-		console.log('------------------------------------------');
-		console.log('NEW STATUS:', job.status);
-		console.log('------------------------------------------');
-		const user = await db.User.findOne({ _id: job.clientId });
-		let settings = await db.Settings.findOne({ clientId: job.clientId });
-		let canSend = settings ? settings.sms : false;
-		// check if the delivery status is "en-route"
-		if (deliveryStatus === DELIVERY_STATUS.DELIVERING) {
-			const trackingMessage = `\nTrack the delivery here: ${process.env.TRACKING_BASE_URL}/${job._id}`;
-			const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`;
-			sendSMS(
-				job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber,
-				template,
-				user.subscriptionItems,
-				canSend
-			).then(message => console.log(message));
-		}
-		// check if order status is cancelled and send out email to clients
-		if (deliveryStatus === DELIVERY_STATUS.CANCELLED) {
-			console.log('User:', !!user);
-			let { canceledBy, comment, reasonKey } = data.cancellation;
-			console.table(data.cancellation);
-			const settings = await db.Settings.findOne({ clientId: job.clientId });
-			let canSend = settings && settings['jobAlerts'].cancelled;
-			reasonKey = reasonKey === 'pu_closed' ? 'pickup_closed' : reasonKey;
-			let reason = comment ? `${reasonKey} | ${comment}` : reasonKey;
-			let options = {
-				name: `${user.firstname} ${user.lastname}`,
-				email: `${user.email}`,
-				templateId: 'd-90f8f075032e4d4b90fc595ad084d2a6',
-				templateData: {
-					client_reference: `${clientReference}`,
-					customer: `${job.jobSpecification.deliveries[0].dropoffLocation.firstName} ${job.jobSpecification.deliveries[0].dropoffLocation.lastName}`,
-					pickup: `${job.jobSpecification.pickupLocation.fullAddress}`,
-					dropoff: `${job.jobSpecification.deliveries[0].dropoffLocation.fullAddress}`,
-					reason: `${reason.replace(/[-_]/g, ' ')}`,
-					cancelled_by: `${canceledBy}`,
-					provider: `stuart`
+			// find the index of the delivery with corresponding delivery ID
+			const index = job['jobSpecification'].deliveries.findIndex(delivery => delivery.id === deliveryId);
+			if (
+				index !== -1 &&
+				newStatus !== job['jobSpecification'].deliveries[index].status
+			) {
+				job.status = newStatus;
+				job['jobSpecification'].deliveries[index].trackingHistory.push({
+					timestamp: moment().unix(),
+					status: newStatus
+				});
+				await job.save();
+			}
+			job = await db.Job.findOneAndUpdate(
+				{ 'jobSpecification.deliveries.id': deliveryId },
+				{
+					$set: {
+						status: newStatus,
+						'jobSpecification.pickupStartTime': moment(etaToOrigin).toISOString(),
+						'jobSpecification.deliveries.$.dropoffEndTime': moment(etaToDestination).toISOString(),
+						'jobSpecification.deliveries.$.status': newStatus
+					}
+				},
+				{
+					returnOriginal: false
 				}
-			};
-			sendNotification(
-				user.clientId,
-				'Delivery Cancelled',
-				reason.replace(/[-_]/g, ' '),
-				MAGIC_BELL_CHANNELS.ORDER_CANCELLED
-			).then(() => console.log('notification sent!'));
-			sendEmail(options, canSend).then(() => console.log('CANCELLATION EMAIL SENT!'));
+			);
+			console.log('------------------------------------------');
+			console.log('NEW STATUS:', job.status);
+			console.log('------------------------------------------');
+			const user = await db.User.findOne({ _id: job['clientId'] });
+			let settings = await db.Settings.findOne({ clientId: job['clientId'] });
+			let canSend = settings ? settings.sms : false;
+			// check if the delivery status is "en-route"
+			if (deliveryStatus === DELIVERY_STATUS.DELIVERING) {
+				const trackingMessage = `\nTrack the delivery here: ${process.env.TRACKING_BASE_URL}/${job._id}`;
+				const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`;
+				sendSMS(
+					job['jobSpecification'].deliveries[0].dropoffLocation.phoneNumber,
+					template,
+					user['subscriptionItems'],
+					canSend
+				).then(message => console.log(message));
+			}
+			// check if order status is cancelled and send out email to clients
+			if (deliveryStatus === DELIVERY_STATUS.CANCELLED) {
+				console.log('User:', !!user);
+				let { canceledBy, comment, reasonKey } = data.cancellation;
+				console.table(data.cancellation);
+				const settings = await db.Settings.findOne({ clientId: job.clientId });
+				let canSend = settings && settings['jobAlerts'].cancelled;
+				reasonKey = reasonKey === 'pu_closed' ? 'pickup_closed' : reasonKey;
+				let reason = comment ? `${reasonKey} | ${comment}` : reasonKey;
+				let options = {
+					name: `${user.firstname} ${user.lastname}`,
+					email: `${user.email}`,
+					templateId: 'd-90f8f075032e4d4b90fc595ad084d2a6',
+					templateData: {
+						client_reference: `${clientReference}`,
+						customer: `${job['jobSpecification'].deliveries[0].dropoffLocation.firstName} ${job['jobSpecification'].deliveries[0].dropoffLocation.lastName}`,
+						pickup: `${job['jobSpecification'].pickupLocation.fullAddress}`,
+						dropoff: `${job['jobSpecification'].deliveries[0].dropoffLocation.fullAddress}`,
+						reason: `${reason.replace(/[-_]/g, ' ')}`,
+						cancelled_by: `${canceledBy}`,
+						provider: `stuart`
+					}
+				};
+				sendNotification(
+					user['_id'],
+					'Delivery Cancelled',
+					reason.replace(/[-_]/g, ' '),
+					MAGIC_BELL_CHANNELS.ORDER_CANCELLED
+				).then(() => console.log('notification sent!'));
+				sendEmail(options, canSend).then(() => console.log('CANCELLATION EMAIL SENT!'));
+			}
+			return job;
 		}
-		return job;
+		return null;
 	} catch (err) {
 		console.error(err);
 		throw err;
