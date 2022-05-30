@@ -851,7 +851,7 @@ router.post('/multi-drop', async (req, res) => {
 			console.table(drop);
 			console.log('-----------------------------------------------');
 			const index = drops.indexOf(drop);
-			const jobDistance = await calculateJobDistance(pickupAddress, drop.dropoffAddress, vehicleSpecs.travelMode);
+			/*const jobDistance = await calculateJobDistance(pickupAddress, drop.dropoffAddress, vehicleSpecs.travelMode);
 			// check if distance is less than or equal to the vehicle's max pickup to dropoff distance
 			if (jobDistance > vehicleSpecs.maxDistance) {
 				vehicleSpecs = await checkAlternativeVehicles(
@@ -860,7 +860,7 @@ router.post('/multi-drop', async (req, res) => {
 					jobDistance,
 					vehicleSpecs
 				);
-			}
+			}*/
 			req.body.drops[index]['reference'] = genOrderReference();
 		}
 		// Check if a pickupStartTime was passed through, if not set it to 45 minutes ahead of current time
@@ -921,6 +921,8 @@ router.post('/multi-drop', async (req, res) => {
 						city: String(req.body.pickupCity).trim(),
 						postcode: String(req.body.pickupPostcode).trim(),
 						country: 'UK',
+						latitude: req.body.pickupLatitude,
+						longitude: req.body.pickupLongitude,
 						phoneNumber: req.body.pickupPhoneNumber,
 						email: req.body.pickupEmailAddress,
 						firstName: req.body.pickupFirstName,
@@ -956,7 +958,7 @@ router.post('/multi-drop', async (req, res) => {
 			console.error('No subscription detected!');
 			return res.status(402).json({
 				error: {
-					code: 402,
+					status: 402,
 					message: 'Please purchase a subscription plan before making an order. Thank you! 😊'
 				}
 			});
@@ -968,7 +970,7 @@ router.post('/multi-drop', async (req, res) => {
 			subject: `Failed Order: ${req.headers[AUTHORIZATION_KEY]}`,
 			text: `Job could not be created. Reason: ${err.message}`,
 			html: `<p>Job could not be created. Reason: ${err.message}</p>`
-		});
+		}).then(() => console.log("Failure alert sent!"));
 		err.response ? console.error('ERROR WITH DATA:', err.response.data) : console.log('ERROR:', err);
 		if (err.message) {
 			const status = err.status ? err.status : err.response.status ? err.response.status : 500

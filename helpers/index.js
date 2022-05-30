@@ -2078,26 +2078,27 @@ function convertWeightToVehicleCode(total_weight) {
 
 async function sendWebhookUpdate(payload, topic) {
 	try {
-		const clientId = payload.clientId;
-		const webhook = await db.Webhook.findOne({ clientId });
-		/*console.log('---------------------------------');
-		console.log('WEBHOOK:', webhook ? webhook.webhookId : webhook);*/
-		// check if the current webhook topic is listed under the client's webhook topic list
-		if (webhook && Array.from(webhook.topics).includes(topic) && !webhook.isBroken) {
-			const signature = generateSignature(payload, webhook.secret);
-			/*console.log('SIGNATURE:', signature);*/
-			const config = {
-				headers: {
-					'x-seconds-signature': signature
-				}
-			};
-			// send request to client's endpoint
-			await webhookAxios.post(webhook.endpointURL, payload, config);
-			// update the lastUsed property of the webhook to current timestamp
-			webhook.update({ lastUsed: moment().toISOString(true) });
-			await webhook.save();
+		if (payload) {
+			const clientId = payload.clientId;
+			const webhook = await db.Webhook.findOne({ clientId });
+			/*console.log('---------------------------------');
+			console.log('WEBHOOK:', webhook ? webhook.webhookId : webhook);*/
+			// check if the current webhook topic is listed under the client's webhook topic list
+			if (webhook && Array.from(webhook.topics).includes(topic) && !webhook.isBroken) {
+				const signature = generateSignature(payload, webhook.secret);
+				/*console.log('SIGNATURE:', signature);*/
+				const config = {
+					headers: {
+						'x-seconds-signature': signature
+					}
+				};
+				// send request to client's endpoint
+				await webhookAxios.post(webhook.endpointURL, payload, config);
+				// update the lastUsed property of the webhook to current timestamp
+				webhook.update({ lastUsed: moment().toISOString(true) });
+				await webhook.save();
+			}
 		}
-		/*console.log('---------------------------------');*/
 		return true;
 	} catch (err) {
 		console.error(err);
