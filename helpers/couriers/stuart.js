@@ -91,7 +91,7 @@ async function updateJob(data) {
 		}
 		if (newStatus !== job.status && jobStatus !== JOB_STATUS.IN_PROGRESS) {
 			job.status = newStatus;
-			job['trackingHistory'].push({
+			job['jobSpecification']['deliveries'][0]['trackingHistory'].push({
 				timestamp: moment().unix(),
 				status: newStatus
 			});

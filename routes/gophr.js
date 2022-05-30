@@ -58,7 +58,7 @@ async function updateStatus(data) {
 		}
 		if (newStatus !== job.status) {
 			job.status = newStatus
-			job['trackingHistory'].push({
+			job['jobSpecification']['deliveries'][0]['trackingHistory'].push({
 				timestamp: moment().unix(),
 				status: newStatus
 			})
@@ -87,7 +87,7 @@ async function updateStatus(data) {
 			const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`;
 			let settings = await db.Settings.findOne({clientId})
 			let canSend = settings ? settings.sms : false
-			sendSMS(job['jobSpecification'].deliveries[0].dropoffLocation.phoneNumber, template, user.subscriptionItems, canSend).then(() =>
+			sendSMS(job['jobSpecification'].deliveries[0].dropoffLocation.phoneNumber, template, user['subscriptionItems'], canSend).then(() =>
 				console.log('SMS sent successfully!')
 			);
 		}
@@ -101,9 +101,9 @@ async function updateStatus(data) {
 				templateId: 'd-90f8f075032e4d4b90fc595ad084d2a6',
 				templateData: {
 					client_reference: `${clientReference}`,
-					customer: `${job.jobSpecification.deliveries[0].dropoffLocation.firstName} ${job.jobSpecification.deliveries[0].dropoffLocation.lastName}`,
-					pickup: `${job.jobSpecification.pickupLocation.fullAddress}`,
-					dropoff: `${job.jobSpecification.deliveries[0].dropoffLocation.fullAddress}`,
+					customer: `${job['jobSpecification'].deliveries[0].dropoffLocation.firstName} ${job['jobSpecification'].deliveries[0].dropoffLocation.lastName}`,
+					pickup: `${job['jobSpecification'].pickupLocation.fullAddress}`,
+					dropoff: `${job['jobSpecification'].deliveries[0].dropoffLocation.fullAddress}`,
 					reason: `${cancellation_reason}`,
 					cancelled_by: `operations`,
 					provider: `gophr`
