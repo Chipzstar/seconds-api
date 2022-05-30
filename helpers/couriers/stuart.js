@@ -172,6 +172,7 @@ async function updateJob(data) {
  */
 async function updateDelivery(data) {
 	try {
+		console.table(data)
 		const { status: deliveryStatus, id, clientReference, etaToOrigin, etaToDestination } = data;
 		const { newStatus, hubriseStatus } = translateStuartStatus(deliveryStatus);
 		const deliveryId = id.toString()

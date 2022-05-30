@@ -823,8 +823,6 @@ router.post('/multi-drop', async (req, res) => {
 			packagePickupStartTime,
 			vehicleType,
 			drops,
-			windowStartTime,
-			windowEndTime
 		} = req.body;
 		console.log(packagePickupStartTime);
 		//generate client reference number
