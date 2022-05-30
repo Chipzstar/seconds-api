@@ -73,7 +73,8 @@ async function updateJob(data) {
 	try {
 		const jobStatus = data.status;
 		const jobId = data.id.toString();
-		const { id: deliveryId, status: deliveryStatus, etaToOrigin, etaToDestination, driver } = data.currentDelivery;
+		const { id, status: deliveryStatus, etaToOrigin, etaToDestination, driver } = data.currentDelivery;
+		const deliveryId = String(id);
 		const {
 			firstname,
 			lastname,
@@ -83,74 +84,83 @@ async function updateJob(data) {
 		const { newStatus, hubriseStatus } = translateStuartStatus(jobStatus);
 		// find the job in the database
 		let job = await db.Job.findOne({ 'jobSpecification.id': jobId });
-		if (job && job['jobSpecification'].hubriseId && hubriseStatus) {
-			const hubrise = await db.Hubrise.findOne({ clientId: job.clientId });
-			sendHubriseStatusUpdate(hubriseStatus, job['jobSpecification'].hubriseId, hubrise)
-				.then(() => console.log('Hubrise status update sent!'))
-				.catch(err => console.error(err));
-		}
-		if (newStatus !== job.status && jobStatus !== JOB_STATUS.IN_PROGRESS) {
-			job.status = newStatus;
-			job['jobSpecification']['deliveries'][0]['trackingHistory'].push({
-				timestamp: moment().unix(),
-				status: newStatus
-			});
-			await job.save();
-		}
-		job = await db.Job.findOneAndUpdate(
-			{ 'jobSpecification.id': jobId, 'jobSpecification.deliveries.id': deliveryId },
-			{
-				$set: {
-					'driverInformation.name': `${firstname} ${lastname}`,
-					'driverInformation.phone': phone,
-					'driverInformation.transport': code,
-					'jobSpecification.pickupStartTime': moment(etaToOrigin).toISOString(),
-					'jobSpecification.deliveries.$.dropoffEndTime': moment(etaToDestination).toISOString(),
-					'jobSpecification.deliveries.$.status': translateStuartStatus(deliveryStatus).newStatus
-				}
-			},
-			{
-				returnOriginal: false
+		if (job) {
+			if (job['jobSpecification'].hubriseId && hubriseStatus) {
+				const hubrise = await db.Hubrise.findOne({ clientId: job.clientId });
+				sendHubriseStatusUpdate(hubriseStatus, job['jobSpecification'].hubriseId, hubrise)
+					.then(() => console.log('Hubrise status update sent!'))
+					.catch(err => console.error(err));
 			}
-		);
-		// add commission charge depending on payment plan
-		if (jobStatus === JOB_STATUS.COMPLETED) {
-			console.log('****************************************************************');
-			console.log('STUART JOB COMPLETEEEEEEE!');
-			console.log('****************************************************************');
-			let { company, stripeCustomerId, subscriptionId, subscriptionItems } = await db.User.findOne(
-				{ _id: job.clientId },
-				{}
-			);
-			let settings = await db.Settings.findOne({ clientId: job.clientId });
-			let canSend = settings ? settings.sms : false;
-			confirmCharge(
-				{ stripeCustomerId, subscriptionId },
-				subscriptionItems,
+			// find the index of the delivery with corresponding delivery ID
+			const index = job['jobSpecification'].deliveries.findIndex(delivery => delivery.id === deliveryId);
+			if (
+				index !== -1 &&
+				newStatus !== job['jobSpecification'].deliveries[index].status
+			) {
+				job.status = newStatus;
+				job['jobSpecification'].deliveries[index].status = newStatus;
+				job['jobSpecification'].deliveries[index].trackingHistory.push({
+					timestamp: moment().unix(),
+					status: newStatus
+				});
+				await job.save();
+			}
+			job = await db.Job.findOneAndUpdate(
+				{ 'jobSpecification.id': jobId, 'jobSpecification.deliveries.id': deliveryId },
 				{
-					commissionCharge: job.commissionCharge,
-					deliveryFee: job.selectedConfiguration.deliveryFee,
-					deliveryType: job.jobSpecification.deliveryType,
-					description: `Order: ${job.jobSpecification.orderNumber}\tRef: ${job.jobSpecification.jobReference}`
+					$set: {
+						'driverInformation.name': `${firstname} ${lastname}`,
+						'driverInformation.phone': phone,
+						'driverInformation.transport': code,
+						'jobSpecification.pickupStartTime': moment(etaToOrigin).toISOString(),
+						'jobSpecification.deliveries.$.dropoffEndTime': moment(etaToDestination).toISOString(),
+						'jobSpecification.deliveries.$.status': translateStuartStatus(deliveryStatus).newStatus
+					}
 				},
-				job.jobSpecification.deliveries.length
-			)
-				.then(res => console.log('Charge confirmed:', res))
-				.catch(err => console.error(err));
-			const template = `Your ${company} order has been delivered. Thanks for ordering with ${company}`;
-			sendSMS(
-				job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber,
-				template,
-				subscriptionItems,
-				canSend
-			).then(message => console.log(message));
-			const title = `Delivery Finished!`;
-			const content = `Order ${job.jobSpecification.orderNumber} has been delivered to the customer`;
-			sendNotification(job.clientId, title, content, MAGIC_BELL_CHANNELS.ORDER_CREATED).then(() =>
-				console.log('notification sent!')
+				{
+					returnOriginal: false
+				}
 			);
+			// add commission charge depending on payment plan
+			if (jobStatus === JOB_STATUS.COMPLETED) {
+				console.log('****************************************************************');
+				console.log('STUART JOB COMPLETEEEEEEE!');
+				console.log('****************************************************************');
+				let { company, stripeCustomerId, subscriptionId, subscriptionItems } = await db.User.findOne(
+					{ _id: job.clientId },
+					{}
+				);
+				let settings = await db.Settings.findOne({ clientId: job.clientId });
+				let canSend = settings ? settings['sms'] : false;
+				confirmCharge(
+					{ stripeCustomerId, subscriptionId },
+					subscriptionItems,
+					{
+						commissionCharge: job['commissionCharge'],
+						deliveryFee: job['selectedConfiguration'].deliveryFee,
+						deliveryType: job['jobSpecification'].deliveryType,
+						description: `Order: ${job['jobSpecification'].orderNumber}\tRef: ${job['jobSpecification'].jobReference}`
+					},
+					job['jobSpecification'].deliveries.length
+				)
+					.then(res => console.log('Charge confirmed:', res))
+					.catch(err => console.error(err));
+				const template = `Your ${company} order has been delivered. Thanks for ordering with ${company}`;
+				sendSMS(
+					job['jobSpecification'].deliveries[0].dropoffLocation.phoneNumber,
+					template,
+					subscriptionItems,
+					canSend
+				).then(message => console.log(message));
+				const title = `Delivery Finished!`;
+				const content = `Order ${job['jobSpecification'].orderNumber} has been delivered to the customer`;
+				sendNotification(job.clientId, title, content, MAGIC_BELL_CHANNELS.ORDER_CREATED).then(() =>
+					console.log('notification sent!')
+				);
+			}
+			return job;
 		}
-		return job;
+		return null;
 	} catch (err) {
 		console.error(err);
 		throw err;

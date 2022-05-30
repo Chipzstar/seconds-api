@@ -115,7 +115,7 @@ async function updateJob(data) {
 				sendSMS(
 					job['jobSpecification'].deliveries[0].dropoffLocation.phoneNumber,
 					template,
-					user.subscriptionItems,
+					user['subscriptionItems'],
 					canSend
 				).then(() => console.log('SMS sent successfully!'));
 			}
