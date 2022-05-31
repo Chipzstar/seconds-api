@@ -346,6 +346,7 @@ async function findAvailableDriver(user, { autoDispatch }) {
 async function checkJobExpired(jobId, driver, user, settings) {
 	let futureJob = await db.Job.findById(jobId);
 	if (futureJob && [STATUS.NEW, STATUS.PENDING].includes(futureJob.status)) {
+		const orderNumber = futureJob['jobSpecification'].deliveries[0].orderNumber
 		futureJob.status = STATUS.CANCELLED;
 		await futureJob.save();
 		console.log(
@@ -366,7 +367,7 @@ async function checkJobExpired(jobId, driver, user, settings) {
 			);
 		}
 	} else {
-		console.log(`No job found with order number: ${orderNumber}`);
+		console.log(`No job found with ID: ${jobId}`);
 	}
 }
 
@@ -386,7 +387,7 @@ function validatePhoneNumbers(phoneNumbers) {
 
 // QUOTE AGGREGATION
 // send delivery request to integrated providers
-async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance, settings, dispatchMode = 'AUTO') {
+async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance, settings, dispatchMode = 'AUTO', isMultiDrop=false) {
 	try {
 		const QUOTES = [];
 		// check if distance is less than or equal to the vehicle's max pickup to dropoff distance
@@ -417,7 +418,7 @@ async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance, settin
 				}
 			}
 		}
-		if (process.env.GOPHR_STATUS === 'active' && settings.activeFleetProviders.gophr) {
+		if (process.env.GOPHR_STATUS === 'active' && settings.activeFleetProviders.gophr && !isMultiDrop) {
 			let gophrQuote = await getGophrQuote(requestBody, vehicleSpecs);
 			if (gophrQuote) {
 				if (dispatchMode === DISPATCH_MODES.AUTO) {
@@ -429,7 +430,7 @@ async function getResultantQuotes(requestBody, vehicleSpecs, jobDistance, settin
 				}
 			}
 		}
-		if (process.env.STREET_STREAM_STATUS === 'active' && settings.activeFleetProviders.street_stream) {
+		if (process.env.STREET_STREAM_STATUS === 'active' && settings.activeFleetProviders.street_stream && !isMultiDrop) {
 			let streetStreamQuote = await getStreetStreamQuote(requestBody, vehicleSpecs);
 			if (streetStreamQuote) {
 				if (dispatchMode === DISPATCH_MODES.AUTO) {
@@ -489,7 +490,7 @@ async function providerCreatesJob(provider, ref, strategy, request, vehicleSpecs
 
 async function getClientDetails(apiKey) {
 	try {
-		return await db.User.findOne({ apiKey: apiKey }, {});
+		return await db.User.findOne({ apiKey: apiKey });
 	} catch (err) {
 		console.error(err);
 		throw err;
@@ -508,17 +509,22 @@ async function getStuartQuote(reference, params, vehicleSpecs) {
 		packagePickupStartTime,
 		drops
 	} = params;
-	const {
-		dropoffAddress,
-		dropoffPhoneNumber,
-		dropoffEmailAddress,
-		dropoffBusinessName,
-		dropoffFirstName,
-		dropoffLastName,
-		dropoffInstructions,
-		packageDropoffStartTime,
-		packageDropoffEndTime
-	} = drops[0];
+	const dropoffs = drops.map((drop, index) => ({
+		...dropoffSchema,
+		package_type: vehicleSpecs.stuart.packageType,
+		client_reference: orderId.generate(moment().add(index, "s").toDate()),
+		address: drop.dropoffAddress,
+		comment: drop.dropoffInstructions,
+		contact: {
+			firstname: drop.dropoffFirstName,
+			lastname: drop.dropoffLastName,
+			phone: drop.dropoffPhoneNumber,
+			email: drop.dropoffEmailAddress,
+			company: drop.dropoffBusinessName
+		},
+		...(drop.packageDropoffStartTime && { end_customer_time_window_start: drop.packageDropoffStartTime }),
+		...(drop.packageDropoffEndTime && { end_customer_time_window_end: drop.packageDropoffEndTime })
+	}))
 	try {
 		const payload = {
 			job: {
@@ -538,24 +544,7 @@ async function getStuartQuote(reference, params, vehicleSpecs) {
 						}
 					}
 				],
-				dropoffs: [
-					{
-						...dropoffSchema,
-						package_type: vehicleSpecs.stuart.packageType,
-						client_reference: orderId.generate(),
-						address: dropoffAddress,
-						comment: dropoffInstructions,
-						contact: {
-							firstname: dropoffFirstName,
-							lastname: dropoffLastName,
-							phone: dropoffPhoneNumber,
-							email: dropoffEmailAddress,
-							company: dropoffBusinessName
-						},
-						...(packageDropoffStartTime && { end_customer_time_window_start: packageDropoffStartTime }),
-						...(packageDropoffEndTime && { end_customer_time_window_end: packageDropoffEndTime })
-					}
-				]
+				dropoffs
 			}
 		};
 		console.log('PAYLOAD');

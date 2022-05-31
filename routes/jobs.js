@@ -9,7 +9,6 @@ const {
 	providerCreatesJob,
 	getVehicleSpecs,
 	calculateJobDistance,
-	checkAlternativeVehicles,
 	checkPickupHours,
 	setNextDayDeliveryTime,
 	sendNewJobEmails,
@@ -537,9 +536,7 @@ router.post('/assign', async (req, res) => {
 				console.log('SMS sent successfully!')
 			);
 			const title = `New order!`;
-			const content = `Order ${orderNumber} has been created ${
-				driver && 'and dispatched to your driver'
-			}`;
+			const content = `Order ${orderNumber} has been created ${driver && 'and dispatched to your driver'}`;
 			sendNotification(clientId, title, content, MAGIC_BELL_CHANNELS.ORDER_CREATED).then(() =>
 				console.log('notification sent!')
 			);
@@ -696,7 +693,7 @@ router.patch('/dispatch', async (req, res) => {
 					setTimeout(
 						() =>
 							checkJobExpired(
-								job._id,
+								job['_id'],
 								driver,
 								{
 									email,
@@ -720,26 +717,28 @@ router.patch('/dispatch', async (req, res) => {
 			let vehicleSpecs = getVehicleSpecs(job.vehicleType);
 			console.table(vehicleSpecs);
 			// CHECK DELIVERY HOURS
-			let canDeliver = checkPickupHours(job.jobSpecification.pickupStartTime, deliveryHours);
+			let canDeliver = checkPickupHours(job['jobSpecification'].pickupStartTime, deliveryHours);
 			// If cannot deliver at the specified pickup time, calculate next available pickup time
 			if (!canDeliver) {
 				const { nextDayPickup, nextDayDropoff } = setNextDayDeliveryTime(
-					job.jobSpecification.pickupStartTime,
+					job['jobSpecification'].pickupStartTime,
 					deliveryHours
 				);
 				console.table({ nextDayPickup, nextDayDropoff });
-				job.jobSpecification.deliveryType = 'NEXT_DAY';
-				job.jobSpecification.pickupStartTime = nextDayPickup;
-				if (job.jobSpecification.deliveryType === DELIVERY_TYPES.ON_DEMAND.name) {
-					job.jobSpecification.deliveries[0].dropoffEndTime = moment(nextDayPickup).add(2, 'hours').format();
+				job['jobSpecification'].deliveryType = 'NEXT_DAY';
+				job['jobSpecification'].pickupStartTime = nextDayPickup;
+				if (job['jobSpecification'].deliveryType === DELIVERY_TYPES.ON_DEMAND.name) {
+					job['jobSpecification'].deliveries[0].dropoffEndTime = moment(nextDayPickup)
+						.add(2, 'hours')
+						.format();
 				} else {
-					job.jobSpecification.deliveries[0].dropoffEndTime = nextDayDropoff;
+					job['jobSpecification'].deliveries[0].dropoffEndTime = nextDayDropoff;
 				}
 				// If delivery hours are valid, check the delivery type of the order
 				// if ON-DEMAND, the difference between pickup and dropoff time should be max. 2 hours
-			} else if (job.jobSpecification.deliveryType === DELIVERY_TYPES.ON_DEMAND.name) {
-				job.jobSpecification.pickupStartTime = moment().add(20, 'minutes').format();
-				job.jobSpecification.deliveries[0].dropoffEndTime = moment()
+			} else if (job['jobSpecification'].deliveryType === DELIVERY_TYPES.ON_DEMAND.name) {
+				job['jobSpecification'].pickupStartTime = moment().add(20, 'minutes').format();
+				job['jobSpecification'].deliveries[0].dropoffEndTime = moment()
 					.add(2, 'hours')
 					.add(20, 'minutes')
 					.format();
@@ -774,19 +773,19 @@ router.patch('/dispatch', async (req, res) => {
 					createJobRequestPayload(job.toObject()),
 					vehicleSpecs
 				);
-				job.jobSpecification.id = spec_id;
-				job.jobSpecification.jobReference = jobReference;
-				if (pickupAt) job.jobSpecification.pickupStartTime = moment(pickupAt).format();
-				job.jobSpecification.deliveries = [delivery];
-				job.selectedConfiguration.deliveryFee = deliveryFee.toFixed(2);
-				job.selectedConfiguration.providerId = providerId;
+				job['jobSpecification'].id = spec_id;
+				job['jobSpecification'].jobReference = jobReference;
+				if (pickupAt) job['jobSpecification'].pickupStartTime = moment(pickupAt).format();
+				job['jobSpecification'].deliveries = [delivery];
+				job['selectedConfiguration'].deliveryFee = deliveryFee.toFixed(2);
+				job['selectedConfiguration'].providerId = providerId;
 				job.commissionCharge = commissionCharge;
-				job.driverInformation.name = 'Searching...';
-				job.driverInformation.phone = 'Searching...';
-				job.driverInformation.transport = 'Searching...';
+				job['driverInformation'].name = 'Searching...';
+				job['driverInformation'].phone = 'Searching...';
+				job['driverInformation'].transport = 'Searching...';
 				await job.save();
 				return res.status(200).json({
-					jobId: job._id,
+					jobId: job['_id'],
 					...job
 				});
 			}
@@ -868,9 +867,10 @@ router.post('/multi-drop', async (req, res) => {
 			);
 			console.table({ nextDayPickup, nextDayDropoff });
 			req.body.packagePickupStartTime = nextDayPickup;
-			drops.forEach(
-				(drop, index) => (req.body.drops[index].packageDropoffEndTime = moment(nextDayDropoff).format())
-			);
+			drops.forEach((drop, index) => {
+				req.body.drops[index].packageDropoffStartTime = moment(nextDayPickup).format()
+				req.body.drops[index].packageDropoffEndTime = moment(nextDayDropoff).format()
+			})
 		}*/
 		// check if user has a subscription active
 		console.log('SUBSCRIPTION ID:', !!subscriptionId);
@@ -1042,47 +1042,39 @@ router.patch('/:job_id', validateJobId, async (req, res) => {
 	} = req.body;
 	try {
 		let jobId = req.params['job_id'];
-		if (mongoose.Types.ObjectId.isValid(jobId)) {
-			let job = await db.Job.findById(jobId);
-			if (job) {
-				if (packageDescription) job['jobSpecification'].deliveries[0].description = packageDescription;
-				if (pickupInstructions) job['jobSpecification'].pickupLocation.instructions = pickupInstructions;
-				if (dropoffInstructions)
-					job['jobSpecification'].deliveries[0].dropoffLocation.instructions = dropoffInstructions;
-				if (pickupStartTime) job['jobSpecification'].pickupStartTime = moment(pickupStartTime).format();
-				if (dropoffStartTime)
-					job['jobSpecification'].deliveries[0].dropoffStartTime = moment(dropoffStartTime).format();
-				if (dropoffEndTime)
-					job['jobSpecification'].deliveries[0].dropoffEndTime = moment(dropoffEndTime).format();
-				if (firstname) job['jobSpecification'].deliveries[0].dropoffLocation.firstName = firstname;
-				if (lastname) job['jobSpecification'].deliveries[0].dropoffLocation.lastName = lastname;
-				if (email) job['jobSpecification'].deliveries[0].dropoffLocation.email = email;
-				if (phone) job['jobSpecification'].deliveries[0].dropoffLocation.phoneNumber = phone;
-				if (addressLine1)
-					job['jobSpecification'].deliveries[0].dropoffLocation.streetAddress = addressLine2
-						? addressLine1 + addressLine2
-						: addressLine1;
-				if (city) job['jobSpecification'].deliveries[0].dropoffLocation.city = city;
-				if (postcode) job['jobSpecification'].deliveries[0].dropoffLocation.postcode = postcode;
-				if (fullAddress) job['jobSpecification'].deliveries[0].dropoffLocation.fullAddress = fullAddress;
-				await job.save();
-				res.status(200).json({
-					jobId: job['_id'],
-					message: 'Job updated successfully',
-					job: job.toObject()
-				});
-			} else {
-				res.status(404).json({
-					code: 404,
-					description: `No job found with ID: ${jobId}`,
-					message: `Job not found`
-				});
-			}
+		const isJobId = mongoose.Types.ObjectId.isValid(jobId);
+		let job = isJobId ? await db.Job.findById(jobId) : await db.Job.findOne({'jobSpecification.deliveries.orderNumber': jobId});
+		if (job) {
+			if (packageDescription) job['jobSpecification'].deliveries[0].description = packageDescription;
+			if (pickupInstructions) job['jobSpecification'].pickupLocation.instructions = pickupInstructions;
+			if (dropoffInstructions)
+				job['jobSpecification'].deliveries[0].dropoffLocation.instructions = dropoffInstructions;
+			if (pickupStartTime) job['jobSpecification'].pickupStartTime = moment(pickupStartTime).format();
+			if (dropoffStartTime)
+				job['jobSpecification'].deliveries[0].dropoffStartTime = moment(dropoffStartTime).format();
+			if (dropoffEndTime) job['jobSpecification'].deliveries[0].dropoffEndTime = moment(dropoffEndTime).format();
+			if (firstname) job['jobSpecification'].deliveries[0].dropoffLocation.firstName = firstname;
+			if (lastname) job['jobSpecification'].deliveries[0].dropoffLocation.lastName = lastname;
+			if (email) job['jobSpecification'].deliveries[0].dropoffLocation.email = email;
+			if (phone) job['jobSpecification'].deliveries[0].dropoffLocation.phoneNumber = phone;
+			if (addressLine1)
+				job['jobSpecification'].deliveries[0].dropoffLocation.streetAddress = addressLine2
+					? addressLine1 + addressLine2
+					: addressLine1;
+			if (city) job['jobSpecification'].deliveries[0].dropoffLocation.city = city;
+			if (postcode) job['jobSpecification'].deliveries[0].dropoffLocation.postcode = postcode;
+			if (fullAddress) job['jobSpecification'].deliveries[0].dropoffLocation.fullAddress = fullAddress;
+			await job.save();
+			res.status(200).json({
+				jobId: job['_id'],
+				message: 'Job updated successfully',
+				job: job.toObject()
+			});
 		} else {
 			res.status(404).json({
 				code: 404,
-				description: `${jobId} is an invalid Job ID`,
-				message: `Invalid Job ID`
+				description: `No job found with ID: ${jobId}`,
+				message: `Job not found`
 			});
 		}
 	} catch (e) {
@@ -1099,7 +1091,7 @@ router.patch('/:job_id', validateJobId, async (req, res) => {
  * @param res - response object
  * @returns {Promise<*>}
  */
-router.delete('/:job_id', async (req, res) => {
+router.delete('/:job_id', validateJobId, async (req, res) => {
 	try {
 		const { comment } = req.query;
 		const id = req.params['job_id'];
@@ -1134,7 +1126,6 @@ router.delete('/:job_id', async (req, res) => {
 			let deliveryId = isJobId ? foundJob['jobSpecification'].deliveries[0].id : getDeliveryId(id, foundJob);
 			let provider = foundJob['selectedConfiguration'].providerId;
 			let message = await cancelOrder(jobId, deliveryId, provider, foundJob, comment);
-			console.log(message);
 			const title = `Delivery Cancelled!`;
 			const content = `Order ${
 				isJobId ? foundJob['jobSpecification']['deliveries'][0].orderNumber : id

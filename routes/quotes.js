@@ -21,9 +21,9 @@ const router = express.Router();
  */
 router.post('/', async (req, res) => {
 	try {
-		console.table(req.body)
+		console.table(req.body);
 		const user = await getClientDetails(req.headers[AUTHORIZATION_KEY]);
-		const settings = await db.Settings.findOne({clientId: user['_id']})
+		const settings = await db.Settings.findOne({ clientId: user['_id'] });
 		console.log('Strategy: ', user['selectionStrategy']);
 		// check that the vehicleType is valid and return the vehicle's specifications
 		let vehicleSpecs = getVehicleSpecs(req.body.vehicleType);
@@ -39,12 +39,21 @@ router.post('/', async (req, res) => {
 			req.body.packagePickupStartTime = moment().add(20, 'minutes').format();
 			req.body.drops[0].packageDropoffEndTime = moment().add(120, 'minutes').format();
 		}
-		const quotes = await getResultantQuotes(req.body, vehicleSpecs, jobDistance, settings, DISPATCH_MODES.MANUAL);
+		const quotes = await getResultantQuotes(
+			req.body,
+			vehicleSpecs,
+			jobDistance,
+			settings,
+			DISPATCH_MODES.MANUAL,
+			req.body.packageDeliveryType === DELIVERY_TYPES.MULTI_DROP.name
+		);
 		const bestQuote = chooseBestProvider(user['selectionStrategy'], quotes);
 		if (!bestQuote) {
-			const error = new Error('No couriers available at this time. Please try again later or enable other third party providers');
+			const error = new Error(
+				'No couriers available at this time. Please try again later or enable other third party providers'
+			);
 			error.status = 500;
-			throw error
+			throw error;
 		}
 		return res.status(200).json({
 			quotes,
