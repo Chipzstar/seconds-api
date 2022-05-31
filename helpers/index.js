@@ -1423,10 +1423,10 @@ async function stuartCancelRequest(jobId="", deliveryId="", comment) {
 			comment
 		};
 		const querystring = queryString.stringify(payload);
-		const URL = BASE_URL + querystring;
-		console.log(querystring)
+		const URL = BASE_URL + "?" + querystring;
 		console.log(URL)
 		const res = (await stuartAxios.post(URL)).data;
+		console.log(res)
 		return 'Your delivery has been cancelled by Stuart!';
 	} catch (err) {
 		throw err;
