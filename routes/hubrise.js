@@ -405,9 +405,8 @@ router.patch('/eta', async (req, res) => {
 	try {
 		const { orderNumber, confirmedTime } = req.body;
 		const apiKey = req.headers[AUTHORIZATION_KEY]
-		const user = getClientDetails(apiKey)
+		const user = await getClientDetails(apiKey)
 		if (user) {
-			console.log(user['_id'])
 			const job = await db.Job.findOne({'jobSpecification.deliveries.orderNumber': orderNumber})
 			const credentials = await db.Hubrise.findOne({clientId: user['_id']})
 			console.log(credentials)
