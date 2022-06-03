@@ -384,7 +384,7 @@ async function createEcommerceJob(platform, id, payload, ecommerceIds, user, set
 		const title = `Failed Order`
 		const reason = `One of your orders could not be created.\nStore: ${domain}\nOrderId: ${id}\nCustomer: ${customerName}\nReason: ${err.message}`
 		await sendNotification(user._id, title, reason, MAGIC_BELL_CHANNELS.ORDER_FAILED)
-		return err;
+		throw err;
 	}
 }
 
