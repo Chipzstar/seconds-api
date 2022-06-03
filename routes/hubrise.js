@@ -6,12 +6,13 @@ const {
 	geocodeAddress,
 	cancelOrder,
 	checkPickupHours,
-	setNextDayDeliveryTime
+	setNextDayDeliveryTime, getClientDetails
 } = require('../helpers');
 const moment = require('moment');
 const sendEmail = require('../services/email');
-const { HUBRISE_STATUS, PLATFORMS, STATUS } = require('@seconds-technologies/database_schemas/constants');
+const { HUBRISE_STATUS, PLATFORMS, STATUS, AUTHORIZATION_KEY } = require('@seconds-technologies/database_schemas/constants');
 const { SERVICE_TYPE } = require('../constants/hubrise');
+const { sendHubriseStatusUpdate, sendHubriseEtaUpdate } = require('../services/hubrise');
 const orderId = require('order-id')(process.env.UID_SECRET_KEY);
 const router = express.Router();
 
@@ -367,6 +368,68 @@ router.post('/', async (req, res) => {
 		res.status(200).json({
 			success: false,
 			STATUS: 'INTERNAL_SERVER_ERROR',
+			message: err.message
+		});
+	}
+});
+
+router.patch('/status', async (req, res) => {
+	try {
+		const { email } = req.query;
+		const { orderNumber, hubriseStatus } = req.body;
+		const user = await db.User.findOne({ email });
+		if (user) {
+			const job = await db.Job.findOne({'jobSpecification.deliveries.orderNumber': orderNumber})
+			const credentials = await db.Hubrise.findOne({clientId: user['_id']})
+			if (job) {
+				const { jobSpecification: { hubriseId } } = job.toObject();
+				const result = await sendHubriseStatusUpdate(hubriseStatus, hubriseId, credentials);
+				res.status(200).json({ message: result });
+			}
+		} else {
+			let error = new Error('No user found');
+			error.status = 404;
+			throw error;
+		}
+	} catch (err) {
+		console.error(err);
+		const status = err.status ? err.status : err.response ? err.response.status : 500;
+		res.status(status).json({
+			status,
+			message: err.message
+		});
+	}
+});
+
+router.patch('/eta', async (req, res) => {
+	try {
+		const { orderNumber, confirmedTime } = req.body;
+		const apiKey = req.headers[AUTHORIZATION_KEY]
+		const user = getClientDetails(apiKey)
+		if (user) {
+			const job = await db.Job.findOne({'jobSpecification.deliveries.orderNumber': orderNumber})
+			const credentials = await db.Hubrise.findOne({clientId: user['_id']})
+			if (job) {
+				const deliveryInfo = {
+					pickupTime: job['jobSpecification'].pickupStartTime.toISOString(true),
+					trackingUrl: job['jobSpecification'].deliveries[0].trackingURL,
+					driverName: job['driverInformation'].name,
+					driverPhone: job['driverInformation'].phone
+				};
+				const { jobSpecification: { hubriseId } } = job.toObject();
+				const result = await sendHubriseEtaUpdate(confirmedTime, deliveryInfo, hubriseId, credentials);
+				res.status(200).json({ message: result });
+			}
+		} else {
+			let error = new Error('No user found');
+			error.status = 404;
+			throw error;
+		}
+	} catch (err) {
+		console.error(err);
+		const status = err.status ? err.status : err.response ? err.response.status : 500;
+		res.status(status).json({
+			status,
 			message: err.message
 		});
 	}

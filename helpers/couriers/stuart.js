@@ -71,7 +71,7 @@ function translateStuartStatus(value) {
  */
 async function updateJob(data) {
 	try {
-		console.log(data)
+		console.log(data);
 		const jobStatus = data.status;
 		const jobId = data.id.toString();
 		const { id, status: deliveryStatus, etaToOrigin, etaToDestination, driver } = data.currentDelivery;
@@ -87,23 +87,28 @@ async function updateJob(data) {
 		let job = await db.Job.findOne({ 'jobSpecification.id': jobId });
 		if (job) {
 			if (job['jobSpecification'].hubriseId && hubriseStatus) {
-				const hubrise = await db.Hubrise.findOne({ clientId: job.clientId });
+				const hubrise = await db.Hubrise.findOne({ clientId: job['clientId'] });
 				sendHubriseStatusUpdate(hubriseStatus, job['jobSpecification'].hubriseId, hubrise)
 					.then(() => console.log('Hubrise status update sent!'))
 					.catch(err => console.error(err));
 			}
 			// find the index of the delivery with corresponding delivery ID
 			const index = job['jobSpecification'].deliveries.findIndex(delivery => delivery.id === deliveryId);
-			if (
-				index !== -1 &&
-				newStatus !== job['jobSpecification'].deliveries[index].status
-			) {
-				job.status = newStatus;
-				job['jobSpecification'].deliveries[index].trackingHistory.push({
-					timestamp: moment().unix(),
-					status: newStatus
-				});
-				await job.save();
+			if (index !== -1 && newStatus !== job['jobSpecification'].deliveries[index].status) {
+				await db.Job.findOneAndUpdate(
+					{ 'jobSpecification.deliveries.id': deliveryId },
+					{
+						$set: {
+							status: newStatus
+						},
+						$push: {
+							'jobSpecification.deliveries.$.trackingHistory': {
+								timestamp: moment().unix(),
+								status: newStatus
+							}
+						}
+					}
+				);
 			}
 			job = await db.Job.findOneAndUpdate(
 				{ 'jobSpecification.id': jobId, 'jobSpecification.deliveries.id': deliveryId },
@@ -125,10 +130,10 @@ async function updateJob(data) {
 				console.log('****************************************************************');
 				console.log('STUART JOB COMPLETEEEEEEE!');
 				console.log('****************************************************************');
-				let { company, stripeCustomerId, subscriptionId, subscriptionItems } = await db.User.findOne(
-					{ _id: job.clientId }
-				);
-				let settings = await db.Settings.findOne({ clientId: job.clientId });
+				let { company, stripeCustomerId, subscriptionId, subscriptionItems } = await db.User.findOne({
+					_id: job['clientId']
+				});
+				let settings = await db.Settings.findOne({ clientId: job['clientId'] });
 				let canSend = settings ? settings['sms'] : false;
 				confirmCharge(
 					{ stripeCustomerId, subscriptionId },
@@ -172,10 +177,10 @@ async function updateJob(data) {
  */
 async function updateDelivery(data) {
 	try {
-		console.log(data)
+		console.log(data);
 		const { status: deliveryStatus, id, clientReference, etaToOrigin, etaToDestination } = data;
 		const { newStatus, hubriseStatus } = translateStuartStatus(deliveryStatus);
-		const deliveryId = id.toString()
+		const deliveryId = id.toString();
 		let job = await db.Job.findOne({ 'jobSpecification.deliveries.id': deliveryId });
 		// send delivery status updates to hubrise if order was created from HubRise
 		if (job) {
@@ -187,16 +192,27 @@ async function updateDelivery(data) {
 			}
 			// find the index of the delivery with corresponding delivery ID
 			const index = job['jobSpecification'].deliveries.findIndex(delivery => delivery.id === deliveryId);
-			if (
-				index !== -1 &&
-				newStatus !== job['jobSpecification'].deliveries[index].status
-			) {
-				job.status = newStatus;
+			if (index !== -1 && newStatus !== job['jobSpecification'].deliveries[index].status) {
+				await db.Job.findOneAndUpdate(
+					{ 'jobSpecification.deliveries.id': deliveryId },
+					{
+						$set: {
+							status: newStatus
+						},
+						$push: {
+							'jobSpecification.deliveries.$.trackingHistory': {
+								timestamp: moment().unix(),
+								status: newStatus
+							}
+						}
+					}
+				);
+				/*job.status = newStatus;
 				job['jobSpecification'].deliveries[index].trackingHistory.push({
 					timestamp: moment().unix(),
 					status: newStatus
 				});
-				await job.save();
+				await job.save();*/
 			}
 			job = await db.Job.findOneAndUpdate(
 				{ 'jobSpecification.deliveries.id': deliveryId },
