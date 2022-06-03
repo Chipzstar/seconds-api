@@ -407,8 +407,10 @@ router.patch('/eta', async (req, res) => {
 		const apiKey = req.headers[AUTHORIZATION_KEY]
 		const user = getClientDetails(apiKey)
 		if (user) {
+			console.log(user['_id'])
 			const job = await db.Job.findOne({'jobSpecification.deliveries.orderNumber': orderNumber})
 			const credentials = await db.Hubrise.findOne({clientId: user['_id']})
+			console.log(credentials)
 			if (job) {
 				const deliveryInfo = {
 					pickupTime: job['jobSpecification'].pickupStartTime.toISOString(true),
