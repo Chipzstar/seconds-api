@@ -417,7 +417,7 @@ router.patch('/eta', async (req, res) => {
 					driverPhone: job['driverInformation'].phone
 				};
 				const { jobSpecification: { hubriseId } } = job.toObject();
-				const result = await sendHubriseEtaUpdate(confirmedTime, deliveryInfo, hubriseId, credentials);
+				const result = await sendHubriseEtaUpdate(confirmedTime, deliveryInfo, hubriseId, credentials.toObject());
 				res.status(200).json({ message: result });
 			}
 		} else {
