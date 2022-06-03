@@ -32,7 +32,7 @@ const {
 	AUTHORIZATION_KEY,
 	PROVIDER_ID,
 	PROVIDER_TYPES,
-	PLATFORMS
+	PLATFORMS, HUBRISE_STATUS
 } = require('@seconds-technologies/database_schemas/constants');
 
 const moment = require('moment');
@@ -46,6 +46,7 @@ const { nanoid } = require('nanoid');
 const { MAGIC_BELL_CHANNELS } = require('../constants');
 const { validateJobId } = require('../middleware/jobs');
 const { deliverySchema } = require('../schemas');
+const { sendHubriseStatusUpdate } = require('../services/hubrise');
 
 /**
  * List Jobs - The API endpoint for listing all jobs currently belonging to a user
@@ -1122,6 +1123,13 @@ router.delete('/:job_id', validateJobId, async (req, res) => {
 			);
 		}
 		if (foundJob) {
+			if (foundJob.jobSpecification.hubriseId){
+				const orderId = foundJob.jobSpecification.hubriseId
+				const hubrise = await db.Hubrise.findOne({clientId: foundJob.clientId})
+				sendHubriseStatusUpdate(HUBRISE_STATUS.CANCELLED, orderId, hubrise.toObject())
+					.then((message) => console.log(message))
+					.catch(err => console.error(err))
+			}
 			let jobId = foundJob['jobSpecification'].id;
 			let deliveryId = isJobId ? foundJob['jobSpecification'].deliveries[0].id : getDeliveryId(id, foundJob);
 			let provider = foundJob['selectedConfiguration'].providerId;
