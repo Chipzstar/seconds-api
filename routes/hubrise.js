@@ -292,6 +292,7 @@ router.post('/', async (req, res) => {
 									cancelOrder(jobId, deliveryId, provider, job)
 										.then(message => {
 											job.status = STATUS.CANCELLED;
+											job['jobSpecification'].deliveries[0].status = STATUS.CANCELLED;
 											job.save();
 											console.log(message);
 										})
