@@ -25,11 +25,11 @@ function translateStreetStreamStatus(value) {
 		case JOB_STATUS.OFFERS_RECEIVED:
 			return { newStatus: STATUS.PENDING, hubriseStatus: ORDER_STATUS.RECEIVED };
 		case JOB_STATUS.JOB_AGREED:
-			return { newStatus: STATUS.PENDING, hubriseStatus: ORDER_STATUS.ACCEPTED };
-		case JOB_STATUS.IN_PROGRESS:
-			return { newStatus: STATUS.DISPATCHING, hubriseStatus: ORDER_STATUS.IN_PREPARATION };
+			return { newStatus: STATUS.DISPATCHING, hubriseStatus: ORDER_STATUS.ACCEPTED };
 		case JOB_STATUS.ARRIVED_AT_COLLECTION:
 			return { newStatus: STATUS.DISPATCHING, hubriseStatus: ORDER_STATUS.AWAITING_SHIPMENT };
+		case JOB_STATUS.IN_PROGRESS:
+			return { newStatus: STATUS.EN_ROUTE, hubriseStatus: ORDER_STATUS.IN_DELIVERY };
 		case JOB_STATUS.COLLECTED:
 			return { newStatus: STATUS.EN_ROUTE, hubriseStatus: ORDER_STATUS.IN_DELIVERY };
 		case JOB_STATUS.ARRIVED_AT_DELIVERY:
@@ -62,7 +62,7 @@ async function updateJob(data) {
 		let job = await db.Job.findOne({ 'jobSpecification.id': jobId });
 		// check if order is hubrise order, if so attempt to send a status update
 		if (job && job['jobSpecification'].hubriseId && hubriseStatus) {
-			const hubrise = await db.Hubrise.findOne({clientId: job.clientId})
+			const hubrise = await db.Hubrise.findOne({clientId: job['clientId']})
 			sendHubriseStatusUpdate(hubriseStatus, job['jobSpecification'].hubriseId, hubrise)
 				.then(() => console.log("Hubrise status update sent!"))
 				.catch(err => console.error(err))
@@ -77,8 +77,8 @@ async function updateJob(data) {
 			await job.save();
 		}
 		if (job) {
-			const user = await db.User.findOne({ _id: job.clientId });
-			let settings = await db.Settings.findOne({ clientId: job.clientId });
+			const user = await db.User.findOne({ _id: job['clientId'] });
+			let settings = await db.Settings.findOne({ clientId: job['clientId'] });
 			console.log('User:', !!user);
 			if (
 				jobStatus === JOB_STATUS.ADMIN_CANCELLED ||

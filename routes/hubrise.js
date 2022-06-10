@@ -375,9 +375,9 @@ router.post('/', async (req, res) => {
 
 router.patch('/status', async (req, res) => {
 	try {
-		const { email } = req.query;
 		const { orderNumber, hubriseStatus } = req.body;
-		const user = await db.User.findOne({ email });
+		const apiKey = req.headers[AUTHORIZATION_KEY]
+		const user = await getClientDetails(apiKey)
 		if (user) {
 			const job = await db.Job.findOne({'jobSpecification.deliveries.orderNumber': orderNumber})
 			const credentials = await db.Hubrise.findOne({clientId: user['_id']})
