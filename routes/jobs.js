@@ -294,7 +294,7 @@ router.post('/create', async (req, res) => {
 				console.log(message)
 			);
 			const title = `New order!`;
-			const content = `Order ${job.jobSpecification.orderNumber} has been created and dispatched to ${job.selectedConfiguration.providerId}`;
+			const content = `Order ${job.jobSpecification.deliveries[0].orderNumber} has been created and dispatched to ${job.selectedConfiguration.providerId}`;
 			sendNotification(clientId, title, content, MAGIC_BELL_CHANNELS.ORDER_CREATED).then(() =>
 				console.log('notification sent!')
 			);

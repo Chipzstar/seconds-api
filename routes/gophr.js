@@ -208,11 +208,11 @@ router.post('/', async (req, res) => {
 						.then(res => console.log('Charge confirmed:', res))
 						.catch(err => console.error(err));
 					const template = `Your ${company} order has been delivered. Thanks for ordering with ${company}!`;
-					sendSMS(job.jobSpecification.deliveries[0].dropoffLocation.phoneNumber, template, subscriptionItems, canSend).then(() =>
+					sendSMS(job['jobSpecification'].deliveries[0].dropoffLocation.phoneNumber, template, subscriptionItems, canSend).then(() =>
 						console.log('SMS sent successfully!')
 					);
 					const title = `Delivery Finished!`;
-					const content = `Order ${job.jobSpecification.orderNumber} has been delivered to the customer`
+					const content = `Order ${job['jobSpecification'].deliveries[0].orderNumber} has been delivered to the customer`
 					sendNotification(clientId, title, content, MAGIC_BELL_CHANNELS.ORDER_DELIVERED).then(() => console.log("notification sent!"))
 				}
 			} else if (webhook_type === WEBHOOK_TYPES.ETA) {
