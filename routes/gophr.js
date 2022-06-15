@@ -80,25 +80,25 @@ async function updateStatus(data) {
 				new: true
 			}
 		);
-		const user = await db.User.findOne({ _id: job.clientId });
+		const user = await db.User.findOne({ _id: job['clientId'] });
 		console.log('User:', !!user);
 		// check if job is en-route, send en-route SMS
 		if (jobStatus === JOB_STATUS.EN_ROUTE) {
 			const trackingMessage = `\nTrack the delivery here: ${process.env.TRACKING_BASE_URL}/${job['_id']}/${job['jobSpecification'].deliveries[0].orderNumber}`;
-			const template = `Your ${user.company} order has been picked up and the driver is on his way. ${trackingMessage}`;
-			let settings = await db.Settings.findOne({clientId})
-			let canSend = settings ? settings.sms : false
+			const template = `Your ${user['company']} order has been picked up and the driver is on his way. ${trackingMessage}`;
+			let settings = await db.Settings.findOne({clientId: job['clientId']})
+			let canSend = settings ? settings['sms'] : false
 			sendSMS(job['jobSpecification'].deliveries[0].dropoffLocation.phoneNumber, template, user['subscriptionItems'], canSend).then(() =>
 				console.log('SMS sent successfully!')
 			);
 		}
 		if (jobStatus === JOB_STATUS.CANCELLED) {
 			// check if order status is cancelled and send out email to clients
-			const settings = await db.Settings.findOne({ clientId: job.clientId })
+			const settings = await db.Settings.findOne({ clientId: job['clientId'] })
 			let canSend = settings && settings['jobAlerts'].cancelled
 			let options = {
-				name: `${user.firstname} ${user.lastname}`,
-				email: `${user.email}`,
+				name: `${user['firstname']} ${user['lastname']}`,
+				email: `${user['email']}`,
 				templateId: 'd-90f8f075032e4d4b90fc595ad084d2a6',
 				templateData: {
 					client_reference: `${clientReference}`,

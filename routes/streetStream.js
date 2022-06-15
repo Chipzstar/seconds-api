@@ -26,12 +26,9 @@ router.post('/', async (req, res) => {
 			console.log('****************************************************************');
 			console.log('STREET STREAM DELIVERY COMPLETEEEEEEE!');
 			console.log('****************************************************************');
-			let { company, stripeCustomerId, subscriptionId, subscriptionItems } = await db.User.findOne(
-				{ _id: clientId },
-				{}
-			);
-			let settings = await db.Settings.findOne({ clientId})
-			let canSend = settings ? settings.sms : false
+			let { company, stripeCustomerId, subscriptionId, subscriptionItems } = await db.User.findById(clientId);
+			let settings = await db.Settings.findOne({ clientId })
+			let canSend = settings ? settings['sms'] : false
 			confirmCharge(
 				{ stripeCustomerId, subscriptionId },
 				subscriptionItems,
