@@ -204,7 +204,7 @@ async function checkAlternativeVehicles(pickup, dropoff, jobDistance, vehicleSpe
 				return vehicleSpecs;
 			}
 		}
-		vehicleSpecs.stuart.packageType = null;
+		// vehicleSpecs.stuart.packageType = null;
 		return vehicleSpecs;
 	} catch (err) {
 		console.log(err);
